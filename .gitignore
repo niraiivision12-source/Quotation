@@ -1,0 +1,27 @@
+# Environment
+.env
+.env.*
+
+# Node
+node_modules
+
+# Logs
+logs
+*.log
+
+# Build
+dist
+.next
+coverage
+
+# Prisma
+backend/prisma/dev.db
+
+# Mac
+.DS_Store
+
+# VSCode
+.vscode
+
+# Docker
+postgres-data
