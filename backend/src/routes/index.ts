@@ -1,0 +1,20 @@
+import { Router } from "express";
+
+import authRoutes from "@/modules/auth/auth.routes";
+import productRoutes from "@/modules/product/product.routes";
+import userRoutes from "@/modules/user/user.routes";
+
+const router = Router();
+
+router.get("/health", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "API Running",
+  });
+});
+
+router.use("/auth", authRoutes);
+router.use("/users", userRoutes);
+router.use("/products", productRoutes);
+
+export default router;

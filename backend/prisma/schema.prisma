@@ -1,0 +1,477 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  SALESMAN
+  ATTENDANT
+  ACCOUNTANT
+}
+
+enum ProjectPhase {
+  PIPES
+  WIRING
+  SWITCHES
+  LIGHTS
+  FANS
+}
+
+enum LifecycleStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  FOLLOW_UP
+  QUOTATION_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum ReminderStatus {
+  PENDING
+  COMPLETED
+  MISSED
+}
+
+enum ReminderType {
+  LEAD
+  PROJECT
+  CUSTOMER
+  QUOTATION
+  TASK
+}
+
+enum ReminderPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReminderRepeatType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum QuotationRevisionReason {
+  PRICE_CHANGE
+  PRODUCT_CHANGE
+  CUSTOMER_REQUEST
+  STOCK_CHANGE
+  OTHER
+}
+
+model User {
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  password String
+  role     UserRole
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedCustomers Customer[]
+  assignedProjects  Project[]
+  assignedPhases    ProjectPhaseTracking[]
+  leads             Lead[]
+
+  quotations Quotation[]
+  reminders  Reminder[]
+
+  assignedTasks Task[] @relation("AssignedTasks")
+  createdTasks  Task[] @relation("CreatedTasks")
+}
+
+model Product {
+  id String @id @default(uuid())
+
+  sku String @unique
+
+  name String
+
+  brand    String?
+  category String?
+
+  unit String?
+
+  costPrice Decimal @db.Decimal(12, 2)
+
+  stockQty Int @default(0)
+
+  tallyStockQty Int @default(0)
+
+  tallyUpdatedAt DateTime?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quotationItems QuotationItem[]
+  ProductMargin  ProductMargin[]
+
+  @@index([name])
+  @@index([sku])
+  @@index([category])
+}
+
+model ProductMargin {
+  id String @id @default(uuid())
+
+  productId String
+
+  role UserRole?
+
+  marginPercent Decimal @db.Decimal(5, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model Lead {
+  id String @id @default(uuid())
+
+  name   String
+  mobile String
+  email  String?
+
+  source String?
+
+  status LeadStatus @default(NEW)
+
+  estimatedValue Decimal? @db.Decimal(12, 2)
+
+  notes String?
+
+  nextFollowUpAt DateTime?
+
+  lastContactedAt DateTime?
+
+  convertedAt DateTime?
+
+  lostReason String?
+
+  assignedToId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  reminders Reminder[]
+
+  tasks Task[]
+
+  @@index([mobile])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([nextFollowUpAt])
+}
+
+model Customer {
+  id String @id @default(uuid())
+
+  name   String
+  mobile String
+  email  String?
+
+  address String?
+
+  assignedToId String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  projects  Project[]
+  reminders Reminder[]
+
+  quotations Quotation[]
+
+  tasks Task[]
+
+  @@index([assignedToId])
+}
+
+model Project {
+  id String @id @default(uuid())
+
+  customerId   String
+  assignedToId String?
+
+  projectName String
+
+  location String?
+
+  currentPhase ProjectPhase @default(PIPES)
+
+  estimatedBudget Decimal? @db.Decimal(12, 2)
+
+  startDate DateTime?
+
+  expectedCompletion DateTime?
+
+  isCompleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  reminders     Reminder[]
+  quotations    Quotation[]
+  tasks         Task[]
+  phaseTracking ProjectPhaseTracking[]
+
+  @@index([customerId])
+  @@index([assignedToId])
+  @@index([currentPhase])
+}
+
+model ProjectPhaseTracking {
+  id String @id @default(uuid())
+
+  projectId String
+
+  phase ProjectPhase
+
+  status LifecycleStatus @default(NOT_STARTED)
+
+  assignedToId String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  estimatedValue Decimal? @db.Decimal(12, 2)
+
+  remarks String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  @@unique([projectId, phase])
+  @@index([projectId])
+  @@index([phase])
+  @@index([assignedToId])
+}
+
+model Reminder {
+  id String @id @default(uuid())
+
+  title       String
+  description String?
+
+  type ReminderType
+
+  priority ReminderPriority @default(MEDIUM)
+
+  dueAt DateTime
+
+  repeatType ReminderRepeatType @default(NONE)
+
+  completedAt DateTime?
+
+  status ReminderStatus @default(PENDING)
+
+  userId String
+
+  leadId     String?
+  customerId String?
+  projectId  String?
+
+  notificationSent Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  lead Lead? @relation(fields: [leadId], references: [id])
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  project Project? @relation(fields: [projectId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([dueAt])
+  @@index([notificationSent])
+}
+
+model Task {
+  id String @id @default(uuid())
+
+  title       String
+  description String?
+
+  status   TaskStatus   @default(PENDING)
+  priority TaskPriority @default(MEDIUM)
+
+  dueAt DateTime?
+
+  assignedToId String
+  createdById  String
+
+  leadId     String?
+  customerId String?
+  projectId  String?
+
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedTo User @relation("AssignedTasks", fields: [assignedToId], references: [id])
+
+  createdBy User @relation("CreatedTasks", fields: [createdById], references: [id])
+
+  lead Lead? @relation(fields: [leadId], references: [id])
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  project Project? @relation(fields: [projectId], references: [id])
+
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([status])
+  @@index([dueAt])
+}
+
+model Quotation {
+  id String @id @default(uuid())
+
+  quotationNumber String @unique
+
+  customerId String
+  projectId  String
+
+  phase ProjectPhase
+
+  version Int
+
+  parentQuotationId String?
+
+  status QuotationStatus @default(DRAFT)
+
+  revisionReason QuotationRevisionReason?
+
+  subtotal Decimal @db.Decimal(12, 2)
+
+  discountAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  totalAmount Decimal @db.Decimal(12, 2)
+
+  notes String?
+
+  validUntil DateTime?
+
+  pdfUrl String?
+
+  approvedAt DateTime?
+
+  rejectedAt DateTime?
+
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  parentQuotation Quotation? @relation("QuotationVersions", fields: [parentQuotationId], references: [id])
+
+  childVersions Quotation[] @relation("QuotationVersions")
+
+  items QuotationItem[]
+
+  @@index([customerId])
+  @@index([projectId])
+  @@index([status])
+  @@index([parentQuotationId])
+}
+
+model QuotationItem {
+  id String @id @default(uuid())
+
+  quotationId String
+
+  productId String
+
+  quantity Int
+
+  costPrice Decimal @db.Decimal(12, 2)
+
+  marginPercent Decimal @db.Decimal(5, 2)
+
+  sellingPrice Decimal @db.Decimal(12, 2)
+
+  totalPrice Decimal @db.Decimal(12, 2)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([quotationId])
+  @@index([productId])
+}
