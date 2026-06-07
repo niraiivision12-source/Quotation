@@ -5,15 +5,15 @@
     "rootDir": "./src",
     "outDir": "./dist",
 
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
     "strict": true,
     "esModuleInterop": true,
-
     "types": ["node"],
-
     "skipLibCheck": true,
     "sourceMap": true
   },
-  "include": ["src/**/*"],
-
-  "exclude": ["node_modules", "dist", "prisma.config.ts"]
+  "include": ["src/**/*"]
 }
