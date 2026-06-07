@@ -51,6 +51,20 @@ enum ReminderType {
   TASK
 }
 
+enum ReminderPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReminderRepeatType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 model User {
   id       String   @id @default(uuid())
   name     String
@@ -188,39 +202,44 @@ model Lead {
 }
 
 model Reminder {
-  id                String           @id @default(uuid())
+  id                String               @id @default(uuid())
 
   title             String
   description       String?
 
   type              ReminderType
 
+  priority          ReminderPriority     @default(MEDIUM)
+
   dueAt             DateTime
+
+  repeatType        ReminderRepeatType   @default(NONE)
 
   completedAt       DateTime?
 
-  status            ReminderStatus   @default(PENDING)
+  status            ReminderStatus       @default(PENDING)
 
   userId            String
 
   leadId            String?
-
   customerId        String?
-
   projectId         String?
 
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  notificationSent  Boolean              @default(false)
 
-  user              User             @relation(fields: [userId], references: [id])
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
-  lead              Lead?            @relation(fields: [leadId], references: [id])
+  user              User                 @relation(fields: [userId], references: [id])
 
-  customer          Customer?        @relation(fields: [customerId], references: [id])
+  lead              Lead?                @relation(fields: [leadId], references: [id])
 
-  project           Project?         @relation(fields: [projectId], references: [id])
+  customer          Customer?            @relation(fields: [customerId], references: [id])
+
+  project           Project?             @relation(fields: [projectId], references: [id])
 
   @@index([userId])
-  @@index([dueAt])
   @@index([status])
+  @@index([dueAt])
+  @@index([notificationSent])
 }
