@@ -131,26 +131,37 @@ model Project {
 }
 
 model Lead {
-  id              String      @id @default(uuid())
+  id                    String      @id @default(uuid())
 
-  name            String
-  mobile          String
-  email           String?
+  name                  String
+  mobile                String
+  email                 String?
 
-  source          String?
+  source                String?
 
-  status          LeadStatus  @default(NEW)
+  status                LeadStatus  @default(NEW)
 
-  notes           String?
+  estimatedValue        Decimal?    @db.Decimal(12,2)
 
-  assignedToId    String?
+  notes                 String?
 
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  nextFollowUpAt        DateTime?
 
-  assignedTo      User?       @relation(fields: [assignedToId], references: [id])
+  lastContactedAt       DateTime?
+
+  convertedAt           DateTime?
+
+  lostReason            String?
+
+  assignedToId          String?
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  assignedTo            User?       @relation(fields: [assignedToId], references: [id])
 
   @@index([mobile])
   @@index([status])
   @@index([assignedToId])
+  @@index([nextFollowUpAt])
 }
