@@ -65,6 +65,14 @@ enum ReminderRepeatType {
   MONTHLY
 }
 
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
 model User {
   id       String   @id @default(uuid())
   name     String
@@ -79,7 +87,9 @@ model User {
 
   assignedCustomers Customer[]
   assignedProjects  Project[]
-  leads Lead[]
+  leads             Lead[]
+
+  quotations Quotation[]
 
   reminders Reminder[]
 }
@@ -103,6 +113,8 @@ model Product {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  quotationItems QuotationItem[]
 }
 
 model Customer {
@@ -123,8 +135,10 @@ model Customer {
 
   assignedTo User? @relation(fields: [assignedToId], references: [id])
 
-  projects Project[]
+  projects  Project[]
   reminders Reminder[]
+
+  quotations Quotation[]
 
   @@index([assignedToId])
 }
@@ -158,40 +172,42 @@ model Project {
 
   reminders Reminder[]
 
+  quotations Quotation[]
+
   @@index([customerId])
   @@index([assignedToId])
   @@index([currentPhase])
 }
 
 model Lead {
-  id                    String      @id @default(uuid())
+  id String @id @default(uuid())
 
-  name                  String
-  mobile                String
-  email                 String?
+  name   String
+  mobile String
+  email  String?
 
-  source                String?
+  source String?
 
-  status                LeadStatus  @default(NEW)
+  status LeadStatus @default(NEW)
 
-  estimatedValue        Decimal?    @db.Decimal(12,2)
+  estimatedValue Decimal? @db.Decimal(12, 2)
 
-  notes                 String?
+  notes String?
 
-  nextFollowUpAt        DateTime?
+  nextFollowUpAt DateTime?
 
-  lastContactedAt       DateTime?
+  lastContactedAt DateTime?
 
-  convertedAt           DateTime?
+  convertedAt DateTime?
 
-  lostReason            String?
+  lostReason String?
 
-  assignedToId          String?
+  assignedToId String?
 
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  assignedTo            User?       @relation(fields: [assignedToId], references: [id])
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
 
   reminders Reminder[]
 
@@ -202,44 +218,111 @@ model Lead {
 }
 
 model Reminder {
-  id                String               @id @default(uuid())
+  id String @id @default(uuid())
 
-  title             String
-  description       String?
+  title       String
+  description String?
 
-  type              ReminderType
+  type ReminderType
 
-  priority          ReminderPriority     @default(MEDIUM)
+  priority ReminderPriority @default(MEDIUM)
 
-  dueAt             DateTime
+  dueAt DateTime
 
-  repeatType        ReminderRepeatType   @default(NONE)
+  repeatType ReminderRepeatType @default(NONE)
 
-  completedAt       DateTime?
+  completedAt DateTime?
 
-  status            ReminderStatus       @default(PENDING)
+  status ReminderStatus @default(PENDING)
 
-  userId            String
+  userId String
 
-  leadId            String?
-  customerId        String?
-  projectId         String?
+  leadId     String?
+  customerId String?
+  projectId  String?
 
-  notificationSent  Boolean              @default(false)
+  notificationSent Boolean @default(false)
 
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user              User                 @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
-  lead              Lead?                @relation(fields: [leadId], references: [id])
+  lead Lead? @relation(fields: [leadId], references: [id])
 
-  customer          Customer?            @relation(fields: [customerId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
 
-  project           Project?             @relation(fields: [projectId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
 
   @@index([userId])
   @@index([status])
   @@index([dueAt])
   @@index([notificationSent])
+}
+
+model Quotation {
+  id String @id @default(uuid())
+
+  quotationNumber String @unique
+
+  customerId String
+  projectId  String
+
+  phase ProjectPhase
+
+  version Int
+
+  status QuotationStatus @default(DRAFT)
+
+  subtotal       Decimal @db.Decimal(12, 2)
+  discountAmount Decimal @default(0) @db.Decimal(12, 2)
+  totalAmount    Decimal @db.Decimal(12, 2)
+
+  notes String?
+
+  validUntil DateTime?
+
+  pdfUrl String?
+
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  items QuotationItem[]
+
+  @@index([customerId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model QuotationItem {
+  id String @id @default(uuid())
+
+  quotationId String
+
+  productId String
+
+  quantity Int
+
+  costPrice Decimal @db.Decimal(12, 2)
+
+  marginPercent Decimal @db.Decimal(5, 2)
+
+  sellingPrice Decimal @db.Decimal(12, 2)
+
+  totalPrice Decimal @db.Decimal(12, 2)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([quotationId])
+  @@index([productId])
 }
