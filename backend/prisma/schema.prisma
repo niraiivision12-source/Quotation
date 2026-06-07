@@ -81,6 +81,13 @@ enum QuotationRevisionReason {
   OTHER
 }
 
+enum LifecycleStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
 model User {
   id       String   @id @default(uuid())
   name     String
@@ -181,6 +188,8 @@ model Project {
   reminders Reminder[]
 
   quotations Quotation[]
+
+  phaseTracking ProjectPhaseTracking[]
 
   @@index([customerId])
   @@index([assignedToId])
@@ -348,4 +357,29 @@ model QuotationItem {
 
   @@index([quotationId])
   @@index([productId])
+}
+
+model ProjectPhaseTracking {
+  id                String            @id @default(uuid())
+
+  projectId         String
+
+  phase             ProjectPhase
+
+  status            LifecycleStatus   @default(NOT_STARTED)
+
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  remarks           String?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([phase])
+
+  @@unique([projectId, phase])
 }
