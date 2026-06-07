@@ -27,6 +27,13 @@ enum ProjectPhase {
   FANS
 }
 
+enum LifecycleStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
 enum LeadStatus {
   NEW
   CONTACTED
@@ -65,6 +72,20 @@ enum ReminderRepeatType {
   MONTHLY
 }
 
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 enum QuotationStatus {
   DRAFT
   SENT
@@ -79,27 +100,6 @@ enum QuotationRevisionReason {
   CUSTOMER_REQUEST
   STOCK_CHANGE
   OTHER
-}
-
-enum LifecycleStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
-  SKIPPED
-}
-
-enum TaskStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-enum TaskPriority {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
 }
 
 model User {
@@ -124,71 +124,6 @@ model User {
 
   assignedTasks Task[] @relation("AssignedTasks")
   createdTasks  Task[] @relation("CreatedTasks")
-}
-
-model Project {
-  id String @id @default(uuid())
-
-  customerId   String
-  assignedToId String?
-
-  projectName String
-
-  location String?
-
-  currentPhase ProjectPhase @default(PIPES)
-
-  estimatedBudget Decimal? @db.Decimal(12, 2)
-
-  startDate DateTime?
-
-  expectedCompletion DateTime?
-
-  isCompleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  assignedTo User? @relation(fields: [assignedToId], references: [id])
-
-  reminders     Reminder[]
-  quotations    Quotation[]
-  tasks         Task[]
-  phaseTracking ProjectPhaseTracking[]
-
-  @@index([customerId])
-  @@index([assignedToId])
-  @@index([currentPhase])
-}
-
-model Customer {
-  id String @id @default(uuid())
-
-  name   String
-  mobile String
-  email  String?
-
-  address String?
-
-  assignedToId String?
-
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  assignedTo User? @relation(fields: [assignedToId], references: [id])
-
-  projects  Project[]
-  reminders Reminder[]
-
-  quotations Quotation[]
-
-  tasks Task[]
-
-  @@index([assignedToId])
 }
 
 model Product {
@@ -281,6 +216,102 @@ model Lead {
   @@index([nextFollowUpAt])
 }
 
+model Customer {
+  id String @id @default(uuid())
+
+  name   String
+  mobile String
+  email  String?
+
+  address String?
+
+  assignedToId String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  projects  Project[]
+  reminders Reminder[]
+
+  quotations Quotation[]
+
+  tasks Task[]
+
+  @@index([assignedToId])
+}
+
+model Project {
+  id String @id @default(uuid())
+
+  customerId   String
+  assignedToId String?
+
+  projectName String
+
+  location String?
+
+  currentPhase ProjectPhase @default(PIPES)
+
+  estimatedBudget Decimal? @db.Decimal(12, 2)
+
+  startDate DateTime?
+
+  expectedCompletion DateTime?
+
+  isCompleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  reminders     Reminder[]
+  quotations    Quotation[]
+  tasks         Task[]
+  phaseTracking ProjectPhaseTracking[]
+
+  @@index([customerId])
+  @@index([assignedToId])
+  @@index([currentPhase])
+}
+
+model ProjectPhaseTracking {
+  id String @id @default(uuid())
+
+  projectId String
+
+  phase ProjectPhase
+
+  status LifecycleStatus @default(NOT_STARTED)
+
+  assignedToId String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  estimatedValue Decimal? @db.Decimal(12, 2)
+
+  remarks String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  @@unique([projectId, phase])
+  @@index([projectId])
+  @@index([phase])
+  @@index([assignedToId])
+}
+
 model Reminder {
   id String @id @default(uuid())
 
@@ -322,6 +353,45 @@ model Reminder {
   @@index([status])
   @@index([dueAt])
   @@index([notificationSent])
+}
+
+model Task {
+  id String @id @default(uuid())
+
+  title       String
+  description String?
+
+  status   TaskStatus   @default(PENDING)
+  priority TaskPriority @default(MEDIUM)
+
+  dueAt DateTime?
+
+  assignedToId String
+  createdById  String
+
+  leadId     String?
+  customerId String?
+  projectId  String?
+
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedTo User @relation("AssignedTasks", fields: [assignedToId], references: [id])
+
+  createdBy User @relation("CreatedTasks", fields: [createdById], references: [id])
+
+  lead Lead? @relation(fields: [leadId], references: [id])
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  project Project? @relation(fields: [projectId], references: [id])
+
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([status])
+  @@index([dueAt])
 }
 
 model Quotation {
@@ -404,74 +474,4 @@ model QuotationItem {
 
   @@index([quotationId])
   @@index([productId])
-}
-
-model ProjectPhaseTracking {
-  id String @id @default(uuid())
-
-  projectId String
-
-  phase ProjectPhase
-
-  status LifecycleStatus @default(NOT_STARTED)
-
-  assignedToId String?
-
-  startedAt   DateTime?
-  completedAt DateTime?
-
-  estimatedValue Decimal? @db.Decimal(12, 2)
-
-  remarks String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  assignedTo User? @relation(fields: [assignedToId], references: [id])
-
-  @@unique([projectId, phase])
-  @@index([projectId])
-  @@index([phase])
-  @@index([assignedToId])
-}
-
-model Task {
-  id String @id @default(uuid())
-
-  title       String
-  description String?
-
-  status   TaskStatus   @default(PENDING)
-  priority TaskPriority @default(MEDIUM)
-
-  dueAt DateTime?
-
-  assignedToId String
-  createdById  String
-
-  leadId     String?
-  customerId String?
-  projectId  String?
-
-  completedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  assignedTo User @relation("AssignedTasks", fields: [assignedToId], references: [id])
-
-  createdBy User @relation("CreatedTasks", fields: [createdById], references: [id])
-
-  lead Lead? @relation(fields: [leadId], references: [id])
-
-  customer Customer? @relation(fields: [customerId], references: [id])
-
-  project Project? @relation(fields: [projectId], references: [id])
-
-  @@index([assignedToId])
-  @@index([createdById])
-  @@index([status])
-  @@index([dueAt])
 }
