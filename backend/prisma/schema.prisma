@@ -73,6 +73,14 @@ enum QuotationStatus {
   EXPIRED
 }
 
+enum QuotationRevisionReason {
+  PRICE_CHANGE
+  PRODUCT_CHANGE
+  CUSTOMER_REQUEST
+  STOCK_CHANGE
+  OTHER
+}
+
 model User {
   id       String   @id @default(uuid())
   name     String
@@ -261,45 +269,60 @@ model Reminder {
 }
 
 model Quotation {
-  id String @id @default(uuid())
+  id                    String                    @id @default(uuid())
 
-  quotationNumber String @unique
+  quotationNumber       String                    @unique
 
-  customerId String
-  projectId  String
+  customerId            String
+  projectId             String
 
-  phase ProjectPhase
+  phase                 ProjectPhase
 
-  version Int
+  version               Int
 
-  status QuotationStatus @default(DRAFT)
+  parentQuotationId     String?
 
-  subtotal       Decimal @db.Decimal(12, 2)
-  discountAmount Decimal @default(0) @db.Decimal(12, 2)
-  totalAmount    Decimal @db.Decimal(12, 2)
+  status                QuotationStatus          @default(DRAFT)
 
-  notes String?
+  revisionReason        QuotationRevisionReason?
 
-  validUntil DateTime?
+  subtotal              Decimal                  @db.Decimal(12,2)
 
-  pdfUrl String?
+  discountAmount        Decimal                  @default(0) @db.Decimal(12,2)
 
-  createdById String
+  totalAmount           Decimal                  @db.Decimal(12,2)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  notes                 String?
 
-  customer Customer @relation(fields: [customerId], references: [id])
+  validUntil            DateTime?
 
-  project Project @relation(fields: [projectId], references: [id])
+  pdfUrl                String?
 
-  createdBy User @relation(fields: [createdById], references: [id])
+  approvedAt            DateTime?
 
-  items QuotationItem[]
+  rejectedAt            DateTime?
+
+  createdById           String
+
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  customer              Customer                 @relation(fields: [customerId], references: [id])
+
+  project               Project                  @relation(fields: [projectId], references: [id])
+
+  createdBy             User                     @relation(fields: [createdById], references: [id])
+
+  parentQuotation       Quotation?               @relation("QuotationVersions", fields: [parentQuotationId], references: [id])
+
+  childVersions         Quotation[]              @relation("QuotationVersions")
+
+  items                 QuotationItem[]
 
   @@index([customerId])
   @@index([projectId])
   @@index([status])
+  @@index([parentQuotationId])
 }
 
 model QuotationItem {
