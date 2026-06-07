@@ -18,4 +18,11 @@ export class AuthController {
       });
     }
   }
+
+  static async me(req: Request, res: Response) {
+    return res.status(200).json({
+      success: true,
+      user: req.user,
+    });
+  }
 }
