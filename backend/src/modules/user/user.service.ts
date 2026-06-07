@@ -3,6 +3,8 @@ import bcrypt from "bcrypt";
 import { prisma } from "@/config/prisma";
 import { UserRole } from "@prisma/client";
 
+import { AppError } from "@/utils/app-error";
+
 export class UserService {
   static async create(data: {
     name: string;
@@ -17,7 +19,7 @@ export class UserService {
     });
 
     if (exists) {
-      throw new Error("Email already exists");
+      throw new AppError("Email already exists", 409);
     }
 
     const password = await bcrypt.hash(data.password, 10);
@@ -40,19 +42,34 @@ export class UserService {
     });
   }
 
-  static async getAll() {
-    return prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+  static async getAll(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+
+      prisma.user.count(),
+    ]);
+
+    return {
+      items: users,
+      total,
+      page,
+      limit,
+    };
   }
 }

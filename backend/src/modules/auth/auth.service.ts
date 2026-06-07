@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 
 import { env } from "@/config/env";
 import { prisma } from "@/config/prisma";
+import { AppError } from "@/utils/app-error";
 
 export class AuthService {
   static async login(email: string, password: string) {
@@ -11,13 +12,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error("Invalid credentials");
+      throw new AppError("Invalid credentials", 401);
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
-      throw new Error("Invalid credentials");
+      throw new AppError("Invalid credentials", 401);
     }
 
     const token = jwt.sign(
