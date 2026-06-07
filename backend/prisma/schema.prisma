@@ -37,6 +37,20 @@ enum LeadStatus {
   LOST
 }
 
+enum ReminderStatus {
+  PENDING
+  COMPLETED
+  MISSED
+}
+
+enum ReminderType {
+  LEAD
+  PROJECT
+  CUSTOMER
+  QUOTATION
+  TASK
+}
+
 model User {
   id       String   @id @default(uuid())
   name     String
@@ -52,6 +66,8 @@ model User {
   assignedCustomers Customer[]
   assignedProjects  Project[]
   leads Lead[]
+
+  reminders Reminder[]
 }
 
 model Product {
@@ -94,6 +110,7 @@ model Customer {
   assignedTo User? @relation(fields: [assignedToId], references: [id])
 
   projects Project[]
+  reminders Reminder[]
 
   @@index([assignedToId])
 }
@@ -124,6 +141,8 @@ model Project {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  reminders Reminder[]
 
   @@index([customerId])
   @@index([assignedToId])
@@ -160,8 +179,48 @@ model Lead {
 
   assignedTo            User?       @relation(fields: [assignedToId], references: [id])
 
+  reminders Reminder[]
+
   @@index([mobile])
   @@index([status])
   @@index([assignedToId])
   @@index([nextFollowUpAt])
+}
+
+model Reminder {
+  id                String           @id @default(uuid())
+
+  title             String
+  description       String?
+
+  type              ReminderType
+
+  dueAt             DateTime
+
+  completedAt       DateTime?
+
+  status            ReminderStatus   @default(PENDING)
+
+  userId            String
+
+  leadId            String?
+
+  customerId        String?
+
+  projectId         String?
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user              User             @relation(fields: [userId], references: [id])
+
+  lead              Lead?            @relation(fields: [leadId], references: [id])
+
+  customer          Customer?        @relation(fields: [customerId], references: [id])
+
+  project           Project?         @relation(fields: [projectId], references: [id])
+
+  @@index([userId])
+  @@index([dueAt])
+  @@index([status])
 }
