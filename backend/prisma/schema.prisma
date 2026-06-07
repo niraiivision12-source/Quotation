@@ -28,81 +28,93 @@ enum ProjectPhase {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
-  password      String
-  role          UserRole
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  password String
+  role     UserRole
 
-  isActive      Boolean  @default(true)
+  isActive Boolean @default(true)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedCustomers Customer[]
+  assignedProjects  Project[]
 }
 
 model Product {
-  id            String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  sku           String   @unique
-  name          String
+  sku  String @unique
+  name String
 
-  brand         String?
-  category      String?
+  brand    String?
+  category String?
 
-  costPrice     Decimal  @db.Decimal(12,2)
+  costPrice Decimal @db.Decimal(12, 2)
 
-  stockQty      Int      @default(0)
+  stockQty Int @default(0)
 
-  isActive      Boolean  @default(true)
+  isActive Boolean @default(true)
 
-  lastSyncAt    DateTime?
+  lastSyncAt DateTime?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Customer {
-  id            String    @id @default(uuid())
+  id String @id @default(uuid())
 
-  name          String
-  mobile        String
-  email         String?
+  name   String
+  mobile String
+  email  String?
 
-  address       String?
+  address String?
 
-  isActive      Boolean    @default(true)
+  assignedToId String?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  isActive Boolean @default(true)
 
-  projects      Project[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  projects Project[]
+
+  @@index([assignedToId])
 }
 
 model Project {
-  id                    String        @id @default(uuid())
+  id String @id @default(uuid())
 
-  customerId            String
+  customerId   String
+  assignedToId String?
 
-  projectName           String
+  projectName String
 
-  location              String?
+  location String?
 
-  currentPhase          ProjectPhase  @default(PIPES)
+  currentPhase ProjectPhase @default(PIPES)
 
-  estimatedBudget       Decimal?      @db.Decimal(12,2)
+  estimatedBudget Decimal? @db.Decimal(12, 2)
 
-  startDate             DateTime?
+  startDate DateTime?
 
-  expectedCompletion    DateTime?
+  expectedCompletion DateTime?
 
-  isCompleted           Boolean       @default(false)
+  isCompleted Boolean @default(false)
 
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  customer              Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
 
   @@index([customerId])
-
+  @@index([assignedToId])
   @@index([currentPhase])
 }
