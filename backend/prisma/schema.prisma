@@ -102,10 +102,10 @@ model User {
 
   assignedCustomers Customer[]
   assignedProjects  Project[]
+  assignedPhases ProjectPhaseTracking[]
   leads             Lead[]
 
   quotations Quotation[]
-
   reminders Reminder[]
 }
 
@@ -368,8 +368,12 @@ model ProjectPhaseTracking {
 
   status            LifecycleStatus   @default(NOT_STARTED)
 
+  assignedToId      String?
+
   startedAt         DateTime?
   completedAt       DateTime?
+
+  estimatedValue    Decimal?          @db.Decimal(12,2)
 
   remarks           String?
 
@@ -378,8 +382,11 @@ model ProjectPhaseTracking {
 
   project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  assignedTo        User?             @relation(fields: [assignedToId], references: [id])
+
   @@index([projectId])
   @@index([phase])
+  @@index([assignedToId])
 
   @@unique([projectId, phase])
 }
