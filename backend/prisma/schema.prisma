@@ -27,6 +27,16 @@ enum ProjectPhase {
   FANS
 }
 
+enum LeadStatus {
+  NEW
+  CONTACTED
+  FOLLOW_UP
+  QUOTATION_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
 model User {
   id       String   @id @default(uuid())
   name     String
@@ -41,6 +51,7 @@ model User {
 
   assignedCustomers Customer[]
   assignedProjects  Project[]
+  leads Lead[]
 }
 
 model Product {
@@ -117,4 +128,29 @@ model Project {
   @@index([customerId])
   @@index([assignedToId])
   @@index([currentPhase])
+}
+
+model Lead {
+  id              String      @id @default(uuid())
+
+  name            String
+  mobile          String
+  email           String?
+
+  source          String?
+
+  status          LeadStatus  @default(NEW)
+
+  notes           String?
+
+  assignedToId    String?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  assignedTo      User?       @relation(fields: [assignedToId], references: [id])
+
+  @@index([mobile])
+  @@index([status])
+  @@index([assignedToId])
 }
