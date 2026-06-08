@@ -27,7 +27,16 @@ export class QuotationController {
 
     const limit = Number(req.query.limit || 20);
 
-    const result = await QuotationService.getAll(page, limit);
+    const projectId = req.query.projectId?.toString();
+
+    const customerId = req.query.customerId?.toString();
+
+    const result = await QuotationService.getAll(
+      page,
+      limit,
+      projectId,
+      customerId,
+    );
 
     return res.status(200).json({
       success: true,

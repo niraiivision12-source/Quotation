@@ -115,22 +115,59 @@ export class QuotationService {
     });
   }
 
-  static async getAll(page: number, limit: number) {
+  static async getAll(
+    page: number,
+    limit: number,
+    projectId?: string,
+    customerId?: string,
+  ) {
     const skip = (page - 1) * limit;
+
+    const where = {
+      ...(projectId && {
+        projectId,
+      }),
+      ...(customerId && {
+        customerId,
+      }),
+    };
 
     const [items, total] = await Promise.all([
       prisma.quotation.findMany({
+        where,
         skip,
         take: limit,
-        include: {
-          customer: true,
-          project: true,
+        select: {
+          id: true,
+          quotationNumber: true,
+          phase: true,
+          version: true,
+          status: true,
+          totalAmount: true,
+          createdAt: true,
+
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              mobile: true,
+            },
+          },
+
+          project: {
+            select: {
+              id: true,
+              projectName: true,
+            },
+          },
         },
         orderBy: {
           createdAt: "desc",
         },
       }),
-      prisma.quotation.count(),
+      prisma.quotation.count({
+        where,
+      }),
     ]);
 
     return {
