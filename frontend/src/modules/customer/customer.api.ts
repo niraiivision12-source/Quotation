@@ -1,6 +1,12 @@
 import { api } from "@/lib/axios";
 
-export const getCustomers = async (page = 1, limit = 20, search = "") => {
+import type { CustomerListResponse } from "./customer.types";
+
+export const getCustomers = async (
+  page = 1,
+  limit = 20,
+  search = "",
+): Promise<CustomerListResponse> => {
   const response = await api.get("/customers", {
     params: {
       page,
