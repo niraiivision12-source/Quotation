@@ -5,6 +5,7 @@ import customerRoutes from "@/modules/customer/customer.routes";
 import leadRoutes from "@/modules/lead/lead.routes";
 import productRoutes from "@/modules/product/product.routes";
 import projectRoutes from "@/modules/project/project.routes";
+import reminderRoutes from "@/modules/reminder/reminder.routes";
 import userRoutes from "@/modules/user/user.routes";
 
 const router = Router();
@@ -22,5 +23,6 @@ router.use("/products", productRoutes);
 router.use("/customers", customerRoutes);
 router.use("/projects", projectRoutes);
 router.use("/leads", leadRoutes);
+router.use("/reminders", reminderRoutes);
 
 export default router;
