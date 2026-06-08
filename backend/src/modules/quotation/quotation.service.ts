@@ -114,4 +114,72 @@ export class QuotationService {
       return quotation;
     });
   }
+
+  static async getAll(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      prisma.quotation.findMany({
+        skip,
+        take: limit,
+        include: {
+          customer: true,
+          project: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      prisma.quotation.count(),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  static async getById(id: string) {
+    const quotation = await prisma.quotation.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        customer: true,
+        project: true,
+        createdBy: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+        childVersions: true,
+        parentQuotation: true,
+      },
+    });
+
+    if (!quotation) {
+      throw new AppError("Quotation not found", 404);
+    }
+
+    return quotation;
+  }
+
+  static async getProjectQuotations(projectId: string) {
+    return prisma.quotation.findMany({
+      where: {
+        projectId,
+      },
+      orderBy: [
+        {
+          phase: "asc",
+        },
+        {
+          version: "desc",
+        },
+      ],
+    });
+  }
 }
