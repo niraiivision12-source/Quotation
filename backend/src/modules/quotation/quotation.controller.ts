@@ -4,6 +4,7 @@ import { QuotationService } from "@/modules/quotation/quotation.service";
 
 import {
   createQuotationSchema,
+  createRevisionSchema,
   updateQuotationStatusSchema,
 } from "@/modules/quotation/quotation.validation";
 
@@ -81,6 +82,22 @@ export class QuotationController {
     return res.status(200).json({
       success: true,
       message: "Quotation updated",
+      data: result,
+    });
+  }
+
+  static async createRevision(req: Request<QuotationParams>, res: Response) {
+    const data = createRevisionSchema.parse(req.body);
+
+    const result = await QuotationService.createRevision(
+      req.params.id,
+      req.user!.id,
+      data.revisionReason,
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Quotation revision created",
       data: result,
     });
   }

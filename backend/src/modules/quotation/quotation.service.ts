@@ -1,6 +1,10 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
-import { Prisma, QuotationStatus } from "@prisma/client";
+import {
+  Prisma,
+  QuotationRevisionReason,
+  QuotationStatus,
+} from "@prisma/client";
 
 export class QuotationService {
   static async create(userId: string, data: any) {
@@ -267,6 +271,91 @@ export class QuotationService {
 
         rejectedAt: status === QuotationStatus.REJECTED ? new Date() : null,
       },
+    });
+  }
+
+  static async createRevision(
+    quotationId: string,
+    userId: string,
+    revisionReason: QuotationRevisionReason,
+  ) {
+    const quotation = await prisma.quotation.findUnique({
+      where: {
+        id: quotationId,
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!quotation) {
+      throw new AppError("Quotation not found", 404);
+    }
+
+    const latestVersion = await prisma.quotation.findFirst({
+      where: {
+        projectId: quotation.projectId,
+        phase: quotation.phase,
+      },
+      orderBy: {
+        version: "desc",
+      },
+    });
+
+    const version = latestVersion ? latestVersion.version + 1 : 1;
+
+    return prisma.$transaction(async (tx) => {
+      const newQuotation = await tx.quotation.create({
+        data: {
+          quotationNumber: `QT-${Date.now()}`,
+
+          customerId: quotation.customerId,
+
+          projectId: quotation.projectId,
+
+          phase: quotation.phase,
+
+          version,
+
+          status: "DRAFT",
+
+          subtotal: quotation.subtotal,
+
+          discountAmount: quotation.discountAmount,
+
+          totalAmount: quotation.totalAmount,
+
+          notes: quotation.notes,
+
+          validUntil: quotation.validUntil,
+
+          parentQuotationId: quotation.id,
+
+          revisionReason,
+
+          createdById: userId,
+        },
+      });
+
+      await tx.quotationItem.createMany({
+        data: quotation.items.map((item) => ({
+          quotationId: newQuotation.id,
+
+          productId: item.productId,
+
+          quantity: item.quantity,
+
+          costPrice: item.costPrice,
+
+          marginPercent: item.marginPercent,
+
+          sellingPrice: item.sellingPrice,
+
+          totalPrice: item.totalPrice,
+        })),
+      });
+
+      return newQuotation;
     });
   }
 }

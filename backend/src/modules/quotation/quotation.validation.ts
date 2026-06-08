@@ -1,4 +1,8 @@
-import { ProjectPhase, QuotationStatus } from "@prisma/client";
+import {
+  ProjectPhase,
+  QuotationRevisionReason,
+  QuotationStatus,
+} from "@prisma/client";
 import { z } from "zod";
 
 export const createQuotationSchema = z.object({
@@ -24,4 +28,8 @@ export const createQuotationSchema = z.object({
 
 export const updateQuotationStatusSchema = z.object({
   status: z.enum(QuotationStatus),
+});
+
+export const createRevisionSchema = z.object({
+  revisionReason: z.enum(QuotationRevisionReason),
 });

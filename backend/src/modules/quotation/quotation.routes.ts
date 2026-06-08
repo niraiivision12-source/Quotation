@@ -14,6 +14,8 @@ router.get("/", QuotationController.getAll);
 
 router.get("/project/:projectId", QuotationController.getProjectQuotations);
 
+router.post("/:id/revision", QuotationController.createRevision);
+
 router.patch("/:id/status", QuotationController.updateStatus);
 
 router.get("/:id", QuotationController.getById);
