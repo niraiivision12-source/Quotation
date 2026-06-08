@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
 
 import { LeadService } from "@/modules/lead/lead.service";
-import { createLeadSchema } from "@/modules/lead/lead.validation";
+import {
+  convertLeadSchema,
+  createLeadSchema,
+} from "@/modules/lead/lead.validation";
 
 type LeadParams = {
   id: string;
@@ -42,6 +45,18 @@ export class LeadController {
       success: true,
       message: "Lead fetched",
       data: lead,
+    });
+  }
+
+  static async convert(req: Request<LeadParams>, res: Response) {
+    const data = convertLeadSchema.parse(req.body);
+
+    const result = await LeadService.convert(req.params.id, data);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lead converted successfully",
+      data: result,
     });
   }
 }

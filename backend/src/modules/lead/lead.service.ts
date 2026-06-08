@@ -1,5 +1,6 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
+import { LeadStatus } from "@prisma/client";
 
 export class LeadService {
   static async create(data: {
@@ -78,5 +79,83 @@ export class LeadService {
     }
 
     return lead;
+  }
+
+  static async convert(
+    leadId: string,
+    data: {
+      projectName: string;
+      location?: string;
+      estimatedBudget?: number;
+    },
+  ) {
+    const lead = await prisma.lead.findUnique({
+      where: {
+        id: leadId,
+      },
+    });
+
+    if (!lead) {
+      throw new AppError("Lead not found", 404);
+    }
+
+    const customer = await prisma.customer.create({
+      data: {
+        name: lead.name,
+        mobile: lead.mobile,
+        email: lead.email,
+        assignedToId: lead.assignedToId,
+      },
+    });
+
+    const project = await prisma.project.create({
+      data: {
+        customerId: customer.id,
+        projectName: data.projectName,
+        location: data.location,
+        estimatedBudget: data.estimatedBudget,
+        assignedToId: lead.assignedToId,
+      },
+    });
+
+    await prisma.projectPhaseTracking.createMany({
+      data: [
+        {
+          projectId: project.id,
+          phase: "PIPES",
+        },
+        {
+          projectId: project.id,
+          phase: "WIRING",
+        },
+        {
+          projectId: project.id,
+          phase: "SWITCHES",
+        },
+        {
+          projectId: project.id,
+          phase: "LIGHTS",
+        },
+        {
+          projectId: project.id,
+          phase: "FANS",
+        },
+      ],
+    });
+
+    await prisma.lead.update({
+      where: {
+        id: lead.id,
+      },
+      data: {
+        status: LeadStatus.WON,
+        convertedAt: new Date(),
+      },
+    });
+
+    return {
+      customer,
+      project,
+    };
   }
 }

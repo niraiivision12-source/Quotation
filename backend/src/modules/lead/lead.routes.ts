@@ -13,4 +13,6 @@ router.get("/", LeadController.getAll);
 
 router.get("/:id", LeadController.getById);
 
+router.post("/:id/convert", LeadController.convert);
+
 export default router;
