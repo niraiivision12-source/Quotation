@@ -292,6 +292,27 @@ export class QuotationService {
       throw new AppError("Quotation not found", 404);
     }
 
+    const childVersion = await prisma.quotation.findFirst({
+      where: {
+        parentQuotationId: quotation.id,
+      },
+    });
+
+    if (childVersion) {
+      throw new AppError(
+        "Revision already exists. Create revision from latest version.",
+        400,
+      );
+    }
+
+    if (quotation.status === "DRAFT") {
+      throw new AppError("Draft quotation cannot be revised", 400);
+    }
+
+    if (quotation.status === "APPROVED") {
+      throw new AppError("Approved quotation cannot be revised", 400);
+    }
+
     const latestVersion = await prisma.quotation.findFirst({
       where: {
         projectId: quotation.projectId,
