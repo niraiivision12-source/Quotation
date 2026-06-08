@@ -8,7 +8,7 @@ import { useAuthStore } from "@/store/auth.store";
 export default function LoginPage() {
   const navigate = useNavigate();
 
-  const setToken = useAuthStore((state) => state.setToken);
+  const loginStore = useAuthStore((state) => state.login);
 
   const [email, setEmail] = useState("");
 
@@ -19,7 +19,7 @@ export default function LoginPage() {
 
     const response = await login(email, password);
 
-    setToken(response.data.token);
+    loginStore(response.data.token, response.data.user);
 
     navigate("/");
   };
