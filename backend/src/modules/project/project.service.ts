@@ -1,6 +1,8 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
 
+import { LifecycleStatus, ProjectPhase } from "@prisma/client";
+
 export class ProjectService {
   static async create(data: {
     customerId: string;
@@ -27,6 +29,36 @@ export class ProjectService {
         assignedToId: data.assignedToId,
         estimatedBudget: data.estimatedBudget,
       },
+    });
+
+    await prisma.projectPhaseTracking.createMany({
+      data: [
+        {
+          projectId: project.id,
+          phase: ProjectPhase.PIPES,
+          status: LifecycleStatus.NOT_STARTED,
+        },
+        {
+          projectId: project.id,
+          phase: ProjectPhase.WIRING,
+          status: LifecycleStatus.NOT_STARTED,
+        },
+        {
+          projectId: project.id,
+          phase: ProjectPhase.SWITCHES,
+          status: LifecycleStatus.NOT_STARTED,
+        },
+        {
+          projectId: project.id,
+          phase: ProjectPhase.LIGHTS,
+          status: LifecycleStatus.NOT_STARTED,
+        },
+        {
+          projectId: project.id,
+          phase: ProjectPhase.FANS,
+          status: LifecycleStatus.NOT_STARTED,
+        },
+      ],
     });
 
     return project;
