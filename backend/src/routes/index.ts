@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import authRoutes from "@/modules/auth/auth.routes";
 import customerRoutes from "@/modules/customer/customer.routes";
+import leadRoutes from "@/modules/lead/lead.routes";
 import productRoutes from "@/modules/product/product.routes";
 import projectRoutes from "@/modules/project/project.routes";
 import userRoutes from "@/modules/user/user.routes";
@@ -20,5 +21,6 @@ router.use("/users", userRoutes);
 router.use("/products", productRoutes);
 router.use("/customers", customerRoutes);
 router.use("/projects", projectRoutes);
+router.use("/leads", leadRoutes);
 
 export default router;
