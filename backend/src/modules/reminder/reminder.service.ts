@@ -1,9 +1,12 @@
 import { prisma } from "@/config/prisma";
 
 export class ReminderService {
-  static async create(data: any) {
+  static async create(userId: string, data: any) {
     return prisma.reminder.create({
-      data,
+      data: {
+        ...data,
+        userId,
+      },
     });
   }
 

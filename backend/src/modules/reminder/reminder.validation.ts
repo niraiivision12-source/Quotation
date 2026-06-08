@@ -6,17 +6,15 @@ export const createReminderSchema = z.object({
 
   description: z.string().optional(),
 
-  type: z.nativeEnum(ReminderType),
+  type: z.enum(ReminderType),
 
-  priority: z.nativeEnum(ReminderPriority),
+  priority: z.enum(ReminderPriority),
 
   dueAt: z.coerce.date(),
 
-  userId: z.string().uuid(),
+  leadId: z.uuid().optional(),
 
-  leadId: z.string().uuid().optional(),
+  customerId: z.uuid().optional(),
 
-  customerId: z.string().uuid().optional(),
-
-  projectId: z.string().uuid().optional(),
+  projectId: z.uuid().optional(),
 });

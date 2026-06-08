@@ -8,7 +8,7 @@ export class ReminderController {
   static async create(req: Request, res: Response) {
     const data = createReminderSchema.parse(req.body);
 
-    const reminder = await ReminderService.create(data);
+    const reminder = await ReminderService.create(req.user!.id, data);
 
     return res.status(201).json({
       success: true,
