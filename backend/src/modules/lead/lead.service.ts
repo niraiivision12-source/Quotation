@@ -1,6 +1,6 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
-import { LeadStatus } from "@prisma/client";
+import { LeadStatus, LifecycleStatus, ProjectPhase } from "@prisma/client";
 
 export class LeadService {
   static async create(data: {
@@ -99,63 +99,87 @@ export class LeadService {
       throw new AppError("Lead not found", 404);
     }
 
-    const customer = await prisma.customer.create({
-      data: {
-        name: lead.name,
-        mobile: lead.mobile,
-        email: lead.email,
-        assignedToId: lead.assignedToId,
-      },
-    });
+    if (lead.status === LeadStatus.WON) {
+      throw new AppError("Lead already converted", 409);
+    }
 
-    const project = await prisma.project.create({
-      data: {
-        customerId: customer.id,
-        projectName: data.projectName,
-        location: data.location,
-        estimatedBudget: data.estimatedBudget,
-        assignedToId: lead.assignedToId,
-      },
-    });
-
-    await prisma.projectPhaseTracking.createMany({
-      data: [
-        {
-          projectId: project.id,
-          phase: "PIPES",
-        },
-        {
-          projectId: project.id,
-          phase: "WIRING",
-        },
-        {
-          projectId: project.id,
-          phase: "SWITCHES",
-        },
-        {
-          projectId: project.id,
-          phase: "LIGHTS",
-        },
-        {
-          projectId: project.id,
-          phase: "FANS",
-        },
-      ],
-    });
-
-    await prisma.lead.update({
+    const existingCustomer = await prisma.customer.findUnique({
       where: {
-        id: lead.id,
-      },
-      data: {
-        status: LeadStatus.WON,
-        convertedAt: new Date(),
+        mobile: lead.mobile,
       },
     });
 
-    return {
-      customer,
-      project,
-    };
+    if (existingCustomer) {
+      throw new AppError(
+        "Customer already exists with this mobile number",
+        409,
+      );
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.create({
+        data: {
+          name: lead.name,
+          mobile: lead.mobile,
+          email: lead.email,
+          assignedToId: lead.assignedToId,
+        },
+      });
+
+      const project = await tx.project.create({
+        data: {
+          customerId: customer.id,
+          projectName: data.projectName,
+          location: data.location,
+          estimatedBudget: data.estimatedBudget,
+          assignedToId: lead.assignedToId,
+        },
+      });
+
+      await tx.projectPhaseTracking.createMany({
+        data: [
+          {
+            projectId: project.id,
+            phase: ProjectPhase.PIPES,
+            status: LifecycleStatus.NOT_STARTED,
+          },
+          {
+            projectId: project.id,
+            phase: ProjectPhase.WIRING,
+            status: LifecycleStatus.NOT_STARTED,
+          },
+          {
+            projectId: project.id,
+            phase: ProjectPhase.SWITCHES,
+            status: LifecycleStatus.NOT_STARTED,
+          },
+          {
+            projectId: project.id,
+            phase: ProjectPhase.LIGHTS,
+            status: LifecycleStatus.NOT_STARTED,
+          },
+          {
+            projectId: project.id,
+            phase: ProjectPhase.FANS,
+            status: LifecycleStatus.NOT_STARTED,
+          },
+        ],
+      });
+
+      await tx.lead.update({
+        where: {
+          id: lead.id,
+        },
+        data: {
+          status: LeadStatus.WON,
+          convertedAt: new Date(),
+        },
+      });
+
+      return {
+        customer,
+        project,
+      };
+    });
   }
 }
