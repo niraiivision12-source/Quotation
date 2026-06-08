@@ -231,6 +231,31 @@ export class QuotationService {
       throw new AppError("Quotation not found", 404);
     }
 
+    const transitions: Record<QuotationStatus, QuotationStatus[]> = {
+      DRAFT: [QuotationStatus.SENT],
+
+      SENT: [
+        QuotationStatus.APPROVED,
+        QuotationStatus.REJECTED,
+        QuotationStatus.EXPIRED,
+      ],
+
+      APPROVED: [],
+
+      REJECTED: [],
+
+      EXPIRED: [],
+    };
+
+    const allowed = transitions[quotation.status];
+
+    if (!allowed.includes(status)) {
+      throw new AppError(
+        `Cannot move quotation from ${quotation.status} to ${status}`,
+        400,
+      );
+    }
+
     return prisma.quotation.update({
       where: {
         id,
