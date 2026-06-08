@@ -7,10 +7,21 @@ export class ApiResponse {
     };
   }
 
-  static error(message = "Error") {
+  static paginated(data: {
+    items: unknown[];
+    total: number;
+    page: number;
+    limit: number;
+  }) {
     return {
-      success: false,
-      message,
+      success: true,
+      data: data.items,
+      meta: {
+        total: data.total,
+        page: data.page,
+        limit: data.limit,
+        totalPages: Math.ceil(data.total / data.limit),
+      },
     };
   }
 }

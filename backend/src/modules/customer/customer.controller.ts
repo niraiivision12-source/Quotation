@@ -3,10 +3,6 @@ import { Request, Response } from "express";
 import { CustomerService } from "@/modules/customer/customer.service";
 import { createCustomerSchema } from "@/modules/customer/customer.validation";
 
-type GetCustomerParams = {
-  id: string;
-};
-
 export class CustomerController {
   static async create(req: Request, res: Response) {
     const data = createCustomerSchema.parse(req.body);
@@ -35,8 +31,8 @@ export class CustomerController {
     });
   }
 
-  static async getById(req: Request<GetCustomerParams>, res: Response) {
-    const customer = await CustomerService.getById(req.params.id);
+  static async getById(req: Request, res: Response) {
+    const customer = await CustomerService.getById(req.params.id as string);
 
     return res.status(200).json({
       success: true,

@@ -3,10 +3,6 @@ import { Request, Response } from "express";
 import { ProjectService } from "@/modules/project/project.service";
 import { createProjectSchema } from "@/modules/project/project.validation";
 
-type ProjectParams = {
-  id: string;
-};
-
 export class ProjectController {
   static async create(req: Request, res: Response) {
     const data = createProjectSchema.parse(req.body);
@@ -35,8 +31,8 @@ export class ProjectController {
     });
   }
 
-  static async getById(req: Request<ProjectParams>, res: Response) {
-    const project = await ProjectService.getById(req.params.id);
+  static async getById(req: Request, res: Response) {
+    const project = await ProjectService.getById(req.params.id as string);
 
     return res.status(200).json({
       success: true,

@@ -1,16 +1,18 @@
 import { Router } from "express";
 
 import { authenticate } from "@/middlewares/auth.middleware";
+import { asyncHandler } from "@/utils/async-handler";
+
 import { ProjectController } from "@/modules/project/project.controller";
 
 const router = Router();
 
 router.use(authenticate);
 
-router.post("/", ProjectController.create);
+router.post("/", asyncHandler(ProjectController.create));
 
-router.get("/", ProjectController.getAll);
+router.get("/", asyncHandler(ProjectController.getAll));
 
-router.get("/:id", ProjectController.getById);
+router.get("/:id", asyncHandler(ProjectController.getById));
 
 export default router;

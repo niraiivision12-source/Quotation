@@ -4,18 +4,10 @@ import { LifecycleService } from "@/modules/lifecycle/lifecycle.service";
 
 import { updatePhaseSchema } from "@/modules/lifecycle/lifecycle.validation";
 
-type LifecycleParams = {
-  projectId: string;
-  id: string;
-};
-
 export class LifecycleController {
-  static async getProjectLifecycle(
-    req: Request<LifecycleParams>,
-    res: Response,
-  ) {
+  static async getProjectLifecycle(req: Request, res: Response) {
     const result = await LifecycleService.getProjectLifecycle(
-      req.params.projectId,
+      req.params.projectId as string,
     );
 
     return res.status(200).json({
@@ -24,10 +16,13 @@ export class LifecycleController {
     });
   }
 
-  static async updatePhase(req: Request<LifecycleParams>, res: Response) {
+  static async updatePhase(req: Request, res: Response) {
     const data = updatePhaseSchema.parse(req.body);
 
-    const result = await LifecycleService.updatePhase(req.params.id, data);
+    const result = await LifecycleService.updatePhase(
+      req.params.id as string,
+      data,
+    );
 
     return res.status(200).json({
       success: true,

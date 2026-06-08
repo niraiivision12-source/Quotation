@@ -4,10 +4,11 @@ import { Router } from "express";
 import { authenticate } from "@/middlewares/auth.middleware";
 import { authorize } from "@/middlewares/role.middleware";
 import { AuthController } from "@/modules/auth/auth.controller";
+import { asyncHandler } from "@/utils/async-handler";
 
 const router = Router();
 
-router.post("/login", AuthController.login);
+router.post("/login", asyncHandler(AuthController.login));
 
 router.get(
   "/me",
@@ -18,7 +19,7 @@ router.get(
     UserRole.ATTENDANT,
     UserRole.ACCOUNTANT,
   ),
-  AuthController.me,
+  asyncHandler(AuthController.me),
 );
 
 export default router;

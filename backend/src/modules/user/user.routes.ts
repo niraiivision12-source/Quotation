@@ -4,13 +4,18 @@ import { Router } from "express";
 import { authenticate } from "@/middlewares/auth.middleware";
 import { authorize } from "@/middlewares/role.middleware";
 import { UserController } from "@/modules/user/user.controller";
+import { asyncHandler } from "@/utils/async-handler";
 
 const router = Router();
 
 router.use(authenticate);
 
-router.post("/", authorize(UserRole.OWNER), UserController.create);
+router.post(
+  "/",
+  authorize(UserRole.OWNER),
+  asyncHandler(UserController.create),
+);
 
-router.get("/", authorize(UserRole.OWNER), UserController.getAll);
+router.get("/", authorize(UserRole.OWNER), asyncHandler(UserController.getAll));
 
 export default router;

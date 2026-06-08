@@ -8,11 +8,6 @@ import {
   updateQuotationStatusSchema,
 } from "@/modules/quotation/quotation.validation";
 
-type QuotationParams = {
-  id: string;
-  projectId: string;
-};
-
 export class QuotationController {
   static async create(req: Request, res: Response) {
     const data = createQuotationSchema.parse(req.body);
@@ -48,8 +43,8 @@ export class QuotationController {
     });
   }
 
-  static async getById(req: Request<QuotationParams>, res: Response) {
-    const result = await QuotationService.getById(req.params.id);
+  static async getById(req: Request, res: Response) {
+    const result = await QuotationService.getById(req.params.id as string);
 
     return res.status(200).json({
       success: true,
@@ -57,12 +52,9 @@ export class QuotationController {
     });
   }
 
-  static async getProjectQuotations(
-    req: Request<QuotationParams>,
-    res: Response,
-  ) {
+  static async getProjectQuotations(req: Request, res: Response) {
     const result = await QuotationService.getProjectQuotations(
-      req.params.projectId,
+      req.params.projectId as string,
     );
 
     return res.status(200).json({
@@ -71,11 +63,11 @@ export class QuotationController {
     });
   }
 
-  static async updateStatus(req: Request<QuotationParams>, res: Response) {
+  static async updateStatus(req: Request, res: Response) {
     const data = updateQuotationStatusSchema.parse(req.body);
 
     const result = await QuotationService.updateStatus(
-      req.params.id,
+      req.params.id as string,
       data.status,
     );
 
@@ -86,11 +78,11 @@ export class QuotationController {
     });
   }
 
-  static async createRevision(req: Request<QuotationParams>, res: Response) {
+  static async createRevision(req: Request, res: Response) {
     const data = createRevisionSchema.parse(req.body);
 
     const result = await QuotationService.createRevision(
-      req.params.id,
+      req.params.id as string,
       req.user!.id,
       data.revisionReason,
     );

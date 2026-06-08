@@ -6,10 +6,6 @@ import {
   createLeadSchema,
 } from "@/modules/lead/lead.validation";
 
-type LeadParams = {
-  id: string;
-};
-
 export class LeadController {
   static async create(req: Request, res: Response) {
     const data = createLeadSchema.parse(req.body);
@@ -38,8 +34,8 @@ export class LeadController {
     });
   }
 
-  static async getById(req: Request<LeadParams>, res: Response) {
-    const lead = await LeadService.getById(req.params.id);
+  static async getById(req: Request, res: Response) {
+    const lead = await LeadService.getById(req.params.id as string);
 
     return res.status(200).json({
       success: true,
@@ -48,10 +44,10 @@ export class LeadController {
     });
   }
 
-  static async convert(req: Request<LeadParams>, res: Response) {
+  static async convert(req: Request, res: Response) {
     const data = convertLeadSchema.parse(req.body);
 
-    const result = await LeadService.convert(req.params.id, data);
+    const result = await LeadService.convert(req.params.id as string, data);
 
     return res.status(200).json({
       success: true,

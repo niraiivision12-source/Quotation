@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { authenticate } from "@/middlewares/auth.middleware";
+import { asyncHandler } from "@/utils/async-handler";
 
 import { QuotationController } from "@/modules/quotation/quotation.controller";
 
@@ -8,16 +9,19 @@ const router = Router();
 
 router.use(authenticate);
 
-router.post("/", QuotationController.create);
+router.post("/", asyncHandler(QuotationController.create));
 
-router.get("/", QuotationController.getAll);
+router.get("/", asyncHandler(QuotationController.getAll));
 
-router.get("/project/:projectId", QuotationController.getProjectQuotations);
+router.get(
+  "/project/:projectId",
+  asyncHandler(QuotationController.getProjectQuotations),
+);
 
-router.post("/:id/revision", QuotationController.createRevision);
+router.post("/:id/revision", asyncHandler(QuotationController.createRevision));
 
-router.patch("/:id/status", QuotationController.updateStatus);
+router.patch("/:id/status", asyncHandler(QuotationController.updateStatus));
 
-router.get("/:id", QuotationController.getById);
+router.get("/:id", asyncHandler(QuotationController.getById));
 
 export default router;
