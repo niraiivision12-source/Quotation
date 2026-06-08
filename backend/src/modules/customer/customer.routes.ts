@@ -12,4 +12,6 @@ router.post("/", CustomerController.create);
 
 router.get("/", CustomerController.getAll);
 
+router.get("/:id", CustomerController.getById);
+
 export default router;

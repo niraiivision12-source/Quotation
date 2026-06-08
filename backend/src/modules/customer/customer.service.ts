@@ -24,18 +24,39 @@ export class CustomerService {
     });
   }
 
-  static async getAll(page: number, limit: number) {
+  static async getAll(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
+
+    const where = search
+      ? {
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+            {
+              mobile: {
+                contains: search,
+              },
+            },
+          ],
+        }
+      : {};
 
     const [items, total] = await Promise.all([
       prisma.customer.findMany({
+        where,
         skip,
         take: limit,
         orderBy: {
           createdAt: "desc",
         },
       }),
-      prisma.customer.count(),
+      prisma.customer.count({
+        where,
+      }),
     ]);
 
     return {
@@ -44,5 +65,24 @@ export class CustomerService {
       page,
       limit,
     };
+  }
+
+  static async getById(id: string) {
+    const customer = await prisma.customer.findUnique({
+      where: { id },
+      include: {
+        projects: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+      },
+    });
+
+    if (!customer) {
+      throw new AppError("Customer not found", 404);
+    }
+
+    return customer;
   }
 }
