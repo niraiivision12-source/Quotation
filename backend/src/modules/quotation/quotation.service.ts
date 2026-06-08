@@ -1,5 +1,6 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
+import { Prisma } from "@prisma/client";
 
 export class QuotationService {
   static async create(userId: string, data: any) {
@@ -7,10 +8,17 @@ export class QuotationService {
       where: {
         id: data.projectId,
       },
+      include: {
+        customer: true,
+      },
     });
 
     if (!project) {
       throw new AppError("Project not found", 404);
+    }
+
+    if (project.customerId !== data.customerId) {
+      throw new AppError("Project does not belong to customer", 400);
     }
 
     const lastQuotation = await prisma.quotation.findFirst({
@@ -29,9 +37,14 @@ export class QuotationService {
 
     let subtotal = 0;
 
-    const itemData = [];
+    const itemData: Prisma.QuotationItemUncheckedCreateWithoutQuotationInput[] =
+      [];
 
     for (const item of data.items) {
+      if (item.quantity <= 0) {
+        throw new AppError("Invalid quantity", 400);
+      }
+
       const product = await prisma.product.findUnique({
         where: {
           id: item.productId,
@@ -40,6 +53,10 @@ export class QuotationService {
 
       if (!product) {
         throw new AppError("Product not found", 404);
+      }
+
+      if (!product.isActive) {
+        throw new AppError("Product is inactive", 400);
       }
 
       const costPrice = Number(product.costPrice);
@@ -60,39 +77,41 @@ export class QuotationService {
       });
     }
 
-    const quotation = await prisma.quotation.create({
-      data: {
-        quotationNumber,
+    return prisma.$transaction(async (tx) => {
+      const quotation = await tx.quotation.create({
+        data: {
+          quotationNumber,
 
-        customerId: data.customerId,
+          customerId: data.customerId,
 
-        projectId: data.projectId,
+          projectId: data.projectId,
 
-        phase: data.phase,
+          phase: data.phase,
 
-        version,
+          version,
 
-        subtotal,
+          subtotal,
 
-        totalAmount: subtotal,
+          totalAmount: subtotal,
 
-        notes: data.notes,
+          notes: data.notes,
 
-        validUntil: data.validUntil,
+          validUntil: data.validUntil,
 
-        createdById: userId,
+          createdById: userId,
 
-        parentQuotationId: lastQuotation?.id,
+          parentQuotationId: lastQuotation?.id,
 
-        items: {
-          create: itemData,
+          items: {
+            create: itemData,
+          },
         },
-      },
-      include: {
-        items: true,
-      },
-    });
+        include: {
+          items: true,
+        },
+      });
 
-    return quotation;
+      return quotation;
+    });
   }
 }
