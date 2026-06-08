@@ -220,7 +220,7 @@ model Customer {
   id String @id @default(uuid())
 
   name   String
-  mobile String
+  mobile String @unique
   email  String?
 
   address String?
