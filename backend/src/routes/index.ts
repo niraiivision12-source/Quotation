@@ -3,6 +3,7 @@ import { Router } from "express";
 import authRoutes from "@/modules/auth/auth.routes";
 import customerRoutes from "@/modules/customer/customer.routes";
 import productRoutes from "@/modules/product/product.routes";
+import projectRoutes from "@/modules/project/project.routes";
 import userRoutes from "@/modules/user/user.routes";
 
 const router = Router();
@@ -18,5 +19,6 @@ router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/products", productRoutes);
 router.use("/customers", customerRoutes);
+router.use("/projects", projectRoutes);
 
 export default router;
