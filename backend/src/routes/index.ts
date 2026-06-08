@@ -3,6 +3,7 @@ import { Router } from "express";
 import authRoutes from "@/modules/auth/auth.routes";
 import customerRoutes from "@/modules/customer/customer.routes";
 import leadRoutes from "@/modules/lead/lead.routes";
+import lifecycleRoutes from "@/modules/lifecycle/lifecycle.routes";
 import productRoutes from "@/modules/product/product.routes";
 import projectRoutes from "@/modules/project/project.routes";
 import quotationRoutes from "@/modules/quotation/quotation.routes";
@@ -26,5 +27,6 @@ router.use("/projects", projectRoutes);
 router.use("/leads", leadRoutes);
 router.use("/reminders", reminderRoutes);
 router.use("/quotations", quotationRoutes);
+router.use("/lifecycle", lifecycleRoutes);
 
 export default router;
