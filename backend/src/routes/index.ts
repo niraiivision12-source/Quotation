@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import authRoutes from "@/modules/auth/auth.routes";
 import customerRoutes from "@/modules/customer/customer.routes";
+import dashboardRoutes from "@/modules/dashboard/dashboard.routes";
 import leadRoutes from "@/modules/lead/lead.routes";
 import lifecycleRoutes from "@/modules/lifecycle/lifecycle.routes";
 import productRoutes from "@/modules/product/product.routes";
@@ -28,5 +29,6 @@ router.use("/leads", leadRoutes);
 router.use("/reminders", reminderRoutes);
 router.use("/quotations", quotationRoutes);
 router.use("/lifecycle", lifecycleRoutes);
+router.use("/dashboard", dashboardRoutes);
 
 export default router;
