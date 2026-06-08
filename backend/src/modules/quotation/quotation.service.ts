@@ -1,6 +1,6 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
-import { Prisma } from "@prisma/client";
+import { Prisma, QuotationStatus } from "@prisma/client";
 
 export class QuotationService {
   static async create(userId: string, data: any) {
@@ -217,6 +217,31 @@ export class QuotationService {
           version: "desc",
         },
       ],
+    });
+  }
+
+  static async updateStatus(id: string, status: QuotationStatus) {
+    const quotation = await prisma.quotation.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!quotation) {
+      throw new AppError("Quotation not found", 404);
+    }
+
+    return prisma.quotation.update({
+      where: {
+        id,
+      },
+      data: {
+        status,
+
+        approvedAt: status === QuotationStatus.APPROVED ? new Date() : null,
+
+        rejectedAt: status === QuotationStatus.REJECTED ? new Date() : null,
+      },
     });
   }
 }

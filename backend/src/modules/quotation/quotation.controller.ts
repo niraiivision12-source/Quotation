@@ -2,7 +2,10 @@ import { Request, Response } from "express";
 
 import { QuotationService } from "@/modules/quotation/quotation.service";
 
-import { createQuotationSchema } from "@/modules/quotation/quotation.validation";
+import {
+  createQuotationSchema,
+  updateQuotationStatusSchema,
+} from "@/modules/quotation/quotation.validation";
 
 type QuotationParams = {
   id: string;
@@ -63,6 +66,21 @@ export class QuotationController {
 
     return res.status(200).json({
       success: true,
+      data: result,
+    });
+  }
+
+  static async updateStatus(req: Request<QuotationParams>, res: Response) {
+    const data = updateQuotationStatusSchema.parse(req.body);
+
+    const result = await QuotationService.updateStatus(
+      req.params.id,
+      data.status,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Quotation updated",
       data: result,
     });
   }

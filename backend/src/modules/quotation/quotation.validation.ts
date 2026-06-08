@@ -1,4 +1,4 @@
-import { ProjectPhase } from "@prisma/client";
+import { ProjectPhase, QuotationStatus } from "@prisma/client";
 import { z } from "zod";
 
 export const createQuotationSchema = z.object({
@@ -20,4 +20,8 @@ export const createQuotationSchema = z.object({
       marginPercent: z.number().min(0),
     }),
   ),
+});
+
+export const updateQuotationStatusSchema = z.object({
+  status: z.enum(QuotationStatus),
 });
