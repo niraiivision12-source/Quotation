@@ -32,7 +32,26 @@ export class LifecycleService {
       throw new AppError("Phase not found", 404);
     }
 
-    return prisma.projectPhaseTracking.update({
+    const projectPhases = await prisma.projectPhaseTracking.findMany({
+      where: {
+        projectId: phase.projectId,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    const currentIndex = projectPhases.findIndex((p) => p.id === phase.id);
+
+    if (data.status === LifecycleStatus.COMPLETED) {
+      for (let i = 0; i < currentIndex; i++) {
+        if (projectPhases[i].status !== LifecycleStatus.COMPLETED) {
+          throw new AppError("Previous phases must be completed first", 400);
+        }
+      }
+    }
+
+    const updated = await prisma.projectPhaseTracking.update({
       where: {
         id,
       },
@@ -47,8 +66,31 @@ export class LifecycleService {
             : phase.startedAt,
 
         completedAt:
-          data.status === LifecycleStatus.COMPLETED ? new Date() : null,
+          data.status === LifecycleStatus.COMPLETED
+            ? new Date()
+            : phase.completedAt,
       },
     });
+
+    const incomplete = await prisma.projectPhaseTracking.count({
+      where: {
+        projectId: phase.projectId,
+
+        status: {
+          not: LifecycleStatus.COMPLETED,
+        },
+      },
+    });
+
+    await prisma.project.update({
+      where: {
+        id: phase.projectId,
+      },
+      data: {
+        isCompleted: incomplete === 0,
+      },
+    });
+
+    return updated;
   }
 }
