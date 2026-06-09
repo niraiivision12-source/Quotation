@@ -16,9 +16,7 @@ import PageHeader from "@/components/ui/PageHeader";
 
 import { useCustomers } from "./customer.query";
 
-import CustomerForm from "./CustomerForm";
-
-import { Card, CardContent } from "@/components/ui/card";
+import CreateCustomerDialog from "./CreateCustomerDialog";
 
 export default function CustomerList() {
   const [page, setPage] = useState(1);
@@ -32,6 +30,10 @@ export default function CustomerList() {
       <PageHeader title="Customers" />
 
       <div className="mb-4">
+        <CreateCustomerDialog />
+      </div>
+
+      <div className="mb-4">
         <Input
           placeholder="Search customer"
           value={search}
@@ -42,12 +44,6 @@ export default function CustomerList() {
           }}
         />
       </div>
-
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <CustomerForm />
-        </CardContent>
-      </Card>
 
       <Table>
         <TableHeader>

@@ -29,8 +29,10 @@ export default function CustomerForm() {
     resolver: zodResolver(schema),
   });
 
-  const submit = (data: FormData) => {
-    mutation.mutate(data);
+  const submit = async (data: FormData) => {
+    await mutation.mutateAsync(data);
+
+    form.reset();
   };
 
   return (
