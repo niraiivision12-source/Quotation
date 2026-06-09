@@ -39,3 +39,9 @@ export const getCustomerOptions = async (): Promise<CustomerOption[]> => {
 
   return response.data.data.items as CustomerOption[];
 };
+
+export const getCustomerById = async (id: string): Promise<CustomerDetails> => {
+  const response = await api.get(`/customers/${id}`);
+
+  return response.data.data;
+};

@@ -4,6 +4,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 import AppLayout from "@/layouts/AppLayout";
 
+import CustomerDetailsPage from "@/pages/CustomerDetailsPage";
 import CustomerPage from "@/pages/CustomerPage";
 import DashboardPage from "@/pages/DashboardPage";
 import LeadPage from "@/pages/LeadPage";
@@ -30,6 +31,8 @@ export default function AppRouter() {
           <Route path="/" element={<DashboardPage />} />
 
           <Route path="/customers" element={<CustomerPage />} />
+
+          <Route path="/customers/:id" element={<CustomerDetailsPage />} />
 
           <Route path="/projects" element={<ProjectPage />} />
 

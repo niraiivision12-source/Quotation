@@ -4,6 +4,7 @@ import { queryClient } from "@/lib/query-client";
 
 import {
   createCustomer,
+  getCustomerById,
   getCustomerOptions,
   getCustomers,
 } from "./customer.api";
@@ -34,5 +35,17 @@ export const useCustomerOptions = () => {
   return useQuery<CustomerOption[]>({
     queryKey: ["customer-options"],
     queryFn: getCustomerOptions,
+  });
+};
+
+import type { CustomerDetails } from "./customer.types";
+
+export const useCustomer = (id: string) => {
+  return useQuery<CustomerDetails>({
+    queryKey: ["customer", id],
+
+    queryFn: () => getCustomerById(id),
+
+    enabled: !!id,
   });
 };

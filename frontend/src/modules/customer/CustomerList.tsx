@@ -16,6 +16,7 @@ import PageHeader from "@/components/ui/PageHeader";
 
 import { useCustomers } from "./customer.query";
 
+import { Link } from "react-router-dom";
 import CreateCustomerDialog from "./CreateCustomerDialog";
 
 export default function CustomerList() {
@@ -65,7 +66,9 @@ export default function CustomerList() {
 
           {data?.items.map((customer) => (
             <TableRow key={customer.id}>
-              <TableCell>{customer.name}</TableCell>
+              <TableCell>
+                <Link to={`/customers/${customer.id}`}>{customer.name}</Link>
+              </TableCell>
 
               <TableCell>{customer.mobile}</TableCell>
 
