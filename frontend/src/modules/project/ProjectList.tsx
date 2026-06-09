@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import CreateProjectDialog from "./CreateProjectDialog";
 import { useProjects } from "./project.query";
 
 export default function ProjectList() {
@@ -27,6 +28,10 @@ export default function ProjectList() {
   return (
     <div>
       <PageHeader title="Projects" />
+
+      <div className="mb-4">
+        <CreateProjectDialog />
+      </div>
 
       <div className="mb-4">
         <Input

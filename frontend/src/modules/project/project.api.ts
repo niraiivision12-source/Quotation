@@ -17,3 +17,14 @@ export const getProjects = async (
 
   return response.data.data;
 };
+
+export const createProject = async (data: {
+  customerId: string;
+  projectName: string;
+  location?: string;
+  estimatedBudget?: number;
+}) => {
+  const response = await api.post("/projects", data);
+
+  return response.data;
+};
