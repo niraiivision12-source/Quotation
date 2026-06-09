@@ -1,3 +1,5 @@
+import ProjectList from "@/modules/project/ProjectList";
+
 export default function ProjectPage() {
-  return <div>Projects</div>;
+  return <ProjectList />;
 }
