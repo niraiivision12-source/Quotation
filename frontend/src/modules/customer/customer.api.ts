@@ -17,3 +17,14 @@ export const getCustomers = async (
 
   return response.data.data;
 };
+
+export const createCustomer = async (data: {
+  name: string;
+  mobile: string;
+  email?: string;
+  address?: string;
+}) => {
+  const response = await api.post("/customers", data);
+
+  return response.data;
+};

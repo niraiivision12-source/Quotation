@@ -16,6 +16,10 @@ import PageHeader from "@/components/ui/PageHeader";
 
 import { useCustomers } from "./customer.query";
 
+import CustomerForm from "./CustomerForm";
+
+import { Card, CardContent } from "@/components/ui/card";
+
 export default function CustomerList() {
   const [page, setPage] = useState(1);
 
@@ -38,6 +42,12 @@ export default function CustomerList() {
           }}
         />
       </div>
+
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <CustomerForm />
+        </CardContent>
+      </Card>
 
       <Table>
         <TableHeader>
