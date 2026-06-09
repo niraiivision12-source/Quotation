@@ -58,13 +58,19 @@ export default function ProjectList() {
             </TableRow>
           )}
 
+          {!isLoading && data?.items.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={3}>No projects found</TableCell>
+            </TableRow>
+          )}
+
           {data?.items.map((project) => (
             <TableRow key={project.id}>
               <TableCell>{project.projectName}</TableCell>
 
               <TableCell>{project.customer.name}</TableCell>
 
-              <TableCell>{project.location}</TableCell>
+              <TableCell>{project.location || "-"}</TableCell>
             </TableRow>
           ))}
         </TableBody>
