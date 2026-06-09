@@ -8,7 +8,20 @@ import { Input } from "@/components/ui/input";
 
 import { Button } from "@/components/ui/button";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCustomerOptions } from "../customer/customer.query";
 import { useCreateProject } from "./project.query";
+
+export interface CustomerOption {
+  id: string;
+  name: string;
+}
 
 const schema = z.object({
   customerId: z.string().min(1),
@@ -35,9 +48,23 @@ export default function ProjectForm() {
     form.reset();
   };
 
+  const customers = useCustomerOptions();
+
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
-      <Input placeholder="Customer ID" {...form.register("customerId")} />
+      <Select onValueChange={(value) => form.setValue("customerId", value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select Customer" />
+        </SelectTrigger>
+
+        <SelectContent>
+          {customers.data?.map((customer) => (
+            <SelectItem key={customer.id} value={customer.id}>
+              {customer.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <Input placeholder="Project Name" {...form.register("projectName")} />
 

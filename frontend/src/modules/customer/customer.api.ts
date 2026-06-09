@@ -1,6 +1,6 @@
 import { api } from "@/lib/axios";
 
-import type { CustomerListResponse } from "./customer.types";
+import type { CustomerListResponse, CustomerOption } from "./customer.types";
 
 export const getCustomers = async (
   page = 1,
@@ -27,4 +27,15 @@ export const createCustomer = async (data: {
   const response = await api.post("/customers", data);
 
   return response.data;
+};
+
+export const getCustomerOptions = async (): Promise<CustomerOption[]> => {
+  const response = await api.get("/customers", {
+    params: {
+      page: 1,
+      limit: 100,
+    },
+  });
+
+  return response.data.data.items as CustomerOption[];
 };

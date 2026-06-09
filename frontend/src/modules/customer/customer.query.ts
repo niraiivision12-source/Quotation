@@ -2,7 +2,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryClient } from "@/lib/query-client";
 
-import { createCustomer, getCustomers } from "./customer.api";
+import {
+  createCustomer,
+  getCustomerOptions,
+  getCustomers,
+} from "./customer.api";
+
+import type { CustomerOption } from "./customer.types";
 
 export const useCustomers = (page: number, search: string) => {
   return useQuery({
@@ -21,5 +27,12 @@ export const useCreateCustomer = () => {
         queryKey: ["customers"],
       });
     },
+  });
+};
+
+export const useCustomerOptions = () => {
+  return useQuery<CustomerOption[]>({
+    queryKey: ["customer-options"],
+    queryFn: getCustomerOptions,
   });
 };

@@ -12,3 +12,8 @@ export interface CustomerListResponse {
   page: number;
   limit: number;
 }
+
+export interface CustomerOption {
+  id: string;
+  name: string;
+}
