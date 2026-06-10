@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryClient } from "@/lib/query-client";
-import { createProject, getProjects } from "./project.api";
+import { createProject, getProjectById, getProjects } from "./project.api";
 
 export const useProjects = (page: number, search: string) => {
   return useQuery({
@@ -20,5 +20,15 @@ export const useCreateProject = () => {
         queryKey: ["projects"],
       });
     },
+  });
+};
+
+export const useProject = (id: string) => {
+  return useQuery({
+    queryKey: ["project", id],
+
+    queryFn: () => getProjectById(id),
+
+    enabled: !!id,
   });
 };

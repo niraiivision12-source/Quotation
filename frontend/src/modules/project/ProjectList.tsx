@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { Link } from "react-router-dom";
 import CreateProjectDialog from "./CreateProjectDialog";
 import { useProjects } from "./project.query";
 
@@ -71,7 +72,11 @@ export default function ProjectList() {
 
           {data?.items.map((project) => (
             <TableRow key={project.id}>
-              <TableCell>{project.projectName}</TableCell>
+              <TableCell>
+                <Link to={`/projects/${project.id}`}>
+                  {project.projectName}
+                </Link>
+              </TableCell>
 
               <TableCell>{project.customer.name}</TableCell>
 

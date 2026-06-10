@@ -9,6 +9,7 @@ import CustomerPage from "@/pages/CustomerPage";
 import DashboardPage from "@/pages/DashboardPage";
 import LeadPage from "@/pages/LeadPage";
 import LoginPage from "@/pages/LoginPage";
+import ProjectDetailsPage from "@/pages/ProjectDetailsPage";
 import ProjectPage from "@/pages/ProjectPage";
 import QuotationPage from "@/pages/QuotationPage";
 import ReminderPage from "@/pages/ReminderPage";
@@ -35,6 +36,8 @@ export default function AppRouter() {
           <Route path="/customers/:id" element={<CustomerDetailsPage />} />
 
           <Route path="/projects" element={<ProjectPage />} />
+
+          <Route path="/projects/:id" element={<ProjectDetailsPage />} />
 
           <Route path="/leads" element={<LeadPage />} />
 
