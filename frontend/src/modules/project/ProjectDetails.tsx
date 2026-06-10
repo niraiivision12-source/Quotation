@@ -7,6 +7,9 @@ import { useProject } from "./project.query";
 import ProjectOverview from "./components/ProjectOverview";
 
 import ProjectLifecycle from "./components/ProjectLifecycle";
+import ProjectQuotations from "./components/ProjectQuotations";
+import ProjectReminders from "./components/ProjectReminders";
+import ProjectTasks from "./components/ProjectTasks";
 
 export default function ProjectDetails() {
   const { id } = useParams();
@@ -24,6 +27,12 @@ export default function ProjectDetails() {
       <ProjectOverview project={data} />
 
       <ProjectLifecycle phases={data.phaseTracking} />
+
+      <ProjectQuotations />
+
+      <ProjectReminders />
+
+      <ProjectTasks />
     </div>
   );
 }
