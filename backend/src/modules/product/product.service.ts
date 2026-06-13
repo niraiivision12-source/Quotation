@@ -1,4 +1,5 @@
 import { prisma } from "@/config/prisma";
+import { AppError } from "@/utils/app-error";
 
 export class ProductService {
   static async getAll(page: number, limit: number) {
@@ -6,13 +7,20 @@ export class ProductService {
 
     const [items, total] = await Promise.all([
       prisma.product.findMany({
+        where: {
+          isActive: true,
+        },
         skip,
         take: limit,
         orderBy: {
           name: "asc",
         },
       }),
-      prisma.product.count(),
+      prisma.product.count({
+        where: {
+          isActive: true,
+        },
+      }),
     ]);
 
     return {
@@ -21,5 +29,87 @@ export class ProductService {
       page,
       limit,
     };
+  }
+
+  static async create(data: {
+    sku: string;
+    name: string;
+    brand?: string;
+    category?: string;
+    unit?: string;
+    costPrice: number;
+    stockQty: number;
+  }) {
+    const exists = await prisma.product.findUnique({
+      where: {
+        sku: data.sku,
+      },
+    });
+
+    if (exists) {
+      throw new AppError("SKU already exists", 409);
+    }
+
+    return prisma.product.create({
+      data,
+    });
+  }
+
+  static async getById(id: string) {
+    const product = await prisma.product.findUnique({
+      where: {
+        id,
+        isActive: true,
+      },
+    });
+
+    if (!product) {
+      throw new AppError("Product not found", 404);
+    }
+
+    return product;
+  }
+
+  static async update(
+    id: string,
+    data: {
+      sku?: string;
+      name?: string;
+      brand?: string | null;
+      category?: string | null;
+      unit?: string | null;
+      costPrice?: number;
+      stockQty?: number;
+    },
+  ) {
+    const product = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!product) {
+      throw new AppError("Product not found", 404);
+    }
+
+    return prisma.product.update({
+      where: { id },
+      data,
+    });
+  }
+
+  static async deactivate(id: string) {
+    const product = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!product) {
+      throw new AppError("Product not found", 404);
+    }
+
+    return prisma.product.update({
+      where: { id },
+      data: {
+        isActive: false,
+      },
+    });
   }
 }
