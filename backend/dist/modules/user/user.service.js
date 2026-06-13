@@ -62,6 +62,64 @@ class UserService {
             limit,
         };
     }
+    static async getById(id) {
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isActive: true,
+                createdAt: true,
+            },
+        });
+        if (!user) {
+            throw new app_error_1.AppError("User not found", 404);
+        }
+        return user;
+    }
+    static async update(id, data) {
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { id },
+        });
+        if (!user) {
+            throw new app_error_1.AppError("User not found", 404);
+        }
+        return prisma_1.prisma.user.update({
+            where: { id },
+            data,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isActive: true,
+                updatedAt: true,
+            },
+        });
+    }
+    static async deactivate(id) {
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { id },
+        });
+        if (!user) {
+            throw new app_error_1.AppError("User not found", 404);
+        }
+        return prisma_1.prisma.user.update({
+            where: { id },
+            data: {
+                isActive: false,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isActive: true,
+            },
+        });
+    }
 }
 exports.UserService = UserService;
 //# sourceMappingURL=user.service.js.map

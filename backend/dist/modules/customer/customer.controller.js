@@ -32,6 +32,23 @@ class CustomerController {
             data: customer,
         });
     }
+    static async update(req, res) {
+        const data = customer_validation_1.updateCustomerSchema.parse(req.body);
+        const customer = await customer_service_1.CustomerService.update(req.params.id, data);
+        return res.status(200).json({
+            success: true,
+            message: "Customer updated",
+            data: customer,
+        });
+    }
+    static async deactivate(req, res) {
+        const customer = await customer_service_1.CustomerService.deactivate(req.params.id);
+        return res.status(200).json({
+            success: true,
+            message: "Customer deactivated",
+            data: customer,
+        });
+    }
 }
 exports.CustomerController = CustomerController;
 //# sourceMappingURL=customer.controller.js.map

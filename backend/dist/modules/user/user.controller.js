@@ -23,6 +23,31 @@ class UserController {
             data: users,
         });
     }
+    static async getById(req, res) {
+        const user = await user_service_1.UserService.getById(req.params.id);
+        return res.status(200).json({
+            success: true,
+            message: "User fetched",
+            data: user,
+        });
+    }
+    static async update(req, res) {
+        const data = user_validation_1.updateUserSchema.parse(req.body);
+        const user = await user_service_1.UserService.update(req.params.id, data);
+        return res.status(200).json({
+            success: true,
+            message: "User updated",
+            data: user,
+        });
+    }
+    static async deactivate(req, res) {
+        const user = await user_service_1.UserService.deactivate(req.params.id);
+        return res.status(200).json({
+            success: true,
+            message: "User deactivated",
+            data: user,
+        });
+    }
 }
 exports.UserController = UserController;
 //# sourceMappingURL=user.controller.js.map

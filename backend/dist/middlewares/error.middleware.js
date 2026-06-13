@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.errorHandler = void 0;
 const zod_1 = require("zod");
+const app_error_1 = require("@/utils/app-error");
 const errorHandler = (error, _req, res, _next) => {
     if (error instanceof zod_1.ZodError) {
         return res.status(400).json({
@@ -10,9 +11,16 @@ const errorHandler = (error, _req, res, _next) => {
             errors: error.issues,
         });
     }
-    return res.status(error.statusCode || 500).json({
+    if (error instanceof app_error_1.AppError) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message,
+        });
+    }
+    console.error(error);
+    return res.status(500).json({
         success: false,
-        message: error.message || "Internal Server Error",
+        message: "Internal Server Error",
     });
 };
 exports.errorHandler = errorHandler;

@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
 
 import { CustomerService } from "@/modules/customer/customer.service";
-import { createCustomerSchema } from "@/modules/customer/customer.validation";
+import {
+  createCustomerSchema,
+  updateCustomerSchema,
+} from "@/modules/customer/customer.validation";
 
 export class CustomerController {
   static async create(req: Request, res: Response) {
@@ -37,6 +40,31 @@ export class CustomerController {
     return res.status(200).json({
       success: true,
       message: "Customer fetched",
+      data: customer,
+    });
+  }
+
+  static async update(req: Request, res: Response) {
+    const data = updateCustomerSchema.parse(req.body);
+
+    const customer = await CustomerService.update(
+      req.params.id as string,
+      data,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Customer updated",
+      data: customer,
+    });
+  }
+
+  static async deactivate(req: Request, res: Response) {
+    const customer = await CustomerService.deactivate(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "Customer deactivated",
       data: customer,
     });
   }

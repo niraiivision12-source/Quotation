@@ -15,4 +15,8 @@ router.get("/", asyncHandler(CustomerController.getAll));
 
 router.get("/:id", asyncHandler(CustomerController.getById));
 
+router.patch("/:id", asyncHandler(CustomerController.update));
+
+router.patch("/:id/deactivate", asyncHandler(CustomerController.deactivate));
+
 export default router;

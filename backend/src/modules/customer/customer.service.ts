@@ -85,4 +85,57 @@ export class CustomerService {
 
     return customer;
   }
+
+  static async update(
+    id: string,
+    data: {
+      name?: string;
+      mobile?: string;
+      email?: string | null;
+      address?: string | null;
+      assignedToId?: string | null;
+    },
+  ) {
+    const customer = await prisma.customer.findUnique({
+      where: { id },
+    });
+
+    if (!customer) {
+      throw new AppError("Customer not found", 404);
+    }
+
+    if (data.mobile && data.mobile !== customer.mobile) {
+      const exists = await prisma.customer.findUnique({
+        where: {
+          mobile: data.mobile,
+        },
+      });
+
+      if (exists) {
+        throw new AppError("Mobile already exists", 409);
+      }
+    }
+
+    return prisma.customer.update({
+      where: { id },
+      data,
+    });
+  }
+
+  static async deactivate(id: string) {
+    const customer = await prisma.customer.findUnique({
+      where: { id },
+    });
+
+    if (!customer) {
+      throw new AppError("Customer not found", 404);
+    }
+
+    return prisma.customer.update({
+      where: { id },
+      data: {
+        isActive: false,
+      },
+    });
+  }
 }
