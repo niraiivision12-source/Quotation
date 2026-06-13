@@ -9,6 +9,7 @@ import productRoutes from "@/modules/product/product.routes";
 import projectRoutes from "@/modules/project/project.routes";
 import quotationRoutes from "@/modules/quotation/quotation.routes";
 import reminderRoutes from "@/modules/reminder/reminder.routes";
+import taskRoutes from "@/modules/task/task.routes";
 import userRoutes from "@/modules/user/user.routes";
 
 const router = Router();
@@ -27,6 +28,7 @@ router.use("/customers", customerRoutes);
 router.use("/projects", projectRoutes);
 router.use("/leads", leadRoutes);
 router.use("/reminders", reminderRoutes);
+router.use("/tasks", taskRoutes);
 router.use("/quotations", quotationRoutes);
 router.use("/lifecycle", lifecycleRoutes);
 router.use("/dashboard", dashboardRoutes);
