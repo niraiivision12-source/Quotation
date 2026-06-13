@@ -18,4 +18,22 @@ router.post(
 
 router.get("/", authorize(UserRole.OWNER), asyncHandler(UserController.getAll));
 
+router.get(
+  "/:id",
+  authorize(UserRole.OWNER),
+  asyncHandler(UserController.getById),
+);
+
+router.patch(
+  "/:id",
+  authorize(UserRole.OWNER),
+  asyncHandler(UserController.update),
+);
+
+router.patch(
+  "/:id/deactivate",
+  authorize(UserRole.OWNER),
+  asyncHandler(UserController.deactivate),
+);
+
 export default router;

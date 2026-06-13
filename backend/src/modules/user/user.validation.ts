@@ -7,3 +7,9 @@ export const createUserSchema = z.object({
   password: z.string().min(6),
   role: z.enum(UserRole),
 });
+
+export const updateUserSchema = z.object({
+  name: z.string().min(2).optional(),
+  role: z.enum(UserRole).optional(),
+  isActive: z.boolean().optional(),
+});
