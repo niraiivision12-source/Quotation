@@ -1,4 +1,8 @@
-import { ReminderPriority, ReminderType } from "@prisma/client";
+import {
+  ReminderPriority,
+  ReminderRepeatType,
+  ReminderType,
+} from "@prisma/client";
 import { z } from "zod";
 
 export const createReminderSchema = z.object({
@@ -17,4 +21,16 @@ export const createReminderSchema = z.object({
   customerId: z.uuid().optional(),
 
   projectId: z.uuid().optional(),
+});
+
+export const updateReminderSchema = z.object({
+  title: z.string().min(2).optional(),
+
+  description: z.string().optional().nullable(),
+
+  priority: z.enum(ReminderPriority).optional(),
+
+  dueAt: z.coerce.date().optional(),
+
+  repeatType: z.enum(ReminderRepeatType).optional(),
 });

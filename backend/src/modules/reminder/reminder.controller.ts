@@ -2,7 +2,10 @@ import { Request, Response } from "express";
 
 import { ReminderService } from "@/modules/reminder/reminder.service";
 
-import { createReminderSchema } from "@/modules/reminder/reminder.validation";
+import {
+  createReminderSchema,
+  updateReminderSchema,
+} from "@/modules/reminder/reminder.validation";
 
 export class ReminderController {
   static async create(req: Request, res: Response) {
@@ -40,6 +43,56 @@ export class ReminderController {
     return res.status(200).json({
       success: true,
       data: reminders,
+    });
+  }
+
+  static async getById(req: Request, res: Response) {
+    const reminder = await ReminderService.getById(
+      req.params.id as string,
+      req.user!.id,
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: reminder,
+    });
+  }
+
+  static async update(req: Request, res: Response) {
+    const data = updateReminderSchema.parse(req.body);
+
+    const reminder = await ReminderService.update(
+      req.params.id as string,
+      req.user!.id,
+      data,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Reminder updated",
+      data: reminder,
+    });
+  }
+
+  static async complete(req: Request, res: Response) {
+    const reminder = await ReminderService.complete(
+      req.params.id as string,
+      req.user!.id,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Reminder completed",
+      data: reminder,
+    });
+  }
+
+  static async remove(req: Request, res: Response) {
+    await ReminderService.delete(req.params.id as string, req.user!.id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Reminder deleted",
     });
   }
 }

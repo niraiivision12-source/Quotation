@@ -15,4 +15,12 @@ router.get("/my", asyncHandler(ReminderController.myReminders));
 
 router.get("/overdue", asyncHandler(ReminderController.overdue));
 
+router.get("/:id", asyncHandler(ReminderController.getById));
+
+router.patch("/:id", asyncHandler(ReminderController.update));
+
+router.patch("/:id/complete", asyncHandler(ReminderController.complete));
+
+router.delete("/:id", asyncHandler(ReminderController.remove));
+
 export default router;

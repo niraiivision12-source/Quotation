@@ -1,4 +1,6 @@
 import { prisma } from "@/config/prisma";
+import { AppError } from "@/utils/app-error";
+import { ReminderStatus } from "@prisma/client";
 
 export class ReminderService {
   static async create(userId: string, data: any) {
@@ -52,5 +54,88 @@ export class ReminderService {
         dueAt: "asc",
       },
     });
+  }
+
+  static async getById(id: string, userId: string) {
+    const reminder = await prisma.reminder.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!reminder) {
+      throw new AppError("Reminder not found", 404);
+    }
+
+    return reminder;
+  }
+
+  static async update(
+    id: string,
+    userId: string,
+    data: {
+      title?: string;
+      description?: string | null;
+      priority?: any;
+      dueAt?: Date;
+      repeatType?: any;
+    },
+  ) {
+    const reminder = await prisma.reminder.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!reminder) {
+      throw new AppError("Reminder not found", 404);
+    }
+
+    return prisma.reminder.update({
+      where: { id },
+      data,
+    });
+  }
+
+  static async complete(id: string, userId: string) {
+    const reminder = await prisma.reminder.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!reminder) {
+      throw new AppError("Reminder not found", 404);
+    }
+
+    return prisma.reminder.update({
+      where: { id },
+      data: {
+        status: ReminderStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  static async delete(id: string, userId: string) {
+    const reminder = await prisma.reminder.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!reminder) {
+      throw new AppError("Reminder not found", 404);
+    }
+
+    await prisma.reminder.delete({
+      where: { id },
+    });
+
+    return true;
   }
 }

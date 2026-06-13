@@ -29,6 +29,37 @@ class ReminderController {
             data: reminders,
         });
     }
+    static async getById(req, res) {
+        const reminder = await reminder_service_1.ReminderService.getById(req.params.id, req.user.id);
+        return res.status(200).json({
+            success: true,
+            data: reminder,
+        });
+    }
+    static async update(req, res) {
+        const data = reminder_validation_1.updateReminderSchema.parse(req.body);
+        const reminder = await reminder_service_1.ReminderService.update(req.params.id, req.user.id, data);
+        return res.status(200).json({
+            success: true,
+            message: "Reminder updated",
+            data: reminder,
+        });
+    }
+    static async complete(req, res) {
+        const reminder = await reminder_service_1.ReminderService.complete(req.params.id, req.user.id);
+        return res.status(200).json({
+            success: true,
+            message: "Reminder completed",
+            data: reminder,
+        });
+    }
+    static async remove(req, res) {
+        await reminder_service_1.ReminderService.delete(req.params.id, req.user.id);
+        return res.status(200).json({
+            success: true,
+            message: "Reminder deleted",
+        });
+    }
 }
 exports.ReminderController = ReminderController;
 //# sourceMappingURL=reminder.controller.js.map
