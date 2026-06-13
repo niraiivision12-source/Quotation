@@ -4,6 +4,7 @@ import { LeadService } from "@/modules/lead/lead.service";
 import {
   convertLeadSchema,
   createLeadSchema,
+  updateLeadSchema,
 } from "@/modules/lead/lead.validation";
 
 export class LeadController {
@@ -53,6 +54,28 @@ export class LeadController {
       success: true,
       message: "Lead converted successfully",
       data: result,
+    });
+  }
+
+  static async update(req: Request, res: Response) {
+    const data = updateLeadSchema.parse(req.body);
+
+    const lead = await LeadService.update(req.params.id as string, data);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lead updated",
+      data: lead,
+    });
+  }
+
+  static async deactivate(req: Request, res: Response) {
+    const lead = await LeadService.deactivate(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lead deactivated",
+      data: lead,
     });
   }
 }

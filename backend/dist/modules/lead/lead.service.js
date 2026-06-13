@@ -20,8 +20,9 @@ class LeadService {
     }
     static async getAll(page, limit, search) {
         const skip = (page - 1) * limit;
-        const where = search
-            ? {
+        const where = {
+            isActive: true,
+            ...(search && {
                 OR: [
                     {
                         name: {
@@ -35,8 +36,8 @@ class LeadService {
                         },
                     },
                 ],
-            }
-            : {};
+            }),
+        };
         const [items, total] = await Promise.all([
             prisma_1.prisma.lead.findMany({
                 where,
@@ -59,7 +60,10 @@ class LeadService {
     }
     static async getById(id) {
         const lead = await prisma_1.prisma.lead.findUnique({
-            where: { id },
+            where: {
+                id,
+                isActive: true,
+            },
         });
         if (!lead) {
             throw new app_error_1.AppError("Lead not found", 404);
@@ -146,6 +150,45 @@ class LeadService {
                 customer,
                 project,
             };
+        });
+    }
+    static async update(id, data) {
+        const lead = await prisma_1.prisma.lead.findUnique({
+            where: { id },
+        });
+        if (!lead) {
+            throw new app_error_1.AppError("Lead not found", 404);
+        }
+        if (data.mobile && data.mobile !== lead.mobile) {
+            const exists = await prisma_1.prisma.lead.findFirst({
+                where: {
+                    mobile: data.mobile,
+                    NOT: {
+                        id,
+                    },
+                },
+            });
+            if (exists) {
+                throw new app_error_1.AppError("Mobile already exists", 409);
+            }
+        }
+        return prisma_1.prisma.lead.update({
+            where: { id },
+            data,
+        });
+    }
+    static async deactivate(id) {
+        const lead = await prisma_1.prisma.lead.findUnique({
+            where: { id },
+        });
+        if (!lead) {
+            throw new app_error_1.AppError("Lead not found", 404);
+        }
+        return prisma_1.prisma.lead.update({
+            where: { id },
+            data: {
+                isActive: false,
+            },
         });
     }
 }

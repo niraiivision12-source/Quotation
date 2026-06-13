@@ -17,4 +17,8 @@ router.get("/:id", asyncHandler(LeadController.getById));
 
 router.post("/:id/convert", asyncHandler(LeadController.convert));
 
+router.patch("/:id", asyncHandler(LeadController.update));
+
+router.patch("/:id/deactivate", asyncHandler(LeadController.deactivate));
+
 export default router;

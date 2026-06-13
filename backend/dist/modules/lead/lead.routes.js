@@ -10,5 +10,7 @@ router.post("/", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadControl
 router.get("/", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.getAll));
 router.get("/:id", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.getById));
 router.post("/:id/convert", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.convert));
+router.patch("/:id", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.update));
+router.patch("/:id/deactivate", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.deactivate));
 exports.default = router;
 //# sourceMappingURL=lead.routes.js.map

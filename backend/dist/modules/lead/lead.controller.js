@@ -41,6 +41,23 @@ class LeadController {
             data: result,
         });
     }
+    static async update(req, res) {
+        const data = lead_validation_1.updateLeadSchema.parse(req.body);
+        const lead = await lead_service_1.LeadService.update(req.params.id, data);
+        return res.status(200).json({
+            success: true,
+            message: "Lead updated",
+            data: lead,
+        });
+    }
+    static async deactivate(req, res) {
+        const lead = await lead_service_1.LeadService.deactivate(req.params.id);
+        return res.status(200).json({
+            success: true,
+            message: "Lead deactivated",
+            data: lead,
+        });
+    }
 }
 exports.LeadController = LeadController;
 //# sourceMappingURL=lead.controller.js.map

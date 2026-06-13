@@ -29,23 +29,25 @@ export class LeadService {
   static async getAll(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
 
-    const where = search
-      ? {
-          OR: [
-            {
-              name: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
+    const where = {
+      isActive: true,
+
+      ...(search && {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: "insensitive" as const,
             },
-            {
-              mobile: {
-                contains: search,
-              },
+          },
+          {
+            mobile: {
+              contains: search,
             },
-          ],
-        }
-      : {};
+          },
+        ],
+      }),
+    };
 
     const [items, total] = await Promise.all([
       prisma.lead.findMany({
@@ -71,7 +73,10 @@ export class LeadService {
 
   static async getById(id: string) {
     const lead = await prisma.lead.findUnique({
-      where: { id },
+      where: {
+        id,
+        isActive: true,
+      },
     });
 
     if (!lead) {
@@ -180,6 +185,63 @@ export class LeadService {
         customer,
         project,
       };
+    });
+  }
+
+  static async update(
+    id: string,
+    data: {
+      name?: string;
+      mobile?: string;
+      email?: string | null;
+      source?: string | null;
+      notes?: string | null;
+      assignedToId?: string | null;
+      status?: LeadStatus;
+    },
+  ) {
+    const lead = await prisma.lead.findUnique({
+      where: { id },
+    });
+
+    if (!lead) {
+      throw new AppError("Lead not found", 404);
+    }
+
+    if (data.mobile && data.mobile !== lead.mobile) {
+      const exists = await prisma.lead.findFirst({
+        where: {
+          mobile: data.mobile,
+          NOT: {
+            id,
+          },
+        },
+      });
+
+      if (exists) {
+        throw new AppError("Mobile already exists", 409);
+      }
+    }
+
+    return prisma.lead.update({
+      where: { id },
+      data,
+    });
+  }
+  static async deactivate(id: string) {
+    const lead = await prisma.lead.findUnique({
+      where: { id },
+    });
+
+    if (!lead) {
+      throw new AppError("Lead not found", 404);
+    }
+
+    return prisma.lead.update({
+      where: { id },
+      data: {
+        isActive: false,
+      },
     });
   }
 }
