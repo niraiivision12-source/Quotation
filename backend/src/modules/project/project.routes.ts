@@ -15,4 +15,8 @@ router.get("/", asyncHandler(ProjectController.getAll));
 
 router.get("/:id", asyncHandler(ProjectController.getById));
 
+router.patch("/:id", asyncHandler(ProjectController.update));
+
+router.patch("/:id/deactivate", asyncHandler(ProjectController.deactivate));
+
 export default router;

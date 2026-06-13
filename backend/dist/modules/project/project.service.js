@@ -56,14 +56,15 @@ class ProjectService {
     }
     static async getAll(page, limit, search) {
         const skip = (page - 1) * limit;
-        const where = search
-            ? {
+        const where = {
+            isActive: true,
+            ...(search && {
                 projectName: {
                     contains: search,
                     mode: "insensitive",
                 },
-            }
-            : {};
+            }),
+        };
         const [items, total] = await Promise.all([
             prisma_1.prisma.project.findMany({
                 where,
@@ -89,7 +90,10 @@ class ProjectService {
     }
     static async getById(id) {
         const project = await prisma_1.prisma.project.findUnique({
-            where: { id },
+            where: {
+                id,
+                isActive: true,
+            },
             include: {
                 customer: true,
                 phaseTracking: true,
@@ -99,6 +103,32 @@ class ProjectService {
             throw new app_error_1.AppError("Project not found", 404);
         }
         return project;
+    }
+    static async update(id, data) {
+        const project = await prisma_1.prisma.project.findUnique({
+            where: { id },
+        });
+        if (!project) {
+            throw new app_error_1.AppError("Project not found", 404);
+        }
+        return prisma_1.prisma.project.update({
+            where: { id },
+            data,
+        });
+    }
+    static async deactivate(id) {
+        const project = await prisma_1.prisma.project.findUnique({
+            where: { id },
+        });
+        if (!project) {
+            throw new app_error_1.AppError("Project not found", 404);
+        }
+        return prisma_1.prisma.project.update({
+            where: { id },
+            data: {
+                isActive: false,
+            },
+        });
     }
 }
 exports.ProjectService = ProjectService;

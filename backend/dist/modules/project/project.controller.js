@@ -32,6 +32,23 @@ class ProjectController {
             data: project,
         });
     }
+    static async update(req, res) {
+        const data = project_validation_1.updateProjectSchema.parse(req.body);
+        const project = await project_service_1.ProjectService.update(req.params.id, data);
+        return res.status(200).json({
+            success: true,
+            message: "Project updated",
+            data: project,
+        });
+    }
+    static async deactivate(req, res) {
+        const project = await project_service_1.ProjectService.deactivate(req.params.id);
+        return res.status(200).json({
+            success: true,
+            message: "Project deactivated",
+            data: project,
+        });
+    }
 }
 exports.ProjectController = ProjectController;
 //# sourceMappingURL=project.controller.js.map

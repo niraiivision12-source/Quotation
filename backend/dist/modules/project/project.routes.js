@@ -9,5 +9,7 @@ router.use(auth_middleware_1.authenticate);
 router.post("/", (0, async_handler_1.asyncHandler)(project_controller_1.ProjectController.create));
 router.get("/", (0, async_handler_1.asyncHandler)(project_controller_1.ProjectController.getAll));
 router.get("/:id", (0, async_handler_1.asyncHandler)(project_controller_1.ProjectController.getById));
+router.patch("/:id", (0, async_handler_1.asyncHandler)(project_controller_1.ProjectController.update));
+router.patch("/:id/deactivate", (0, async_handler_1.asyncHandler)(project_controller_1.ProjectController.deactivate));
 exports.default = router;
 //# sourceMappingURL=project.routes.js.map

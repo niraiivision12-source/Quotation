@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
 
 import { ProjectService } from "@/modules/project/project.service";
-import { createProjectSchema } from "@/modules/project/project.validation";
+import {
+  createProjectSchema,
+  updateProjectSchema,
+} from "@/modules/project/project.validation";
 
 export class ProjectController {
   static async create(req: Request, res: Response) {
@@ -37,6 +40,28 @@ export class ProjectController {
     return res.status(200).json({
       success: true,
       message: "Project fetched",
+      data: project,
+    });
+  }
+
+  static async update(req: Request, res: Response) {
+    const data = updateProjectSchema.parse(req.body);
+
+    const project = await ProjectService.update(req.params.id as string, data);
+
+    return res.status(200).json({
+      success: true,
+      message: "Project updated",
+      data: project,
+    });
+  }
+
+  static async deactivate(req: Request, res: Response) {
+    const project = await ProjectService.deactivate(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "Project deactivated",
       data: project,
     });
   }
