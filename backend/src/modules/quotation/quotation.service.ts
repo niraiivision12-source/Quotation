@@ -2,12 +2,26 @@ import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
 import {
   Prisma,
+  ProjectPhase,
   QuotationRevisionReason,
   QuotationStatus,
 } from "@prisma/client";
 
+type CreateQuotationInput = {
+  customerId: string;
+  projectId: string;
+  phase: ProjectPhase;
+  notes?: string;
+  validUntil?: Date;
+  items: {
+    productId: string;
+    quantity: number;
+    marginPercent: number;
+  }[];
+};
+
 export class QuotationService {
-  static async create(userId: string, data: any) {
+  static async create(userId: string, data: CreateQuotationInput) {
     const project = await prisma.project.findUnique({
       where: {
         id: data.projectId,

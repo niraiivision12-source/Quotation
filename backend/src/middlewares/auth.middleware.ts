@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import { env } from "@/config/env";
+import { UserRole } from "@prisma/client";
 
 export const authenticate = (
   req: Request,
@@ -27,7 +28,7 @@ export const authenticate = (
 
     req.user = {
       id: decoded.id,
-      role: decoded.role as any,
+      role: decoded.role as UserRole,
     };
 
     next();

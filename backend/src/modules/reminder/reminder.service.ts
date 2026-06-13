@@ -1,9 +1,26 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
-import { ReminderStatus } from "@prisma/client";
+import {
+  ReminderPriority,
+  ReminderRepeatType,
+  ReminderStatus,
+  ReminderType,
+} from "@prisma/client";
 
 export class ReminderService {
-  static async create(userId: string, data: any) {
+  static async create(
+    userId: string,
+    data: {
+      title: string;
+      description?: string;
+      type: ReminderType;
+      priority: ReminderPriority;
+      dueAt: Date;
+      leadId?: string;
+      customerId?: string;
+      projectId?: string;
+    },
+  ) {
     return prisma.reminder.create({
       data: {
         ...data,
@@ -77,9 +94,9 @@ export class ReminderService {
     data: {
       title?: string;
       description?: string | null;
-      priority?: any;
+      priority?: ReminderPriority;
       dueAt?: Date;
-      repeatType?: any;
+      repeatType?: ReminderRepeatType;
     },
   ) {
     const reminder = await prisma.reminder.findFirst({
