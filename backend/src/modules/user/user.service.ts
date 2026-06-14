@@ -47,6 +47,9 @@ export class UserService {
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
+        where: {
+          isActive: true,
+        },
         skip,
         take: limit,
         select: {
@@ -62,7 +65,11 @@ export class UserService {
         },
       }),
 
-      prisma.user.count(),
+      prisma.user.count({
+        where: {
+          isActive: true,
+        },
+      }),
     ]);
 
     return {
@@ -75,7 +82,7 @@ export class UserService {
 
   static async getById(id: string) {
     const user = await prisma.user.findUnique({
-      where: { id },
+      where: { id, isActive: true },
       select: {
         id: true,
         name: true,

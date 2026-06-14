@@ -1,6 +1,10 @@
 import { api } from "@/lib/axios";
 
-import type { CustomerListResponse, CustomerOption } from "./customer.types";
+import type {
+  CustomerDetails,
+  CustomerListResponse,
+  CustomerOption,
+} from "./customer.types";
 
 export const getCustomers = async (
   page = 1,

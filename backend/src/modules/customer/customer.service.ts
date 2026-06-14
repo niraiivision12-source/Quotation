@@ -29,6 +29,7 @@ export class CustomerService {
 
     const where = search
       ? {
+          isActive: true,
           OR: [
             {
               name: {
@@ -43,7 +44,7 @@ export class CustomerService {
             },
           ],
         }
-      : {};
+      : { isActive: true };
 
     const [items, total] = await Promise.all([
       prisma.customer.findMany({
@@ -69,7 +70,7 @@ export class CustomerService {
 
   static async getById(id: string) {
     const customer = await prisma.customer.findUnique({
-      where: { id },
+      where: { id, isActive: true },
       include: {
         projects: {
           orderBy: {
