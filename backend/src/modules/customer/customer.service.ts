@@ -1,5 +1,6 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
+import { formatMobile } from "@/utils/phone";
 
 export class CustomerService {
   static async create(data: {
@@ -9,10 +10,10 @@ export class CustomerService {
     address?: string;
     assignedToId?: string;
   }) {
+    const mobile = formatMobile(data.mobile);
+
     const exists = await prisma.customer.findUnique({
-      where: {
-        mobile: data.mobile,
-      },
+      where: { mobile },
     });
 
     if (exists) {
@@ -20,7 +21,7 @@ export class CustomerService {
     }
 
     return prisma.customer.create({
-      data,
+      data: { ...data, mobile },
     });
   }
 

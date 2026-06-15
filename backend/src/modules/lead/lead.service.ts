@@ -1,5 +1,6 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
+import { formatMobile } from "@/utils/phone";
 import { LeadStatus, LifecycleStatus, ProjectPhase } from "@prisma/client";
 
 export class LeadService {
@@ -13,10 +14,10 @@ export class LeadService {
     contactOwner?: string;
     city?: string;
   }) {
+    const mobile = formatMobile(data.mobile);
+
     const exists = await prisma.lead.findFirst({
-      where: {
-        mobile: data.mobile,
-      },
+      where: { mobile },
     });
 
     if (exists) {
@@ -24,7 +25,7 @@ export class LeadService {
     }
 
     return prisma.lead.create({
-      data,
+      data: { ...data, mobile },
     });
   }
 
