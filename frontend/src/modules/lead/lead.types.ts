@@ -17,6 +17,7 @@ export interface Lead {
   status: LeadStatus;
   contactOwner?: string;
   city?: string;
+  referralDate?: string;
   assignedToId?: string;
   createdAt: string;
 }

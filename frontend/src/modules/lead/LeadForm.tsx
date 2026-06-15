@@ -18,6 +18,7 @@ const schema = z.object({
   notes: z.string().optional(),
   contactOwner: z.string().optional(),
   city: z.string().optional(),
+  referralDate: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -44,6 +45,7 @@ export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
       <Input placeholder="Source (e.g. Facebook)" {...form.register("source")} />
       <Input placeholder="Contact Owner" {...form.register("contactOwner")} />
       <Input placeholder="Notes" {...form.register("notes")} />
+      <Input type="date" placeholder="Referral Date" {...form.register("referralDate")} />
       <Button type="submit" disabled={mutation.isPending}>
         {mutation.isPending ? "Creating..." : "Create Lead"}
       </Button>

@@ -22,6 +22,7 @@ export const createLead = async (data: {
   notes?: string;
   contactOwner?: string;
   city?: string;
+  referralDate?: string;
 }) => {
   const response = await api.post("/leads", data);
 

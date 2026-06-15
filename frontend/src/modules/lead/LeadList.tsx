@@ -68,6 +68,7 @@ export default function LeadList() {
             <TableHead>Source</TableHead>
             <TableHead>Contact Owner</TableHead>
             <TableHead>Notes</TableHead>
+            <TableHead>Referral Date</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -93,6 +94,11 @@ export default function LeadList() {
               <TableCell>{lead.source ?? "-"}</TableCell>
               <TableCell>{lead.contactOwner ?? "-"}</TableCell>
               <TableCell>{lead.notes ?? "-"}</TableCell>
+              <TableCell>
+                {lead.referralDate
+                  ? new Date(lead.referralDate).toLocaleDateString()
+                  : "-"}
+              </TableCell>
               <TableCell>{lead.status}</TableCell>
             </TableRow>
           ))}
