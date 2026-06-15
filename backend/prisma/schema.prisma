@@ -201,6 +201,8 @@ model Lead {
 
   assignedToId String?
 
+  contactOwner String?
+
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())

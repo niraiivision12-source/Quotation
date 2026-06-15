@@ -11,6 +11,7 @@ CREATE TABLE "public"."Lead" (
     "status" "public"."LeadStatus" NOT NULL DEFAULT 'NEW',
     "notes" TEXT,
     "assignedToId" TEXT,
+    "contactowner" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

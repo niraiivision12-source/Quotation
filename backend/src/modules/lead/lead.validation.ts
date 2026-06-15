@@ -8,6 +8,7 @@ export const createLeadSchema = z.object({
   source: z.string().optional(),
   notes: z.string().optional(),
   assignedToId: z.string().optional(),
+  contactOwner: z.string().optional(),
 });
 
 export const convertLeadSchema = z.object({
