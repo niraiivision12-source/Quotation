@@ -13,6 +13,7 @@ export class LeadService {
     assignedToId?: string;
     contactOwner?: string;
     city?: string;
+    referralDate?: Date;
   }) {
     const mobile = formatMobile(data.mobile);
 

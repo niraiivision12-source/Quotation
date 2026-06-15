@@ -10,6 +10,7 @@ export const createLeadSchema = z.object({
   assignedToId: z.string().optional(),
   contactOwner: z.string().optional(),
   city: z.string().optional(),
+  referralDate: z.coerce.date().optional(),
 });
 
 export const convertLeadSchema = z.object({
