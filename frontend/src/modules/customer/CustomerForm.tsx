@@ -4,9 +4,9 @@ import { z } from "zod";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 
 import { useCreateCustomer } from "./customer.query";
 
