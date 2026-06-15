@@ -203,6 +203,8 @@ model Lead {
 
   contactOwner String?
 
+  city String?
+
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())

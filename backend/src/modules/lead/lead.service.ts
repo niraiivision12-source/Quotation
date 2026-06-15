@@ -11,6 +11,7 @@ export class LeadService {
     notes?: string;
     assignedToId?: string;
     contactOwner?: string;
+    city?: string;
   }) {
     const exists = await prisma.lead.findFirst({
       where: {
