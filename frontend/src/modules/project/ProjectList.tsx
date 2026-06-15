@@ -2,9 +2,9 @@ import { useState } from "react";
 
 import PageHeader from "@/components/ui/PageHeader";
 
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/input";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 import {
   Table,
@@ -13,7 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/Table";
+} from "@/components/ui/table";
 
 import { Link } from "react-router-dom";
 import CreateProjectDialog from "./CreateProjectDialog";

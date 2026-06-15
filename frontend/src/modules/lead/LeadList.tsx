@@ -1,0 +1,113 @@
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import PageHeader from "@/components/ui/PageHeader";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+import { useLeads } from "./lead.query";
+import LeadForm from "./LeadForm";
+
+export default function LeadList() {
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const { data, isLoading } = useLeads(page, search);
+
+  return (
+    <div>
+      <PageHeader title="Leads" />
+
+      <div className="mb-4">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>Create Lead</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Lead</DialogTitle>
+            </DialogHeader>
+            <LeadForm onSuccess={() => setOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="mb-4">
+        <Input
+          placeholder="Search leads..."
+          value={search}
+          onChange={(e) => {
+            setPage(1);
+            setSearch(e.target.value);
+          }}
+        />
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Mobile</TableHead>
+            <TableHead>City</TableHead>
+            <TableHead>Source</TableHead>
+            <TableHead>Contact Owner</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+
+        <TableBody>
+          {isLoading && (
+            <TableRow>
+              <TableCell colSpan={6}>Loading...</TableCell>
+            </TableRow>
+          )}
+
+          {!isLoading && data?.items.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6}>No leads found.</TableCell>
+            </TableRow>
+          )}
+
+          {data?.items.map((lead) => (
+            <TableRow key={lead.id}>
+              <TableCell>{lead.name}</TableCell>
+              <TableCell>{lead.mobile}</TableCell>
+              <TableCell>{lead.city ?? "-"}</TableCell>
+              <TableCell>{lead.source ?? "-"}</TableCell>
+              <TableCell>{lead.contactOwner ?? "-"}</TableCell>
+              <TableCell>{lead.status}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <div className="flex gap-2 mt-4">
+        <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+          Previous
+        </Button>
+        <Button
+          disabled={!data || page * 20 >= data.total}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  );
+}
