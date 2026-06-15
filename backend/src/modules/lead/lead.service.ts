@@ -10,7 +10,7 @@ export class LeadService {
     source?: string;
     notes?: string;
     assignedToId?: string;
-    contactOwner: string;
+    contactOwner?: string;
   }) {
     const exists = await prisma.lead.findFirst({
       where: {

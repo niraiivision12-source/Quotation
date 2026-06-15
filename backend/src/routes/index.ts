@@ -4,6 +4,7 @@ import authRoutes from "@/modules/auth/auth.routes";
 import customerRoutes from "@/modules/customer/customer.routes";
 import dashboardRoutes from "@/modules/dashboard/dashboard.routes";
 import leadRoutes from "@/modules/lead/lead.routes";
+import leadWebhookRoutes from "@/modules/lead/lead.webhook.routes";
 import lifecycleRoutes from "@/modules/lifecycle/lifecycle.routes";
 import productRoutes from "@/modules/product/product.routes";
 import projectRoutes from "@/modules/project/project.routes";
@@ -20,6 +21,8 @@ router.get("/health", (_req, res) => {
     message: "API Running",
   });
 });
+
+router.use("/webhook/leads", leadWebhookRoutes);
 
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);

@@ -78,4 +78,22 @@ export class LeadController {
       data: lead,
     });
   }
+
+  static async webhook(req: Request, res: Response) {
+    const secret = req.headers["x-webhook-secret"];
+
+    if (!secret || secret !== process.env.WEBHOOK_SECRET) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const data = createLeadSchema.parse(req.body);
+
+    const lead = await LeadService.create(data);
+
+    return res.status(201).json({
+      success: true,
+      message: "Lead created via webhook",
+      data: lead,
+    });
+  }
 }
