@@ -44,3 +44,8 @@ export const createLead = async (data: {
 
   return response.data;
 };
+
+export const deleteLead = async (id: string) => {
+  const response = await api.patch(`/leads/${id}/deactivate`);
+  return response.data;
+};

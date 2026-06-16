@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryClient } from "@/lib/query-client";
 
-import { convertLead, createLead, getLeads, updateLead } from "./lead.api";
+import { convertLead, createLead, deleteLead, getLeads, updateLead } from "./lead.api";
 
 export const useLeads = (page: number, search: string) => {
   return useQuery({
@@ -48,6 +48,17 @@ export const useUpdateLead = () => {
     }) => updateLead(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+  });
+};
+
+export const useDeleteLead = () => {
+  return useMutation({
+    mutationFn: (id: string) => deleteLead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 };

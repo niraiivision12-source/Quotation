@@ -42,3 +42,8 @@ export const updatePhase = async (
   const response = await api.patch(`/lifecycle/${phaseId}`, data);
   return response.data;
 };
+
+export const deleteProject = async (id: string) => {
+  const response = await api.patch(`/projects/${id}/deactivate`);
+  return response.data;
+};

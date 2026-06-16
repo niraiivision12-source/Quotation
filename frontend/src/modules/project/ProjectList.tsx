@@ -15,9 +15,50 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 import { Link } from "react-router-dom";
 import CreateProjectDialog from "./CreateProjectDialog";
-import { useProjects } from "./project.query";
+import { useProjects, useDeleteProject } from "./project.query";
+import type { Project } from "./project.types";
+
+function DeleteProjectButton({ project }: { project: Project }) {
+  const [open, setOpen] = useState(false);
+  const deleteMutation = useDeleteProject();
+
+  const confirm = async () => {
+    await deleteMutation.mutateAsync(project.id);
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="destructive" size="sm">Delete</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Project</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Are you sure you want to delete <strong>{project.projectName}</strong>? This action cannot be undone.
+        </p>
+        <div className="flex gap-2 mt-4">
+          <Button variant="destructive" onClick={confirm} disabled={deleteMutation.isPending}>
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function ProjectList() {
   const [page, setPage] = useState(1);
@@ -54,19 +95,20 @@ export default function ProjectList() {
             <TableHead>Customer</TableHead>
 
             <TableHead>Location</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
 
         <TableBody>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={3}>Loading...</TableCell>
+              <TableCell colSpan={4}>Loading...</TableCell>
             </TableRow>
           )}
 
           {!isLoading && data?.items.length === 0 && (
             <TableRow>
-              <TableCell colSpan={3}>No projects found</TableCell>
+              <TableCell colSpan={4}>No projects found</TableCell>
             </TableRow>
           )}
 
@@ -81,6 +123,10 @@ export default function ProjectList() {
               <TableCell>{project.customer.name}</TableCell>
 
               <TableCell>{project.location || "-"}</TableCell>
+
+              <TableCell>
+                <DeleteProjectButton project={project} />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

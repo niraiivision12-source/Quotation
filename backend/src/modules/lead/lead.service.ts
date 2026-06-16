@@ -249,11 +249,27 @@ export class LeadService {
       throw new AppError("Lead not found", 404);
     }
 
-    return prisma.lead.update({
-      where: { id },
-      data: {
-        isActive: false,
-      },
+    return prisma.$transaction(async (tx) => {
+      await tx.lead.update({
+        where: { id },
+        data: { isActive: false },
+      });
+
+      const customer = await tx.customer.findUnique({
+        where: { mobile: lead.mobile },
+      });
+
+      if (customer) {
+        await tx.project.updateMany({
+          where: { customerId: customer.id },
+          data: { isActive: false },
+        });
+
+        await tx.customer.update({
+          where: { id: customer.id },
+          data: { isActive: false },
+        });
+      }
     });
   }
 }

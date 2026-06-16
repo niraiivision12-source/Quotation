@@ -12,8 +12,48 @@ import {
 } from "@/components/ui/table";
 import PageHeader from "@/components/ui/PageHeader";
 import { Link } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import CreateCustomerDialog from "./CreateCustomerDialog";
-import { useCustomers } from "./customer.query";
+import { useCustomers, useDeleteCustomer } from "./customer.query";
+import type { Customer } from "./customer.types";
+
+function DeleteCustomerButton({ customer }: { customer: Customer }) {
+  const [open, setOpen] = useState(false);
+  const deleteMutation = useDeleteCustomer();
+
+  const confirm = async () => {
+    await deleteMutation.mutateAsync(customer.id);
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="destructive" size="sm">Delete</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Customer</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Are you sure you want to delete <strong>{customer.name}</strong>? This will also deactivate all their projects.
+        </p>
+        <div className="flex gap-2 mt-4">
+          <Button variant="destructive" onClick={confirm} disabled={deleteMutation.isPending}>
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function CustomerList() {
   const [page, setPage] = useState(1);
@@ -50,19 +90,20 @@ export default function CustomerList() {
             <TableHead>Contact Owner</TableHead>
             <TableHead>Notes</TableHead>
             <TableHead>Referral Date</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
 
         <TableBody>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={7}>Loading...</TableCell>
+              <TableCell colSpan={8}>Loading...</TableCell>
             </TableRow>
           )}
 
           {!isLoading && data?.items.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7}>No customers found.</TableCell>
+              <TableCell colSpan={8}>No customers found.</TableCell>
             </TableRow>
           )}
 
@@ -80,6 +121,9 @@ export default function CustomerList() {
                 {customer.referralDate
                   ? new Date(customer.referralDate).toLocaleDateString()
                   : "-"}
+              </TableCell>
+              <TableCell>
+                <DeleteCustomerButton customer={customer} />
               </TableCell>
             </TableRow>
           ))}

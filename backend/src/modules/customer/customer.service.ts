@@ -136,11 +136,16 @@ export class CustomerService {
       throw new AppError("Customer not found", 404);
     }
 
-    return prisma.customer.update({
-      where: { id },
-      data: {
-        isActive: false,
-      },
+    return prisma.$transaction(async (tx) => {
+      await tx.project.updateMany({
+        where: { customerId: id },
+        data: { isActive: false },
+      });
+
+      return tx.customer.update({
+        where: { id },
+        data: { isActive: false },
+      });
     });
   }
 }

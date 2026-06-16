@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { useLeads, useUpdateLead, useConvertLead } from "./lead.query";
+import { useLeads, useUpdateLead, useConvertLead, useDeleteLead } from "./lead.query";
 import { useUsers } from "../user/user.query";
 import LeadForm from "./LeadForm";
 import type { Lead, LeadStatus } from "./lead.types";
@@ -170,6 +170,40 @@ function EditContactOwnerDialog({ lead }: { lead: Lead }) {
   );
 }
 
+function DeleteLeadButton({ lead }: { lead: Lead }) {
+  const [open, setOpen] = useState(false);
+  const deleteMutation = useDeleteLead();
+
+  const confirm = async () => {
+    await deleteMutation.mutateAsync(lead.id);
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="destructive" size="sm">Delete</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Lead</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Are you sure you want to delete <strong>{lead.name}</strong>? This action cannot be undone.
+        </p>
+        <div className="flex gap-2 mt-4">
+          <Button variant="destructive" onClick={confirm} disabled={deleteMutation.isPending}>
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function LeadList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -251,7 +285,10 @@ export default function LeadList() {
                 <StatusSelect lead={lead} />
               </TableCell>
               <TableCell>
-                <EditContactOwnerDialog lead={lead} />
+                <div className="flex gap-2">
+                  <EditContactOwnerDialog lead={lead} />
+                  <DeleteLeadButton lead={lead} />
+                </div>
               </TableCell>
             </TableRow>
           ))}
