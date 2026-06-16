@@ -1,16 +1,18 @@
 import { LeadStatus } from "@prisma/client";
 import { z } from "zod";
 
+const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
+
 export const createLeadSchema = z.object({
   name: z.string().min(2),
   mobile: z.string().min(10),
-  email: z.string().email().optional(),
-  source: z.string().optional(),
-  notes: z.string().optional(),
-  assignedToId: z.string().optional(),
-  contactOwnerId: z.string().uuid().optional(),
-  city: z.string().optional(),
-  referralDate: z.coerce.date().optional(),
+  email: z.preprocess(emptyToUndefined, z.string().email().optional()),
+  source: z.preprocess(emptyToUndefined, z.string().optional()),
+  notes: z.preprocess(emptyToUndefined, z.string().optional()),
+  assignedToId: z.preprocess(emptyToUndefined, z.string().optional()),
+  contactOwnerId: z.preprocess(emptyToUndefined, z.string().uuid().optional()),
+  city: z.preprocess(emptyToUndefined, z.string().optional()),
+  referralDate: z.preprocess(emptyToUndefined, z.coerce.date().optional()),
 });
 
 export const convertLeadSchema = z.object({
@@ -20,19 +22,14 @@ export const convertLeadSchema = z.object({
 });
 
 export const updateLeadSchema = z.object({
-  name: z.string().min(2).optional(),
-
-  mobile: z.string().min(10).optional(),
-
-  email: z.string().email().optional().nullable(),
-
-  source: z.string().optional().nullable(),
-
-  notes: z.string().optional().nullable(),
-
-  assignedToId: z.string().uuid().optional().nullable(),
-
-  contactOwnerId: z.string().uuid().optional().nullable(),
-
+  name: z.preprocess(emptyToUndefined, z.string().min(2).optional()),
+  mobile: z.preprocess(emptyToUndefined, z.string().min(10).optional()),
+  email: z.preprocess(emptyToUndefined, z.string().email().optional().nullable()),
+  city: z.preprocess(emptyToUndefined, z.string().optional().nullable()),
+  source: z.preprocess(emptyToUndefined, z.string().optional().nullable()),
+  notes: z.preprocess(emptyToUndefined, z.string().optional().nullable()),
+  referralDate: z.preprocess(emptyToUndefined, z.coerce.date().optional().nullable()),
+  assignedToId: z.preprocess(emptyToUndefined, z.string().uuid().optional().nullable()),
+  contactOwnerId: z.preprocess(emptyToUndefined, z.string().uuid().optional().nullable()),
   status: z.enum(LeadStatus).optional(),
 });

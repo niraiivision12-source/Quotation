@@ -128,14 +128,43 @@ function StatusSelect({ lead }: { lead: Lead }) {
   );
 }
 
-function EditContactOwnerDialog({ lead }: { lead: Lead }) {
-  const [open, setOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(lead.contactOwnerId ?? "");
-  const { data: usersData } = useUsers(1);
-  const mutation = useUpdateLead();
+const editLeadSchema = z.object({
+  name: z.string().min(2),
+  mobile: z.string().min(10),
+  email: z.string().optional(),
+  city: z.string().optional(),
+  source: z.string().optional(),
+  notes: z.string().optional(),
+  referralDate: z.string().optional(),
+  contactOwnerId: z.string().optional(),
+});
 
-  const save = async () => {
-    await mutation.mutateAsync({ id: lead.id, data: { contactOwnerId: selectedUserId || null } });
+type EditLeadForm = z.infer<typeof editLeadSchema>;
+
+function EditLeadDialog({ lead }: { lead: Lead }) {
+  const [open, setOpen] = useState(false);
+  const mutation = useUpdateLead();
+  const { data: usersData } = useUsers(1);
+
+  const form = useForm<EditLeadForm>({
+    resolver: zodResolver(editLeadSchema),
+    defaultValues: {
+      name: lead.name,
+      mobile: lead.mobile,
+      email: lead.email ?? "",
+      city: lead.city ?? "",
+      source: lead.source ?? "",
+      notes: lead.notes ?? "",
+      referralDate: lead.referralDate ? new Date(lead.referralDate).toISOString().split("T")[0] : "",
+      contactOwnerId: lead.contactOwnerId ?? "",
+    },
+  });
+
+  const submit = async (data: EditLeadForm) => {
+    await mutation.mutateAsync({
+      id: lead.id,
+      data: { ...data, contactOwnerId: data.contactOwnerId || null },
+    });
     setOpen(false);
   };
 
@@ -146,10 +175,23 @@ function EditContactOwnerDialog({ lead }: { lead: Lead }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Change Contact Owner — {lead.name}</DialogTitle>
+          <DialogTitle>Edit Lead — {lead.name}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <Select defaultValue={lead.contactOwnerId ?? ""} onValueChange={setSelectedUserId}>
+        <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+          <Input placeholder="Name *" {...form.register("name")} />
+          <Input placeholder="Mobile *" {...form.register("mobile")} />
+          <Input placeholder="Email" {...form.register("email")} />
+          <Input placeholder="City" {...form.register("city")} />
+          <Input placeholder="Source" {...form.register("source")} />
+          <Input placeholder="Notes" {...form.register("notes")} />
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground">Referral Date</label>
+            <Input type="date" {...form.register("referralDate")} />
+          </div>
+          <Select
+            defaultValue={lead.contactOwnerId ?? ""}
+            onValueChange={(v) => form.setValue("contactOwnerId", v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select Contact Owner" />
             </SelectTrigger>
@@ -161,10 +203,13 @@ function EditContactOwnerDialog({ lead }: { lead: Lead }) {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={save} disabled={mutation.isPending}>
-            {mutation.isPending ? "Saving..." : "Save"}
-          </Button>
-        </div>
+          <div className="flex gap-2">
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Saving..." : "Save"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
@@ -286,7 +331,7 @@ export default function LeadList() {
               </TableCell>
               <TableCell>
                 <div className="flex gap-2">
-                  <EditContactOwnerDialog lead={lead} />
+                  <EditLeadDialog lead={lead} />
                   <DeleteLeadButton lead={lead} />
                 </div>
               </TableCell>

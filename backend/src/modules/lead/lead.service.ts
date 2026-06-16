@@ -18,7 +18,7 @@ export class LeadService {
     const mobile = formatMobile(data.mobile);
 
     const exists = await prisma.lead.findFirst({
-      where: { mobile },
+      where: { mobile, isActive: true },
     });
 
     if (exists) {
@@ -115,9 +115,10 @@ export class LeadService {
       throw new AppError("Lead already converted", 409);
     }
 
-    const existingCustomer = await prisma.customer.findUnique({
+    const existingCustomer = await prisma.customer.findFirst({
       where: {
         mobile: lead.mobile,
+        isActive: true,
       },
     });
 
@@ -129,6 +130,28 @@ export class LeadService {
     }
 
     return prisma.$transaction(async (tx) => {
+      // Remove any stale inactive customer with this mobile (unique constraint block)
+      const staleCustomer = await tx.customer.findUnique({
+        where: { mobile: lead.mobile },
+      });
+
+      if (staleCustomer && !staleCustomer.isActive) {
+        const staleProjects = await tx.project.findMany({
+          where: { customerId: staleCustomer.id },
+          select: { id: true },
+        });
+        const staleProjectIds = staleProjects.map((p) => p.id);
+
+        if (staleProjectIds.length > 0) {
+          await tx.quotation.deleteMany({
+            where: { projectId: { in: staleProjectIds } },
+          });
+        }
+
+        // customer delete cascades to projects → phase tracking
+        await tx.customer.delete({ where: { id: staleCustomer.id } });
+      }
+
       const customer = await tx.customer.create({
         data: {
           name: lead.name,
@@ -206,9 +229,12 @@ export class LeadService {
       name?: string;
       mobile?: string;
       email?: string | null;
+      city?: string | null;
       source?: string | null;
       notes?: string | null;
+      referralDate?: Date | null;
       assignedToId?: string | null;
+      contactOwnerId?: string | null;
       status?: LeadStatus;
     },
   ) {
@@ -222,12 +248,7 @@ export class LeadService {
 
     if (data.mobile && data.mobile !== lead.mobile) {
       const exists = await prisma.lead.findFirst({
-        where: {
-          mobile: data.mobile,
-          NOT: {
-            id,
-          },
-        },
+        where: { mobile: data.mobile, isActive: true, NOT: { id } },
       });
 
       if (exists) {
@@ -235,9 +256,35 @@ export class LeadService {
       }
     }
 
-    return prisma.lead.update({
-      where: { id },
-      data,
+    return prisma.$transaction(async (tx) => {
+      const updatedLead = await tx.lead.update({
+        where: { id },
+        data,
+      });
+
+      const customer = await tx.customer.findUnique({
+        where: { mobile: lead.mobile },
+      });
+
+      if (customer) {
+        const customerData: Record<string, unknown> = {};
+        if (data.name !== undefined) customerData.name = data.name;
+        if (data.mobile !== undefined) customerData.mobile = data.mobile;
+        if (data.email !== undefined) customerData.email = data.email;
+        if (data.city !== undefined) customerData.city = data.city;
+        if (data.source !== undefined) customerData.source = data.source;
+        if (data.notes !== undefined) customerData.notes = data.notes;
+        if (data.contactOwnerId !== undefined) customerData.contactOwnerId = data.contactOwnerId;
+
+        if (Object.keys(customerData).length > 0) {
+          await tx.customer.update({
+            where: { id: customer.id },
+            data: customerData,
+          });
+        }
+      }
+
+      return updatedLead;
     });
   }
   static async deactivate(id: string) {

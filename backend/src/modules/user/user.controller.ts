@@ -63,4 +63,13 @@ export class UserController {
       data: user,
     });
   }
+
+  static async hardDelete(req: Request, res: Response) {
+    await UserService.hardDelete(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "User deleted",
+    });
+  }
 }

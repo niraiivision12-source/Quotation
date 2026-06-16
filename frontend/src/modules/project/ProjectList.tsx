@@ -23,10 +23,68 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
 import CreateProjectDialog from "./CreateProjectDialog";
-import { useProjects, useDeleteProject } from "./project.query";
+import { useProjects, useUpdateProject, useDeleteProject } from "./project.query";
 import type { Project } from "./project.types";
+
+const editProjectSchema = z.object({
+  projectName: z.string().min(2),
+  location: z.string().optional(),
+  estimatedBudget: z.number().optional(),
+});
+
+type EditProjectForm = z.infer<typeof editProjectSchema>;
+
+function EditProjectDialog({ project }: { project: Project }) {
+  const [open, setOpen] = useState(false);
+  const mutation = useUpdateProject();
+
+  const form = useForm<EditProjectForm>({
+    resolver: zodResolver(editProjectSchema),
+    defaultValues: {
+      projectName: project.projectName,
+      location: project.location ?? "",
+      estimatedBudget: undefined,
+    },
+  });
+
+  const submit = async (data: EditProjectForm) => {
+    await mutation.mutateAsync({ id: project.id, data });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">Edit</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Project — {project.projectName}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+          <Input placeholder="Project Name *" {...form.register("projectName")} />
+          <Input placeholder="Location" {...form.register("location")} />
+          <Input
+            placeholder="Estimated Budget"
+            type="number"
+            {...form.register("estimatedBudget", { valueAsNumber: true })}
+          />
+          <div className="flex gap-2">
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Saving..." : "Save"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function DeleteProjectButton({ project }: { project: Project }) {
   const [open, setOpen] = useState(false);
@@ -125,7 +183,10 @@ export default function ProjectList() {
               <TableCell>{project.location || "-"}</TableCell>
 
               <TableCell>
-                <DeleteProjectButton project={project} />
+                <div className="flex gap-2">
+                  <EditProjectDialog project={project} />
+                  <DeleteProjectButton project={project} />
+                </div>
               </TableCell>
             </TableRow>
           ))}

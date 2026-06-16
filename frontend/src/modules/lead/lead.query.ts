@@ -44,10 +44,21 @@ export const useUpdateLead = () => {
       data,
     }: {
       id: string;
-      data: { contactOwnerId?: string | null; status?: string };
+      data: {
+        name?: string;
+        mobile?: string;
+        email?: string | null;
+        city?: string | null;
+        source?: string | null;
+        notes?: string | null;
+        referralDate?: string | null;
+        contactOwnerId?: string | null;
+        status?: string;
+      };
     }) => updateLead(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
   });
 };

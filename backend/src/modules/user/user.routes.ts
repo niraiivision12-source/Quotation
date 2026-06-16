@@ -36,4 +36,10 @@ router.patch(
   asyncHandler(UserController.deactivate),
 );
 
+router.delete(
+  "/:id",
+  authorize(UserRole.OWNER),
+  asyncHandler(UserController.hardDelete),
+);
+
 export default router;

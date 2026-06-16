@@ -153,4 +153,48 @@ export class UserService {
       },
     });
   }
+
+  static async hardDelete(id: string) {
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Nullify optional references
+      await tx.lead.updateMany({
+        where: { assignedToId: id },
+        data: { assignedToId: null },
+      });
+      await tx.lead.updateMany({
+        where: { contactOwnerId: id },
+        data: { contactOwnerId: null },
+      });
+      await tx.customer.updateMany({
+        where: { assignedToId: id },
+        data: { assignedToId: null },
+      });
+      await tx.customer.updateMany({
+        where: { contactOwnerId: id },
+        data: { contactOwnerId: null },
+      });
+      await tx.project.updateMany({
+        where: { assignedToId: id },
+        data: { assignedToId: null },
+      });
+      await tx.projectPhaseTracking.updateMany({
+        where: { assignedToId: id },
+        data: { assignedToId: null },
+      });
+
+      // Delete records with required user FK
+      await tx.reminder.deleteMany({ where: { userId: id } });
+      await tx.task.deleteMany({ where: { assignedToId: id } });
+
+      await tx.user.delete({ where: { id } });
+    });
+  }
 }

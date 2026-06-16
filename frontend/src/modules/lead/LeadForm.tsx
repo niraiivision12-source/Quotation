@@ -32,13 +32,27 @@ export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
   const mutation = useCreateLead();
   const { data: usersData } = useUsers(1);
 
+  const today = new Date().toISOString().split("T")[0];
+
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: {
+      referralDate: today,
+    },
   });
 
   const submit = async (data: FormData) => {
-    await mutation.mutateAsync(data);
-    form.reset();
+    await mutation.mutateAsync({
+      name: data.name,
+      mobile: data.mobile,
+      email: data.email || undefined,
+      city: data.city || undefined,
+      source: data.source || undefined,
+      notes: data.notes || undefined,
+      contactOwnerId: data.contactOwnerId || undefined,
+      referralDate: data.referralDate || undefined,
+    });
+    form.reset({ referralDate: today });
     onSuccess?.();
   };
 
@@ -62,7 +76,14 @@ export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
         </SelectContent>
       </Select>
       <Input placeholder="Notes" {...form.register("notes")} />
-      <Input type="date" placeholder="Referral Date" {...form.register("referralDate")} />
+      <div className="space-y-1">
+        <label className="text-sm text-muted-foreground">Referral Date</label>
+        <Input
+          type="date"
+          {...form.register("referralDate")}
+          defaultValue={today}
+        />
+      </div>
       <Button type="submit" disabled={mutation.isPending}>
         {mutation.isPending ? "Creating..." : "Create Lead"}
       </Button>

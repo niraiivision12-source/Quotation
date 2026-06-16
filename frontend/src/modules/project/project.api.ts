@@ -43,6 +43,14 @@ export const updatePhase = async (
   return response.data;
 };
 
+export const updateProject = async (
+  id: string,
+  data: { projectName?: string; location?: string | null; estimatedBudget?: number },
+) => {
+  const response = await api.patch(`/projects/${id}`, data);
+  return response.data;
+};
+
 export const deleteProject = async (id: string) => {
   const response = await api.patch(`/projects/${id}/deactivate`);
   return response.data;
