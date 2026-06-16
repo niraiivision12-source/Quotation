@@ -14,6 +14,14 @@ export const getLeads = async (
   return response.data.data;
 };
 
+export const convertLead = async (
+  id: string,
+  data: { projectName: string; location?: string; estimatedBudget?: number },
+) => {
+  const response = await api.post(`/leads/${id}/convert`, data);
+  return response.data;
+};
+
 export const updateLead = async (id: string, data: { contactOwnerId?: string | null }) => {
   const response = await api.patch(`/leads/${id}`, data);
   return response.data;
