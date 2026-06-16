@@ -1,3 +1,5 @@
+import UserList from "@/modules/user/UserList";
+
 export default function UserPage() {
-  return <div>Users</div>;
+  return <UserList />;
 }
