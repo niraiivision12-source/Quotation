@@ -34,3 +34,11 @@ export const getProjectById = async (id: string) => {
 
   return response.data.data;
 };
+
+export const updatePhase = async (
+  phaseId: string,
+  data: { status: string; remarks?: string },
+) => {
+  const response = await api.patch(`/lifecycle/${phaseId}`, data);
+  return response.data;
+};

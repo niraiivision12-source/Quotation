@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryClient } from "@/lib/query-client";
-import { createProject, getProjectById, getProjects } from "./project.api";
+import { createProject, getProjectById, getProjects, updatePhase } from "./project.api";
 
 export const useProjects = (page: number, search: string) => {
   return useQuery({
@@ -19,6 +19,21 @@ export const useCreateProject = () => {
       queryClient.invalidateQueries({
         queryKey: ["projects"],
       });
+    },
+  });
+};
+
+export const useUpdatePhase = (projectId: string) => {
+  return useMutation({
+    mutationFn: ({
+      phaseId,
+      data,
+    }: {
+      phaseId: string;
+      data: { status: string; remarks?: string };
+    }) => updatePhase(phaseId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
     },
   });
 };
