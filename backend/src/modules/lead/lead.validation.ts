@@ -8,7 +8,7 @@ export const createLeadSchema = z.object({
   source: z.string().optional(),
   notes: z.string().optional(),
   assignedToId: z.string().optional(),
-  contactOwner: z.string().optional(),
+  contactOwnerId: z.string().uuid().optional(),
   city: z.string().optional(),
   referralDate: z.coerce.date().optional(),
 });
@@ -31,6 +31,8 @@ export const updateLeadSchema = z.object({
   notes: z.string().optional().nullable(),
 
   assignedToId: z.string().uuid().optional().nullable(),
+
+  contactOwnerId: z.string().uuid().optional().nullable(),
 
   status: z.enum(LeadStatus).optional(),
 });

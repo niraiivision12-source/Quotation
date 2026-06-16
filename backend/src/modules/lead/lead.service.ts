@@ -11,7 +11,7 @@ export class LeadService {
     source?: string;
     notes?: string;
     assignedToId?: string;
-    contactOwner?: string;
+    contactOwnerId?: string;
     city?: string;
     referralDate?: Date;
   }) {
@@ -60,6 +60,9 @@ export class LeadService {
         take: limit,
         orderBy: {
           createdAt: "desc",
+        },
+        include: {
+          contactOwner: { select: { id: true, name: true } },
         },
       }),
       prisma.lead.count({

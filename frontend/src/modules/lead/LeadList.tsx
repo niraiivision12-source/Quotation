@@ -11,7 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import PageHeader from "@/components/ui/PageHeader";
-
 import {
   Dialog,
   DialogContent,
@@ -19,9 +18,63 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-import { useLeads } from "./lead.query";
+import { useLeads, useUpdateLead } from "./lead.query";
+import { useUsers } from "../user/user.query";
 import LeadForm from "./LeadForm";
+import type { Lead } from "./lead.types";
+
+function EditContactOwnerDialog({ lead }: { lead: Lead }) {
+  const [open, setOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(lead.contactOwnerId ?? "");
+  const { data: usersData } = useUsers(1);
+  const mutation = useUpdateLead();
+
+  const save = async () => {
+    await mutation.mutateAsync({ id: lead.id, data: { contactOwnerId: selectedUserId || null } });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">Edit</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Change Contact Owner — {lead.name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Select
+            defaultValue={lead.contactOwnerId ?? ""}
+            onValueChange={setSelectedUserId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Contact Owner" />
+            </SelectTrigger>
+            <SelectContent>
+              {usersData?.items.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={save} disabled={mutation.isPending}>
+            {mutation.isPending ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function LeadList() {
   const [page, setPage] = useState(1);
@@ -70,19 +123,20 @@ export default function LeadList() {
             <TableHead>Notes</TableHead>
             <TableHead>Referral Date</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Action</TableHead>
           </TableRow>
         </TableHeader>
 
         <TableBody>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={6}>Loading...</TableCell>
+              <TableCell colSpan={9}>Loading...</TableCell>
             </TableRow>
           )}
 
           {!isLoading && data?.items.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6}>No leads found.</TableCell>
+              <TableCell colSpan={9}>No leads found.</TableCell>
             </TableRow>
           )}
 
@@ -92,7 +146,7 @@ export default function LeadList() {
               <TableCell>{lead.mobile}</TableCell>
               <TableCell>{lead.city ?? "-"}</TableCell>
               <TableCell>{lead.source ?? "-"}</TableCell>
-              <TableCell>{lead.contactOwner ?? "-"}</TableCell>
+              <TableCell>{lead.contactOwner?.name ?? "-"}</TableCell>
               <TableCell>{lead.notes ?? "-"}</TableCell>
               <TableCell>
                 {lead.referralDate
@@ -100,6 +154,9 @@ export default function LeadList() {
                   : "-"}
               </TableCell>
               <TableCell>{lead.status}</TableCell>
+              <TableCell>
+                <EditContactOwnerDialog lead={lead} />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

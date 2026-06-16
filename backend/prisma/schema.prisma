@@ -117,7 +117,8 @@ model User {
   assignedCustomers Customer[]
   assignedProjects  Project[]
   assignedPhases    ProjectPhaseTracking[]
-  leads             Lead[]
+  assignedLeads     Lead[]   @relation("AssignedLeads")
+  contactOwnerLeads Lead[]   @relation("ContactOwnerLeads")
 
   quotations Quotation[]
   reminders  Reminder[]
@@ -201,7 +202,7 @@ model Lead {
 
   assignedToId String?
 
-  contactOwner String?
+  contactOwnerId String?
 
   city String?
 
@@ -212,7 +213,8 @@ model Lead {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedTo User? @relation(fields: [assignedToId], references: [id])
+  assignedTo   User? @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  contactOwner User? @relation("ContactOwnerLeads", fields: [contactOwnerId], references: [id])
 
   reminders Reminder[]
 

@@ -14,13 +14,18 @@ export const getLeads = async (
   return response.data.data;
 };
 
+export const updateLead = async (id: string, data: { contactOwnerId?: string | null }) => {
+  const response = await api.patch(`/leads/${id}`, data);
+  return response.data;
+};
+
 export const createLead = async (data: {
   name: string;
   mobile: string;
   email?: string;
   source?: string;
   notes?: string;
-  contactOwner?: string;
+  contactOwnerId?: string;
   city?: string;
   referralDate?: string;
 }) => {

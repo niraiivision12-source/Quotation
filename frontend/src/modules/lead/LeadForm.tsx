@@ -1,14 +1,19 @@
 import { useForm } from "react-hook-form";
-
 import { z } from "zod";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
-
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useCreateLead } from "./lead.query";
+import { useUsers } from "../user/user.query";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -16,7 +21,7 @@ const schema = z.object({
   email: z.string().optional(),
   source: z.string().optional(),
   notes: z.string().optional(),
-  contactOwner: z.string().optional(),
+  contactOwnerId: z.string().optional(),
   city: z.string().optional(),
   referralDate: z.string().optional(),
 });
@@ -25,6 +30,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
   const mutation = useCreateLead();
+  const { data: usersData } = useUsers(1);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -43,7 +49,18 @@ export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
       <Input placeholder="Email" {...form.register("email")} />
       <Input placeholder="City" {...form.register("city")} />
       <Input placeholder="Source (e.g. Facebook)" {...form.register("source")} />
-      <Input placeholder="Contact Owner" {...form.register("contactOwner")} />
+      <Select onValueChange={(value) => form.setValue("contactOwnerId", value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select Contact Owner" />
+        </SelectTrigger>
+        <SelectContent>
+          {usersData?.items.map((user) => (
+            <SelectItem key={user.id} value={user.id}>
+              {user.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Input placeholder="Notes" {...form.register("notes")} />
       <Input type="date" placeholder="Referral Date" {...form.register("referralDate")} />
       <Button type="submit" disabled={mutation.isPending}>
