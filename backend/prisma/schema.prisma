@@ -114,7 +114,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedCustomers Customer[]
+  assignedCustomers      Customer[]
+  contactOwnerCustomers  Customer[] @relation("CustomerContactOwner")
   assignedProjects  Project[]
   assignedPhases    ProjectPhaseTracking[]
   assignedLeads     Lead[]   @relation("AssignedLeads")
@@ -235,6 +236,13 @@ model Customer {
 
   address String?
 
+  city         String?
+  source       String?
+  notes        String?
+  referralDate DateTime?
+
+  contactOwnerId String?
+
   assignedToId String?
 
   isActive Boolean @default(true)
@@ -242,7 +250,8 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedTo User? @relation(fields: [assignedToId], references: [id])
+  assignedTo   User? @relation(fields: [assignedToId], references: [id])
+  contactOwner User? @relation("CustomerContactOwner", fields: [contactOwnerId], references: [id])
 
   projects  Project[]
   reminders Reminder[]

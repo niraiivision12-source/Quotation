@@ -55,6 +55,9 @@ export class CustomerService {
         orderBy: {
           createdAt: "desc",
         },
+        include: {
+          contactOwner: { select: { id: true, name: true } },
+        },
       }),
       prisma.customer.count({
         where,

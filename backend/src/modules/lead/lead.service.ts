@@ -135,6 +135,11 @@ export class LeadService {
           mobile: lead.mobile,
           email: lead.email,
           assignedToId: lead.assignedToId,
+          city: lead.city,
+          source: lead.source,
+          notes: lead.notes,
+          referralDate: lead.referralDate,
+          contactOwnerId: lead.contactOwnerId,
         },
       });
 

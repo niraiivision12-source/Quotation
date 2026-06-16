@@ -4,6 +4,12 @@ export interface Customer {
   mobile: string;
   email?: string;
   address?: string;
+  city?: string;
+  source?: string;
+  notes?: string;
+  referralDate?: string;
+  contactOwnerId?: string;
+  contactOwner?: { id: string; name: string };
 }
 
 export interface CustomerListResponse {
