@@ -39,8 +39,13 @@ export const useConvertLead = () => {
 
 export const useUpdateLead = () => {
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { contactOwnerId?: string | null } }) =>
-      updateLead(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { contactOwnerId?: string | null; status?: string };
+    }) => updateLead(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
     },

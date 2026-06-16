@@ -22,7 +22,10 @@ export const convertLead = async (
   return response.data;
 };
 
-export const updateLead = async (id: string, data: { contactOwnerId?: string | null }) => {
+export const updateLead = async (
+  id: string,
+  data: { contactOwnerId?: string | null; status?: string },
+) => {
   const response = await api.patch(`/leads/${id}`, data);
   return response.data;
 };

@@ -19,6 +19,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -32,7 +34,99 @@ import {
 import { useLeads, useUpdateLead, useConvertLead } from "./lead.query";
 import { useUsers } from "../user/user.query";
 import LeadForm from "./LeadForm";
-import type { Lead } from "./lead.types";
+import type { Lead, LeadStatus } from "./lead.types";
+
+const LEAD_STATUSES: LeadStatus[] = [
+  "NEW",
+  "CONTACTED",
+  "FOLLOW_UP",
+  "QUOTATION_SENT",
+  "NEGOTIATION",
+  "WON",
+  "LOST",
+];
+
+const convertSchema = z.object({
+  projectName: z.string().min(2),
+  location: z.string().optional(),
+  estimatedBudget: z.number().optional(),
+});
+
+type ConvertForm = z.infer<typeof convertSchema>;
+
+function StatusSelect({ lead }: { lead: Lead }) {
+  const [convertOpen, setConvertOpen] = useState(false);
+  const updateMutation = useUpdateLead();
+  const convertMutation = useConvertLead();
+
+  const form = useForm<ConvertForm>({
+    resolver: zodResolver(convertSchema),
+  });
+
+  const onChange = (status: string) => {
+    if (status === "WON") {
+      setConvertOpen(true);
+    } else {
+      updateMutation.mutate({ id: lead.id, data: { status } });
+    }
+  };
+
+  const submitConvert = async (data: ConvertForm) => {
+    await convertMutation.mutateAsync({ id: lead.id, data });
+    form.reset();
+    setConvertOpen(false);
+  };
+
+  const cancelConvert = () => {
+    setConvertOpen(false);
+  };
+
+  return (
+    <>
+      <Select
+        defaultValue={lead.status}
+        onValueChange={onChange}
+        disabled={lead.status === "WON" || lead.status === "LOST"}
+      >
+        <SelectTrigger className="w-40">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {LEAD_STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              {s.replace(/_/g, " ")}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Dialog open={convertOpen} onOpenChange={(o) => { if (!o) cancelConvert(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert {lead.name} to Customer</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={form.handleSubmit(submitConvert)} className="space-y-4">
+            <Input placeholder="Project Name *" {...form.register("projectName")} />
+            <Input placeholder="Location" {...form.register("location")} />
+            <Input
+              placeholder="Estimated Budget"
+              type="number"
+              {...form.register("estimatedBudget", { valueAsNumber: true })}
+            />
+            <div className="flex gap-2">
+              <Button type="submit" disabled={convertMutation.isPending}>
+                {convertMutation.isPending ? "Converting..." : "Confirm WON & Convert"}
+              </Button>
+              <Button type="button" variant="outline" onClick={cancelConvert}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 function EditContactOwnerDialog({ lead }: { lead: Lead }) {
   const [open, setOpen] = useState(false);
@@ -71,56 +165,6 @@ function EditContactOwnerDialog({ lead }: { lead: Lead }) {
             {mutation.isPending ? "Saving..." : "Save"}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-const convertSchema = z.object({
-  projectName: z.string().min(2),
-  location: z.string().optional(),
-  estimatedBudget: z.number().optional(),
-});
-
-type ConvertForm = z.infer<typeof convertSchema>;
-
-function ConvertLeadDialog({ lead }: { lead: Lead }) {
-  const [open, setOpen] = useState(false);
-  const mutation = useConvertLead();
-
-  const form = useForm<ConvertForm>({
-    resolver: zodResolver(convertSchema),
-  });
-
-  const submit = async (data: ConvertForm) => {
-    await mutation.mutateAsync({ id: lead.id, data });
-    form.reset();
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" disabled={lead.status === "WON" || lead.status === "LOST"}>
-          Convert
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Convert Lead — {lead.name}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
-          <Input placeholder="Project Name *" {...form.register("projectName")} />
-          <Input placeholder="Location" {...form.register("location")} />
-          <Input
-            placeholder="Estimated Budget"
-            type="number"
-            {...form.register("estimatedBudget", { valueAsNumber: true })}
-          />
-          <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? "Converting..." : "Convert to Customer"}
-          </Button>
-        </form>
       </DialogContent>
     </Dialog>
   );
@@ -203,12 +247,11 @@ export default function LeadList() {
                   ? new Date(lead.referralDate).toLocaleDateString()
                   : "-"}
               </TableCell>
-              <TableCell>{lead.status}</TableCell>
               <TableCell>
-                <div className="flex gap-2">
-                  <EditContactOwnerDialog lead={lead} />
-                  <ConvertLeadDialog lead={lead} />
-                </div>
+                <StatusSelect lead={lead} />
+              </TableCell>
+              <TableCell>
+                <EditContactOwnerDialog lead={lead} />
               </TableCell>
             </TableRow>
           ))}
