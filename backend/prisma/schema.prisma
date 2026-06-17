@@ -125,12 +125,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedCustomers      Customer[]
-  contactOwnerCustomers  Customer[] @relation("CustomerContactOwner")
+  assignedCustomers Customer[]
   assignedProjects  Project[]
   assignedPhases    ProjectPhaseTracking[]
-  assignedLeads     Lead[]   @relation("AssignedLeads")
-  contactOwnerLeads Lead[]   @relation("ContactOwnerLeads")
+  leads             Lead[]
 
   quotations Quotation[]
   reminders  Reminder[]
@@ -215,8 +213,6 @@ model Lead {
 
   assignedToId String?
 
-  contactOwnerId String?
-
   city String?
 
   referralDate DateTime?
@@ -226,8 +222,7 @@ model Lead {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedTo   User? @relation("AssignedLeads", fields: [assignedToId], references: [id])
-  contactOwner User? @relation("ContactOwnerLeads", fields: [contactOwnerId], references: [id])
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
 
   reminders  Reminder[]
   tasks      Task[]
@@ -253,8 +248,6 @@ model Customer {
   notes        String?
   referralDate DateTime?
 
-  contactOwnerId String?
-
   assignedToId String?
 
   isActive Boolean @default(true)
@@ -262,8 +255,7 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedTo   User? @relation(fields: [assignedToId], references: [id])
-  contactOwner User? @relation("CustomerContactOwner", fields: [contactOwnerId], references: [id])
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
 
   projects  Project[]
   reminders Reminder[]
@@ -508,7 +500,6 @@ model QuotationItem {
   @@index([quotationId])
   @@index([productId])
 }
-
 model LeadActivity {
   id String @id @default(uuid())
 
