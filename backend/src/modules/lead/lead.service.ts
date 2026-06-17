@@ -287,6 +287,29 @@ export class LeadService {
       return updatedLead;
     });
   }
+  static async getLifecycle(id: string) {
+    const lead = await prisma.lead.findUnique({ where: { id, isActive: true } });
+
+    if (!lead) throw new AppError("Lead not found", 404);
+
+    if (lead.status !== LeadStatus.WON) return null;
+
+    const customer = await prisma.customer.findFirst({
+      where: { mobile: lead.mobile, isActive: true },
+    });
+
+    if (!customer) return null;
+
+    const project = await prisma.project.findFirst({
+      where: { customerId: customer.id, isActive: true },
+      include: {
+        phaseTracking: { orderBy: { phase: "asc" } },
+      },
+    });
+
+    return project ?? null;
+  }
+
   static async deactivate(id: string) {
     const lead = await prisma.lead.findUnique({
       where: { id },

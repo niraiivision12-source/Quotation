@@ -1,6 +1,6 @@
 import { api } from "@/lib/axios";
 
-import type { LeadListResponse } from "./lead.types";
+import type { LeadLifecycle, LeadListResponse } from "./lead.types";
 
 export const getLeads = async (
   page = 1,
@@ -58,4 +58,9 @@ export const createLead = async (data: {
 export const deleteLead = async (id: string) => {
   const response = await api.patch(`/leads/${id}/deactivate`);
   return response.data;
+};
+
+export const getLeadLifecycle = async (id: string): Promise<LeadLifecycle | null> => {
+  const response = await api.get(`/leads/${id}/lifecycle`);
+  return response.data.data;
 };

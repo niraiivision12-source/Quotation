@@ -15,6 +15,8 @@ router.get("/", asyncHandler(LeadController.getAll));
 
 router.get("/:id", asyncHandler(LeadController.getById));
 
+router.get("/:id/lifecycle", asyncHandler(LeadController.getLifecycle));
+
 router.post("/:id/convert", asyncHandler(LeadController.convert));
 
 router.patch("/:id", asyncHandler(LeadController.update));

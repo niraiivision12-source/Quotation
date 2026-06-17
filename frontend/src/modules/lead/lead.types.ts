@@ -29,3 +29,21 @@ export interface LeadListResponse {
   page: number;
   limit: number;
 }
+
+export type PhaseStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED";
+export type ProjectPhase = "PIPES" | "WIRING" | "SWITCHES" | "LIGHTS" | "FANS";
+
+export interface PhaseTracking {
+  id: string;
+  phase: ProjectPhase;
+  status: PhaseStatus;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  remarks?: string | null;
+}
+
+export interface LeadLifecycle {
+  id: string;
+  projectName: string;
+  phaseTracking: PhaseTracking[];
+}

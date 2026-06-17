@@ -45,6 +45,16 @@ export class LeadController {
     });
   }
 
+  static async getLifecycle(req: Request, res: Response) {
+    const data = await LeadService.getLifecycle(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lead lifecycle fetched",
+      data,
+    });
+  }
+
   static async convert(req: Request, res: Response) {
     const data = convertLeadSchema.parse(req.body);
 
