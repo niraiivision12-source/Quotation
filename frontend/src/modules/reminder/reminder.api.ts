@@ -1,8 +1,8 @@
 import { api } from "@/lib/axios";
 import type { CreateReminderInput, Reminder, ReminderListResponse } from "./reminder.types";
 
-export const getMyReminders = async (page = 1, limit = 50): Promise<ReminderListResponse> => {
-  const res = await api.get("/reminders/my", { params: { page, limit } });
+export const getMyReminders = async (page = 1, limit = 50, leadId?: string): Promise<ReminderListResponse> => {
+  const res = await api.get("/reminders/my", { params: { page, limit, ...(leadId ? { leadId } : {}) } });
   return res.data.data;
 };
 

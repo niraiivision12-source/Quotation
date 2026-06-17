@@ -25,10 +25,13 @@ export class ReminderController {
 
     const limit = Number(req.query.limit || 20);
 
+    const leadId = req.query.leadId?.toString();
+
     const reminders = await ReminderService.getMyReminders(
       req.user!.id,
       page,
       limit,
+      leadId,
     );
 
     return res.status(200).json({

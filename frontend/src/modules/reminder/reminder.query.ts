@@ -18,6 +18,14 @@ export const useMyReminders = () => {
   });
 };
 
+export const useLeadReminders = (leadId: string | null) => {
+  return useQuery({
+    queryKey: ["reminders", "lead", leadId],
+    queryFn: () => getMyReminders(1, 50, leadId!),
+    enabled: !!leadId,
+  });
+};
+
 export const useOverdueReminders = () => {
   return useQuery({
     queryKey: ["reminders-overdue"],

@@ -7,6 +7,7 @@ import {
 import { Wrench, Zap, ToggleLeft, Lightbulb, Wind, Check } from "lucide-react";
 import type { Lead, LeadLifecycle, PhaseStatus, ProjectPhase } from "./lead.types";
 import { useLeadLifecycle } from "./lead.query";
+import { useLeadReminders } from "@/modules/reminder/reminder.query";
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-blue-100 text-blue-700",
@@ -101,6 +102,10 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
   const { data: lifecycle, isLoading: lifecycleLoading } = useLeadLifecycle(
     lead?.status === "WON" ? lead.id : null
   );
+  const { data: leadReminders } = useLeadReminders(lead?.nextFollowUpAt ? lead.id : null);
+
+  const followUpReminder = leadReminders?.items.find((r) => r.type === "LEAD");
+  const followUpDone = followUpReminder?.status === "COMPLETED";
 
   if (!lead) return null;
 
@@ -158,12 +163,19 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
               {lead.nextFollowUpAt && (
                 <div className="flex flex-col gap-0.5 col-span-2">
                   <span className="text-xs text-muted-foreground">Follow-Up</span>
-                  <span className={`text-sm font-medium flex items-center gap-2 ${new Date(lead.nextFollowUpAt) < new Date() ? "text-red-500" : "text-orange-500"}`}>
-                    {new Date(lead.nextFollowUpAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
-                    {new Date(lead.nextFollowUpAt) < new Date() && (
-                      <span className="text-xs bg-red-100 text-red-500 px-1.5 py-0.5 rounded-full">Overdue</span>
-                    )}
-                  </span>
+                  {followUpDone ? (
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600">
+                      <span className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center text-[10px]">✓</span>
+                      Completed
+                    </span>
+                  ) : (
+                    <span className={`text-sm font-medium flex items-center gap-2 ${new Date(lead.nextFollowUpAt) < new Date() ? "text-red-500" : "text-orange-500"}`}>
+                      {new Date(lead.nextFollowUpAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+                      {new Date(lead.nextFollowUpAt) < new Date() && (
+                        <span className="text-xs bg-red-100 text-red-500 px-1.5 py-0.5 rounded-full">Overdue</span>
+                      )}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
