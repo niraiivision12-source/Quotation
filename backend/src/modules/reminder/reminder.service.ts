@@ -42,6 +42,26 @@ export class ReminderService {
         orderBy: {
           dueAt: "asc",
         },
+        include: {
+          lead: {
+            select: {
+              id: true,
+              name: true,
+              mobile: true,
+              email: true,
+              city: true,
+              source: true,
+              notes: true,
+              status: true,
+              contactOwnerId: true,
+              contactOwner: { select: { id: true, name: true } },
+              referralDate: true,
+              assignedToId: true,
+              nextFollowUpAt: true,
+              createdAt: true,
+            },
+          },
+        },
       }),
       prisma.reminder.count({
         where: {

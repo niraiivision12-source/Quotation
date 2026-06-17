@@ -1,7 +1,10 @@
-import { Bell, Check, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Bell, Check, Trash2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCompleteReminder, useDeleteReminder, useMyReminders } from "./reminder.query";
-import type { Reminder, ReminderPriority, ReminderStatus } from "./reminder.types";
+import type { Reminder, ReminderLead, ReminderPriority, ReminderStatus } from "./reminder.types";
+import LeadDetailDrawer from "@/modules/lead/LeadDetailDrawer";
+import type { Lead } from "@/modules/lead/lead.types";
 
 const PRIORITY_COLORS: Record<ReminderPriority, string> = {
   LOW: "bg-gray-100 text-gray-600",
@@ -16,7 +19,26 @@ const STATUS_COLORS: Record<ReminderStatus, string> = {
   MISSED: "bg-red-100 text-red-700",
 };
 
-function ReminderCard({ reminder }: { reminder: Reminder }) {
+function toLeadShape(r: ReminderLead): Lead {
+  return {
+    ...r,
+    status: r.status as Lead["status"],
+    contactOwner: r.contactOwner ?? undefined,
+    email: r.email ?? undefined,
+    city: r.city ?? undefined,
+    source: r.source ?? undefined,
+    notes: r.notes ?? undefined,
+    referralDate: r.referralDate ?? undefined,
+    nextFollowUpAt: r.nextFollowUpAt ?? undefined,
+  };
+}
+
+interface ReminderCardProps {
+  reminder: Reminder;
+  onLeadClick: (lead: Lead) => void;
+}
+
+function ReminderCard({ reminder, onLeadClick }: ReminderCardProps) {
   const completeMutation = useCompleteReminder();
   const deleteMutation = useDeleteReminder();
 
@@ -38,6 +60,16 @@ function ReminderCard({ reminder }: { reminder: Reminder }) {
 
         {reminder.description && (
           <p className="text-xs text-muted-foreground mb-1">{reminder.description}</p>
+        )}
+
+        {reminder.lead && (
+          <button
+            onClick={() => onLeadClick(toLeadShape(reminder.lead!))}
+            className="inline-flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 hover:underline mb-1"
+          >
+            <User size={11} />
+            {reminder.lead.name} · {reminder.lead.mobile}
+          </button>
         )}
 
         <p className={`text-xs ${isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
@@ -74,20 +106,21 @@ function ReminderCard({ reminder }: { reminder: Reminder }) {
   );
 }
 
-function Section({ title, items }: { title: string; items: Reminder[] }) {
+function Section({ title, items, onLeadClick }: { title: string; items: Reminder[]; onLeadClick: (lead: Lead) => void }) {
   if (items.length === 0) return null;
   return (
     <div className="space-y-2">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
         {title} ({items.length})
       </h3>
-      {items.map((r) => <ReminderCard key={r.id} reminder={r} />)}
+      {items.map((r) => <ReminderCard key={r.id} reminder={r} onLeadClick={onLeadClick} />)}
     </div>
   );
 }
 
 export default function ReminderList() {
   const { data, isLoading } = useMyReminders();
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading reminders...</p>;
 
@@ -96,11 +129,11 @@ export default function ReminderList() {
   const now = new Date();
   const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
 
-  const overdue    = all.filter((r) => r.status === "PENDING" && new Date(r.dueAt) < now);
-  const today      = all.filter((r) => r.status === "PENDING" && new Date(r.dueAt) >= now && new Date(r.dueAt) <= todayEnd);
-  const upcoming   = all.filter((r) => r.status === "PENDING" && new Date(r.dueAt) > todayEnd);
-  const completed  = all.filter((r) => r.status === "COMPLETED");
-  const missed     = all.filter((r) => r.status === "MISSED");
+  const overdue   = all.filter((r) => r.status === "PENDING" && new Date(r.dueAt) < now);
+  const today     = all.filter((r) => r.status === "PENDING" && new Date(r.dueAt) >= now && new Date(r.dueAt) <= todayEnd);
+  const upcoming  = all.filter((r) => r.status === "PENDING" && new Date(r.dueAt) > todayEnd);
+  const completed = all.filter((r) => r.status === "COMPLETED");
+  const missed    = all.filter((r) => r.status === "MISSED");
 
   if (all.length === 0) {
     return (
@@ -112,12 +145,20 @@ export default function ReminderList() {
   }
 
   return (
-    <div className="space-y-6">
-      <Section title="Overdue" items={overdue} />
-      <Section title="Today" items={today} />
-      <Section title="Upcoming" items={upcoming} />
-      <Section title="Missed" items={missed} />
-      <Section title="Completed" items={completed} />
-    </div>
+    <>
+      <div className="space-y-6">
+        <Section title="Overdue"   items={overdue}   onLeadClick={setSelectedLead} />
+        <Section title="Today"     items={today}     onLeadClick={setSelectedLead} />
+        <Section title="Upcoming"  items={upcoming}  onLeadClick={setSelectedLead} />
+        <Section title="Missed"    items={missed}    onLeadClick={setSelectedLead} />
+        <Section title="Completed" items={completed} onLeadClick={setSelectedLead} />
+      </div>
+
+      <LeadDetailDrawer
+        lead={selectedLead}
+        open={!!selectedLead}
+        onClose={() => setSelectedLead(null)}
+      />
+    </>
   );
 }

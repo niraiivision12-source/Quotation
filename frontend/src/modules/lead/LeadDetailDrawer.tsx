@@ -149,16 +149,23 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
               <InfoRow label="Contact Owner" value={lead.contactOwner?.name} />
               <InfoRow
                 label="Referral Date"
-                value={
-                  lead.referralDate
-                    ? new Date(lead.referralDate).toLocaleDateString()
-                    : undefined
-                }
+                value={lead.referralDate ? new Date(lead.referralDate).toLocaleDateString() : undefined}
               />
               <InfoRow
                 label="Created At"
                 value={new Date(lead.createdAt).toLocaleDateString()}
               />
+              {lead.nextFollowUpAt && (
+                <div className="flex flex-col gap-0.5 col-span-2">
+                  <span className="text-xs text-muted-foreground">Follow-Up</span>
+                  <span className={`text-sm font-medium flex items-center gap-2 ${new Date(lead.nextFollowUpAt) < new Date() ? "text-red-500" : "text-orange-500"}`}>
+                    {new Date(lead.nextFollowUpAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+                    {new Date(lead.nextFollowUpAt) < new Date() && (
+                      <span className="text-xs bg-red-100 text-red-500 px-1.5 py-0.5 rounded-full">Overdue</span>
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
           </section>
 

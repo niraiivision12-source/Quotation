@@ -3,6 +3,23 @@ export type ReminderType = "LEAD" | "PROJECT" | "CUSTOMER" | "QUOTATION" | "TASK
 export type ReminderPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type ReminderRepeatType = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
 
+export interface ReminderLead {
+  id: string;
+  name: string;
+  mobile: string;
+  email?: string | null;
+  city?: string | null;
+  source?: string | null;
+  notes?: string | null;
+  status: string;
+  contactOwnerId?: string | null;
+  contactOwner?: { id: string; name: string } | null;
+  referralDate?: string | null;
+  assignedToId?: string | null;
+  nextFollowUpAt?: string | null;
+  createdAt: string;
+}
+
 export interface Reminder {
   id: string;
   title: string;
@@ -18,6 +35,7 @@ export interface Reminder {
   leadId?: string | null;
   customerId?: string | null;
   projectId?: string | null;
+  lead?: ReminderLead | null;
   createdAt: string;
   updatedAt: string;
 }

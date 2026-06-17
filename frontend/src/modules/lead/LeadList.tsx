@@ -367,7 +367,6 @@ export default function LeadList() {
             <TableHead>Contact Owner</TableHead>
             <TableHead>Notes</TableHead>
             <TableHead>Referral Date</TableHead>
-            <TableHead>Follow-Up Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -402,15 +401,6 @@ export default function LeadList() {
                 {lead.referralDate
                   ? new Date(lead.referralDate).toLocaleDateString()
                   : "-"}
-              </TableCell>
-              <TableCell>
-                {lead.nextFollowUpAt ? (
-                  <span className={`text-sm font-medium ${new Date(lead.nextFollowUpAt) < new Date() ? "text-red-500" : "text-orange-500"}`}>
-                    {new Date(lead.nextFollowUpAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <StatusSelect lead={lead} />
