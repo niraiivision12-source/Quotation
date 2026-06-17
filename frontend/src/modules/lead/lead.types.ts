@@ -20,6 +20,7 @@ export interface Lead {
   city?: string;
   referralDate?: string;
   assignedToId?: string;
+  nextFollowUpAt?: string | null;
   createdAt: string;
 }
 

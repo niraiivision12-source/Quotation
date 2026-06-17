@@ -34,6 +34,7 @@ export const updateLead = async (
     referralDate?: string | null;
     contactOwnerId?: string | null;
     status?: string;
+    nextFollowUpAt?: string | null;
   },
 ) => {
   const response = await api.patch(`/leads/${id}`, data);

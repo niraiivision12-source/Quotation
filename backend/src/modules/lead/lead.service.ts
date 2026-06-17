@@ -236,6 +236,7 @@ export class LeadService {
       assignedToId?: string | null;
       contactOwnerId?: string | null;
       status?: LeadStatus;
+      nextFollowUpAt?: Date | null;
     },
   ) {
     const lead = await prisma.lead.findUnique({

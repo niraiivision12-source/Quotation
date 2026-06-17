@@ -57,6 +57,8 @@ type ConvertForm = z.infer<typeof convertSchema>;
 
 function StatusSelect({ lead }: { lead: Lead }) {
   const [convertOpen, setConvertOpen] = useState(false);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState("");
   const updateMutation = useUpdateLead();
   const convertMutation = useConvertLead();
 
@@ -67,9 +69,20 @@ function StatusSelect({ lead }: { lead: Lead }) {
   const onChange = (status: string) => {
     if (status === "WON") {
       setConvertOpen(true);
+    } else if (status === "FOLLOW_UP") {
+      setFollowUpOpen(true);
     } else {
       updateMutation.mutate({ id: lead.id, data: { status } });
     }
+  };
+
+  const submitFollowUp = async () => {
+    await updateMutation.mutateAsync({
+      id: lead.id,
+      data: { status: "FOLLOW_UP", nextFollowUpAt: followUpDate || null },
+    });
+    setFollowUpDate("");
+    setFollowUpOpen(false);
   };
 
   const submitConvert = async (data: ConvertForm) => {
@@ -101,6 +114,33 @@ function StatusSelect({ lead }: { lead: Lead }) {
         </SelectContent>
       </Select>
 
+      {/* Follow Up date dialog */}
+      <Dialog open={followUpOpen} onOpenChange={(o) => { if (!o) setFollowUpOpen(false); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Follow-Up Date for {lead.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-sm text-muted-foreground">Follow-up date</label>
+              <Input
+                type="date"
+                value={followUpDate}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setFollowUpDate(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={submitFollowUp} disabled={updateMutation.isPending || !followUpDate}>
+                {updateMutation.isPending ? "Saving..." : "Set Follow-Up"}
+              </Button>
+              <Button variant="outline" onClick={() => setFollowUpOpen(false)}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to customer dialog */}
       <Dialog open={convertOpen} onOpenChange={(o) => { if (!o) cancelConvert(); }}>
         <DialogContent>
           <DialogHeader>
@@ -216,6 +256,25 @@ function EditLeadDialog({ lead }: { lead: Lead }) {
   );
 }
 
+function ReopenLeadButton({ lead }: { lead: Lead }) {
+  const mutation = useUpdateLead();
+
+  const reopen = () => {
+    mutation.mutate({ id: lead.id, data: { status: "FOLLOW_UP" } });
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={mutation.isPending}
+      onClick={reopen}
+    >
+      {mutation.isPending ? "Reopening..." : "Reopen"}
+    </Button>
+  );
+}
+
 function DeleteLeadButton({ lead }: { lead: Lead }) {
   const [open, setOpen] = useState(false);
   const deleteMutation = useDeleteLead();
@@ -297,6 +356,7 @@ export default function LeadList() {
             <TableHead>Contact Owner</TableHead>
             <TableHead>Notes</TableHead>
             <TableHead>Referral Date</TableHead>
+            <TableHead>Follow-Up Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -332,12 +392,25 @@ export default function LeadList() {
                   ? new Date(lead.referralDate).toLocaleDateString()
                   : "-"}
               </TableCell>
+              <TableCell>
+                {lead.nextFollowUpAt ? (
+                  <span className={`text-sm font-medium ${new Date(lead.nextFollowUpAt) < new Date() ? "text-red-500" : "text-orange-500"}`}>
+                    {new Date(lead.nextFollowUpAt).toLocaleDateString()}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <StatusSelect lead={lead} />
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <div className="flex gap-2">
-                  <EditLeadDialog lead={lead} />
+                  {lead.status === "LOST" ? (
+                    <ReopenLeadButton lead={lead} />
+                  ) : (
+                    <EditLeadDialog lead={lead} />
+                  )}
                   <DeleteLeadButton lead={lead} />
                 </div>
               </TableCell>

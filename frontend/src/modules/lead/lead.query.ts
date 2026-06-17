@@ -54,6 +54,7 @@ export const useUpdateLead = () => {
         referralDate?: string | null;
         contactOwnerId?: string | null;
         status?: string;
+        nextFollowUpAt?: string | null;
       };
     }) => updateLead(id, data),
     onSuccess: () => {

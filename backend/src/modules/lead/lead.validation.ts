@@ -32,4 +32,5 @@ export const updateLeadSchema = z.object({
   assignedToId: z.preprocess(emptyToUndefined, z.string().uuid().optional().nullable()),
   contactOwnerId: z.preprocess(emptyToUndefined, z.string().uuid().optional().nullable()),
   status: z.enum(LeadStatus).optional(),
+  nextFollowUpAt: z.preprocess(emptyToUndefined, z.coerce.date().optional().nullable()),
 });
