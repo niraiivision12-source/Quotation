@@ -4,38 +4,33 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Wrench, Zap, ToggleLeft, Lightbulb, Wind, Check } from "lucide-react";
+import { Wrench, Zap, ToggleLeft, Lightbulb, Wind, Check, Phone, MapPin, Calendar } from "lucide-react";
 import type { Lead, LeadActivity, LeadActivityType, LeadLifecycle, PhaseStatus, ProjectPhase } from "./lead.types";
 import { useLeadActivities, useLeadLifecycle } from "./lead.query";
 import { useLeadReminders } from "@/modules/reminder/reminder.query";
 
+// ─── Status badge ──────────────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, string> = {
-  NEW: "bg-blue-100 text-blue-700",
-  CONTACTED: "bg-yellow-100 text-yellow-700",
-  FOLLOW_UP: "bg-orange-100 text-orange-700",
+  NEW:            "bg-blue-100 text-blue-700",
+  CONTACTED:      "bg-yellow-100 text-yellow-700",
+  FOLLOW_UP:      "bg-orange-100 text-orange-700",
   QUOTATION_SENT: "bg-purple-100 text-purple-700",
-  NEGOTIATION: "bg-pink-100 text-pink-700",
-  WON: "bg-green-100 text-green-700",
-  LOST: "bg-red-100 text-red-700",
+  NEGOTIATION:    "bg-pink-100 text-pink-700",
+  WON:            "bg-green-100 text-green-700",
+  LOST:           "bg-red-100 text-red-700",
 };
 
-const PHASE_META: Record<ProjectPhase, { label: string; icon: React.ReactNode }> = {
-  PIPES:    { label: "Pipes",    icon: <Wrench size={16} /> },
-  WIRING:   { label: "Wiring",  icon: <Zap size={16} /> },
-  SWITCHES: { label: "Switches",icon: <ToggleLeft size={16} /> },
-  LIGHTS:   { label: "Lights",  icon: <Lightbulb size={16} /> },
-  FANS:     { label: "Fans",    icon: <Wind size={16} /> },
-};
+// ─── Avatar ────────────────────────────────────────────────────────────────────
+function Avatar({ name }: { name: string }) {
+  const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <div className="w-12 h-12 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-lg flex-shrink-0">
+      {initials}
+    </div>
+  );
+}
 
-const PHASE_ORDER: ProjectPhase[] = ["PIPES", "WIRING", "SWITCHES", "LIGHTS", "FANS"];
-
-const PHASE_STYLE: Record<PhaseStatus, { circle: string; label: string; line: string }> = {
-  COMPLETED:   { circle: "bg-violet-600 text-white", label: "text-violet-600", line: "bg-violet-500" },
-  IN_PROGRESS: { circle: "bg-violet-600 text-white ring-4 ring-violet-100", label: "text-violet-700", line: "bg-gray-200" },
-  SKIPPED:     { circle: "bg-gray-200 text-gray-400", label: "text-gray-400", line: "bg-gray-200" },
-  NOT_STARTED: { circle: "bg-gray-100 text-gray-400", label: "text-gray-400", line: "bg-gray-200" },
-};
-
+// ─── Info row ──────────────────────────────────────────────────────────────────
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex flex-col gap-0.5">
@@ -45,99 +40,103 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function LifecycleTracker({ lifecycle }: { lifecycle: LeadLifecycle }) {
+// ─── Construction stage stepper ────────────────────────────────────────────────
+const PHASE_META: Record<ProjectPhase, { label: string; icon: React.ReactNode }> = {
+  PIPES:    { label: "Pipes",    icon: <Wrench size={15} /> },
+  WIRING:   { label: "Wiring",  icon: <Zap size={15} /> },
+  SWITCHES: { label: "Switches",icon: <ToggleLeft size={15} /> },
+  LIGHTS:   { label: "Lights",  icon: <Lightbulb size={15} /> },
+  FANS:     { label: "Fans",    icon: <Wind size={15} /> },
+};
+
+const PHASE_ORDER: ProjectPhase[] = ["PIPES", "WIRING", "SWITCHES", "LIGHTS", "FANS"];
+
+const PHASE_STYLE: Record<PhaseStatus, { circle: string; label: string }> = {
+  COMPLETED:   { circle: "bg-violet-600 text-white", label: "text-violet-600 font-semibold" },
+  IN_PROGRESS: { circle: "bg-violet-600 text-white ring-4 ring-violet-100", label: "text-violet-700 font-semibold" },
+  SKIPPED:     { circle: "bg-gray-200 text-gray-400", label: "text-gray-400" },
+  NOT_STARTED: { circle: "bg-gray-100 text-gray-400 border border-gray-200", label: "text-gray-400" },
+};
+
+function ConstructionStage({ lifecycle }: { lifecycle: LeadLifecycle }) {
   const phases = PHASE_ORDER.map((phase) =>
     lifecycle.phaseTracking.find((p) => p.phase === phase) ?? {
-      id: phase,
-      phase,
-      status: "NOT_STARTED" as PhaseStatus,
+      id: phase, phase, status: "NOT_STARTED" as PhaseStatus,
     }
   );
 
   return (
-    <section className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Construction Lifecycle · {lifecycle.projectName}
-      </h3>
-
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Construction Stage
+      </p>
       <div className="flex items-start">
         {phases.map((p, index) => {
           const meta = PHASE_META[p.phase];
           const style = PHASE_STYLE[p.status];
           const isLast = index === phases.length - 1;
-          const prevDone =
-            index === 0 ||
-            phases[index - 1].status === "COMPLETED" ||
-            phases[index - 1].status === "SKIPPED";
-
+          const prevDone = index === 0 || ["COMPLETED", "SKIPPED"].includes(phases[index - 1].status);
           return (
             <div key={p.phase} className="flex flex-col items-center flex-1">
               <div className="flex items-center w-full">
-                <div
-                  className={`flex-1 h-0.5 ${index === 0 ? "invisible" : prevDone ? "bg-violet-500" : "bg-gray-200"}`}
-                />
+                <div className={`flex-1 h-0.5 ${index === 0 ? "invisible" : prevDone ? "bg-violet-400" : "bg-gray-200"}`} />
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${style.circle}`}>
-                  {p.status === "COMPLETED" ? <Check size={15} /> : meta.icon}
+                  {p.status === "COMPLETED" ? <Check size={14} /> : meta.icon}
                 </div>
-                <div className={`flex-1 h-0.5 ${isLast ? "invisible" : style.line}`} />
+                <div className={`flex-1 h-0.5 ${isLast ? "invisible" : p.status === "COMPLETED" ? "bg-violet-400" : "bg-gray-200"}`} />
               </div>
-              <span className={`mt-1.5 text-xs text-center font-medium leading-tight ${style.label}`}>
+              <span className={`mt-1.5 text-xs text-center leading-tight ${style.label}`}>
                 {meta.label}
               </span>
             </div>
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }
 
-const ACTIVITY_ICON: Record<LeadActivityType, string> = {
-  CREATED:             "✦",
-  STATUS_CHANGED:      "⇄",
-  FOLLOW_UP_SET:       "📅",
-  FOLLOW_UP_COMPLETED: "✓",
-  CONVERTED:           "🎉",
-  REOPENED:            "↩",
-  UPDATED:             "✎",
-  REMINDER_CREATED:    "🔔",
+// ─── Activity timeline ─────────────────────────────────────────────────────────
+const ACTIVITY_ICON: Record<LeadActivityType, React.ReactNode> = {
+  CREATED:             <span className="text-xs">✦</span>,
+  STATUS_CHANGED:      <span className="text-xs">⇄</span>,
+  FOLLOW_UP_SET:       <Calendar size={12} />,
+  FOLLOW_UP_COMPLETED: <Check size={12} />,
+  CONVERTED:           <span className="text-xs">🎉</span>,
+  REOPENED:            <span className="text-xs">↩</span>,
+  UPDATED:             <span className="text-xs">✎</span>,
+  REMINDER_CREATED:    <span className="text-xs">🔔</span>,
 };
 
-const ACTIVITY_COLOR: Record<LeadActivityType, string> = {
-  CREATED:             "bg-blue-100 text-blue-600",
-  STATUS_CHANGED:      "bg-orange-100 text-orange-600",
-  FOLLOW_UP_SET:       "bg-purple-100 text-purple-600",
-  FOLLOW_UP_COMPLETED: "bg-green-100 text-green-600",
-  CONVERTED:           "bg-green-100 text-green-700",
-  REOPENED:            "bg-yellow-100 text-yellow-700",
-  UPDATED:             "bg-gray-100 text-gray-600",
-  REMINDER_CREATED:    "bg-violet-100 text-violet-600",
+const ACTIVITY_BG: Record<LeadActivityType, string> = {
+  CREATED:             "bg-blue-500",
+  STATUS_CHANGED:      "bg-orange-400",
+  FOLLOW_UP_SET:       "bg-violet-500",
+  FOLLOW_UP_COMPLETED: "bg-green-500",
+  CONVERTED:           "bg-green-600",
+  REOPENED:            "bg-yellow-500",
+  UPDATED:             "bg-gray-400",
+  REMINDER_CREATED:    "bg-violet-400",
 };
 
-function ActivityTimeline({ activities }: { activities: LeadActivity[] }) {
+function Timeline({ activities }: { activities: LeadActivity[] }) {
   if (activities.length === 0) {
-    return <p className="text-xs text-muted-foreground">No activity yet.</p>;
+    return <p className="text-xs text-muted-foreground py-2">No activity yet.</p>;
   }
-
   return (
-    <div className="flex flex-col gap-0">
+    <div>
       {activities.map((a, index) => (
         <div key={a.id} className="flex gap-3">
-          {/* Icon + line */}
           <div className="flex flex-col items-center flex-shrink-0">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${ACTIVITY_COLOR[a.type]}`}>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white ${ACTIVITY_BG[a.type]}`}>
               {ACTIVITY_ICON[a.type]}
             </div>
-            {index < activities.length - 1 && (
-              <div className="w-px flex-1 bg-border mt-1" />
-            )}
+            {index < activities.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
           </div>
-
-          {/* Content */}
           <div className="pb-5 flex-1 min-w-0">
-            <p className="text-sm leading-snug">{a.message}</p>
+            <p className="text-sm font-medium leading-snug">{a.message}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {a.user.name} · {new Date(a.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+              {new Date(a.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · {a.user.name}
             </p>
           </div>
         </div>
@@ -146,6 +145,7 @@ function ActivityTimeline({ activities }: { activities: LeadActivity[] }) {
   );
 }
 
+// ─── Main drawer ───────────────────────────────────────────────────────────────
 interface Props {
   lead: Lead | null;
   open: boolean;
@@ -160,104 +160,112 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
   const { data: leadReminders } = useLeadReminders(lead?.nextFollowUpAt ? lead.id : null);
 
   const leadReminderItems = (leadReminders?.items ?? []).filter((r) => r.type === "LEAD");
-  const pendingFollowUp = leadReminderItems.find((r) => r.status === "PENDING");
-  const followUpDone = !pendingFollowUp && leadReminderItems.some((r) => r.status === "COMPLETED");
+  const pendingFollowUp   = leadReminderItems.find((r) => r.status === "PENDING");
+  const followUpDone      = !pendingFollowUp && leadReminderItems.some((r) => r.status === "COMPLETED");
 
   if (!lead) return null;
 
+  const followUpDate = pendingFollowUp ? new Date(pendingFollowUp.dueAt) : lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt) : null;
+  const isOverdue = followUpDate && !followUpDone && followUpDate < new Date();
+
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader className="pb-4 border-b">
-          <SheetTitle className="text-lg">{lead.name}</SheetTitle>
-          <span
-            className={`inline-flex w-fit px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[lead.status]}`}
-          >
-            {lead.status.replace(/_/g, " ")}
-          </span>
+      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0 overflow-y-auto">
+
+        {/* Header */}
+        <SheetHeader className="px-4 pt-4 pb-3 border-b">
+          <SheetTitle className="text-sm font-semibold text-muted-foreground">Lead Details</SheetTitle>
         </SheetHeader>
 
-        <div className="p-4 space-y-5">
-          {/* Lifecycle — only shown for WON leads that have a project */}
+        {/* Identity */}
+        <div className="flex items-start gap-3 px-4 py-4 border-b">
+          <Avatar name={lead.name} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-base font-bold">{lead.name}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[lead.status]}`}>
+                {lead.status.replace(/_/g, " ")}
+              </span>
+            </div>
+            {lead.mobile && (
+              <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
+                <Phone size={12} />
+                <span>{lead.mobile}</span>
+              </div>
+            )}
+            {lead.city && (
+              <div className="flex items-center gap-1.5 mt-0.5 text-sm text-muted-foreground">
+                <MapPin size={12} />
+                <span>{lead.city}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 px-4 py-4 space-y-5">
+
+          {/* Info grid */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+            <InfoRow label="Source" value={lead.source} />
+            <InfoRow label="Lead Created On" value={new Date(lead.createdAt).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })} />
+            <InfoRow label="Contact Owner" value={lead.contactOwner?.name} />
+            <InfoRow label="Email" value={lead.email} />
+          </div>
+
+          {lead.notes && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted-foreground">Notes</span>
+              <p className="text-sm whitespace-pre-wrap">{lead.notes}</p>
+            </div>
+          )}
+
+          {/* Construction stage */}
           {lead.status === "WON" && (
             lifecycleLoading ? (
-              <div className="text-xs text-muted-foreground">Loading lifecycle...</div>
+              <p className="text-xs text-muted-foreground">Loading stage...</p>
             ) : lifecycle ? (
               <>
-                <LifecycleTracker lifecycle={lifecycle} />
                 <div className="border-t" />
+                <ConstructionStage lifecycle={lifecycle} />
               </>
             ) : null
           )}
 
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Contact Info
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <InfoRow label="Mobile" value={lead.mobile} />
-              <InfoRow label="Email" value={lead.email} />
-              <InfoRow label="City" value={lead.city} />
-              <InfoRow label="Source" value={lead.source} />
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Assignment
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <InfoRow label="Contact Owner" value={lead.contactOwner?.name} />
-              <InfoRow
-                label="Referral Date"
-                value={lead.referralDate ? new Date(lead.referralDate).toLocaleDateString() : undefined}
-              />
-              <InfoRow
-                label="Created At"
-                value={new Date(lead.createdAt).toLocaleDateString()}
-              />
-              {lead.nextFollowUpAt && (
-                <div className="flex flex-col gap-0.5 col-span-2">
-                  <span className="text-xs text-muted-foreground">Follow-Up</span>
+          {/* Follow-up */}
+          {(followUpDate || followUpDone) && (
+            <>
+              <div className="border-t" />
+              <div className="flex items-start gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${followUpDone ? "bg-green-100" : "bg-violet-100"}`}>
+                  <Calendar size={14} className={followUpDone ? "text-green-600" : "text-violet-600"} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Next Follow-up</p>
                   {followUpDone ? (
-                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600">
-                      <span className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center text-[10px]">✓</span>
-                      Completed
-                    </span>
-                  ) : pendingFollowUp ? (
-                    <span className={`text-sm font-medium flex items-center gap-2 ${new Date(pendingFollowUp.dueAt) < new Date() ? "text-red-500" : "text-orange-500"}`}>
-                      {new Date(pendingFollowUp.dueAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
-                      {new Date(pendingFollowUp.dueAt) < new Date() && (
-                        <span className="text-xs bg-red-100 text-red-500 px-1.5 py-0.5 rounded-full">Overdue</span>
-                      )}
-                    </span>
+                    <p className="text-sm font-semibold text-green-600">✓ Completed</p>
                   ) : (
-                    <span className={`text-sm font-medium flex items-center gap-2 ${new Date(lead.nextFollowUpAt!) < new Date() ? "text-red-500" : "text-orange-500"}`}>
-                      {new Date(lead.nextFollowUpAt!).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
-                    </span>
+                    <>
+                      <p className={`text-sm font-semibold ${isOverdue ? "text-red-500" : "text-foreground"}`}>
+                        {followUpDate!.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                      <p className={`text-xs ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
+                        {followUpDate!.toLocaleTimeString([], { timeStyle: "short" })}
+                        {isOverdue && " · Overdue"}
+                      </p>
+                    </>
                   )}
                 </div>
-              )}
-            </div>
-          </section>
-
-          {lead.notes && (
-            <section className="space-y-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Notes
-              </h3>
-              <p className="text-sm whitespace-pre-wrap rounded-md bg-muted p-3">
-                {lead.notes}
-              </p>
-            </section>
+              </div>
+            </>
           )}
 
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Activity Timeline
-            </h3>
-            <ActivityTimeline activities={activities} />
-          </section>
+          {/* Timeline */}
+          <div className="border-t" />
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Timeline</p>
+            <Timeline activities={activities} />
+          </div>
+
         </div>
       </SheetContent>
     </Sheet>
