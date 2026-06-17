@@ -34,6 +34,7 @@ import {
 import { useLeads, useUpdateLead, useConvertLead, useDeleteLead } from "./lead.query";
 import { useUsers } from "../user/user.query";
 import LeadForm from "./LeadForm";
+import LeadDetailDrawer from "./LeadDetailDrawer";
 import type { Lead, LeadStatus } from "./lead.types";
 
 const LEAD_STATUSES: LeadStatus[] = [
@@ -253,6 +254,7 @@ export default function LeadList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const { data, isLoading } = useLeads(page, search);
 
@@ -314,7 +316,11 @@ export default function LeadList() {
           )}
 
           {data?.items.map((lead) => (
-            <TableRow key={lead.id}>
+            <TableRow
+              key={lead.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => setSelectedLead(lead)}
+            >
               <TableCell>{lead.name}</TableCell>
               <TableCell>{lead.mobile}</TableCell>
               <TableCell>{lead.city ?? "-"}</TableCell>
@@ -326,10 +332,10 @@ export default function LeadList() {
                   ? new Date(lead.referralDate).toLocaleDateString()
                   : "-"}
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <StatusSelect lead={lead} />
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <div className="flex gap-2">
                   <EditLeadDialog lead={lead} />
                   <DeleteLeadButton lead={lead} />
@@ -351,6 +357,12 @@ export default function LeadList() {
           Next
         </Button>
       </div>
+
+      <LeadDetailDrawer
+        lead={selectedLead}
+        open={!!selectedLead}
+        onClose={() => setSelectedLead(null)}
+      />
     </div>
   );
 }
