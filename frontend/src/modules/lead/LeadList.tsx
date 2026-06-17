@@ -33,6 +33,7 @@ import {
 
 import { useLeads, useUpdateLead, useConvertLead, useDeleteLead } from "./lead.query";
 import { useUsers } from "../user/user.query";
+import { useCreateReminder } from "../reminder/reminder.query";
 import LeadForm from "./LeadForm";
 import LeadDetailDrawer from "./LeadDetailDrawer";
 import type { Lead, LeadStatus } from "./lead.types";
@@ -61,6 +62,7 @@ function StatusSelect({ lead }: { lead: Lead }) {
   const [followUpDate, setFollowUpDate] = useState("");
   const updateMutation = useUpdateLead();
   const convertMutation = useConvertLead();
+  const createReminderMutation = useCreateReminder();
 
   const form = useForm<ConvertForm>({
     resolver: zodResolver(convertSchema),
@@ -81,6 +83,15 @@ function StatusSelect({ lead }: { lead: Lead }) {
       id: lead.id,
       data: { status: "FOLLOW_UP", nextFollowUpAt: followUpDate || null },
     });
+    if (followUpDate) {
+      createReminderMutation.mutate({
+        title: `Follow up with ${lead.name}`,
+        type: "LEAD",
+        priority: "MEDIUM",
+        dueAt: new Date(followUpDate).toISOString(),
+        leadId: lead.id,
+      });
+    }
     setFollowUpDate("");
     setFollowUpOpen(false);
   };
@@ -122,11 +133,11 @@ function StatusSelect({ lead }: { lead: Lead }) {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">Follow-up date</label>
+              <label className="text-sm text-muted-foreground">Follow-up date & time</label>
               <Input
-                type="date"
+                type="datetime-local"
                 value={followUpDate}
-                min={new Date().toISOString().split("T")[0]}
+                min={new Date().toISOString().slice(0, 16)}
                 onChange={(e) => setFollowUpDate(e.target.value)}
               />
             </div>
@@ -395,7 +406,7 @@ export default function LeadList() {
               <TableCell>
                 {lead.nextFollowUpAt ? (
                   <span className={`text-sm font-medium ${new Date(lead.nextFollowUpAt) < new Date() ? "text-red-500" : "text-orange-500"}`}>
-                    {new Date(lead.nextFollowUpAt).toLocaleDateString()}
+                    {new Date(lead.nextFollowUpAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">—</span>
