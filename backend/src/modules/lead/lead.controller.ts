@@ -11,7 +11,7 @@ export class LeadController {
   static async create(req: Request, res: Response) {
     const data = createLeadSchema.parse(req.body);
 
-    const lead = await LeadService.create(data);
+    const lead = await LeadService.create(req.user!.id, data);
 
     return res.status(201).json({
       success: true,
@@ -23,7 +23,6 @@ export class LeadController {
   static async getAll(req: Request, res: Response) {
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 20);
-
     const search = req.query.search?.toString();
 
     const leads = await LeadService.getAll(page, limit, search);
@@ -55,10 +54,20 @@ export class LeadController {
     });
   }
 
+  static async getActivities(req: Request, res: Response) {
+    const activities = await LeadService.getActivities(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lead activities fetched",
+      data: activities,
+    });
+  }
+
   static async convert(req: Request, res: Response) {
     const data = convertLeadSchema.parse(req.body);
 
-    const result = await LeadService.convert(req.params.id as string, data);
+    const result = await LeadService.convert(req.params.id as string, req.user!.id, data);
 
     return res.status(200).json({
       success: true,
@@ -70,7 +79,7 @@ export class LeadController {
   static async update(req: Request, res: Response) {
     const data = updateLeadSchema.parse(req.body);
 
-    const lead = await LeadService.update(req.params.id as string, data);
+    const lead = await LeadService.update(req.params.id as string, req.user!.id, data);
 
     return res.status(200).json({
       success: true,
@@ -80,12 +89,12 @@ export class LeadController {
   }
 
   static async deactivate(req: Request, res: Response) {
-    const lead = await LeadService.deactivate(req.params.id as string);
+    await LeadService.deactivate(req.params.id as string, req.user!.id);
 
     return res.status(200).json({
       success: true,
       message: "Lead deactivated",
-      data: lead,
+      data: null,
     });
   }
 
@@ -98,7 +107,8 @@ export class LeadController {
 
     const data = createLeadSchema.parse(req.body);
 
-    const lead = await LeadService.create(data);
+    // Webhook leads don't have a user context — use a system placeholder
+    const lead = await LeadService.create("system", data);
 
     return res.status(201).json({
       success: true,

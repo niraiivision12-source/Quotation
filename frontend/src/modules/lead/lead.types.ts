@@ -24,6 +24,26 @@ export interface Lead {
   createdAt: string;
 }
 
+export type LeadActivityType =
+  | "CREATED"
+  | "STATUS_CHANGED"
+  | "FOLLOW_UP_SET"
+  | "FOLLOW_UP_COMPLETED"
+  | "CONVERTED"
+  | "REOPENED"
+  | "UPDATED"
+  | "REMINDER_CREATED";
+
+export interface LeadActivity {
+  id: string;
+  leadId: string;
+  userId: string;
+  type: LeadActivityType;
+  message: string;
+  createdAt: string;
+  user: { id: string; name: string };
+}
+
 export interface LeadListResponse {
   items: Lead[];
   total: number;

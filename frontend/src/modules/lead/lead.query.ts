@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryClient } from "@/lib/query-client";
 
-import { convertLead, createLead, deleteLead, getLeadLifecycle, getLeads, updateLead } from "./lead.api";
+import { convertLead, createLead, deleteLead, getLeadActivities, getLeadLifecycle, getLeads, updateLead } from "./lead.api";
 
 export const useLeads = (page: number, search: string) => {
   return useQuery({
@@ -61,6 +61,14 @@ export const useUpdateLead = () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
+  });
+};
+
+export const useLeadActivities = (id: string | null) => {
+  return useQuery({
+    queryKey: ["lead-activities", id],
+    queryFn: () => getLeadActivities(id!),
+    enabled: !!id,
   });
 };
 

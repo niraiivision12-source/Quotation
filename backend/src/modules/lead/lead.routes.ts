@@ -17,6 +17,8 @@ router.get("/:id", asyncHandler(LeadController.getById));
 
 router.get("/:id/lifecycle", asyncHandler(LeadController.getLifecycle));
 
+router.get("/:id/activities", asyncHandler(LeadController.getActivities));
+
 router.post("/:id/convert", asyncHandler(LeadController.convert));
 
 router.patch("/:id", asyncHandler(LeadController.update));

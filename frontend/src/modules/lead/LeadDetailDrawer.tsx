@@ -5,8 +5,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Wrench, Zap, ToggleLeft, Lightbulb, Wind, Check } from "lucide-react";
-import type { Lead, LeadLifecycle, PhaseStatus, ProjectPhase } from "./lead.types";
-import { useLeadLifecycle } from "./lead.query";
+import type { Lead, LeadActivity, LeadActivityType, LeadLifecycle, PhaseStatus, ProjectPhase } from "./lead.types";
+import { useLeadActivities, useLeadLifecycle } from "./lead.query";
 import { useLeadReminders } from "@/modules/reminder/reminder.query";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -92,6 +92,60 @@ function LifecycleTracker({ lifecycle }: { lifecycle: LeadLifecycle }) {
   );
 }
 
+const ACTIVITY_ICON: Record<LeadActivityType, string> = {
+  CREATED:             "✦",
+  STATUS_CHANGED:      "⇄",
+  FOLLOW_UP_SET:       "📅",
+  FOLLOW_UP_COMPLETED: "✓",
+  CONVERTED:           "🎉",
+  REOPENED:            "↩",
+  UPDATED:             "✎",
+  REMINDER_CREATED:    "🔔",
+};
+
+const ACTIVITY_COLOR: Record<LeadActivityType, string> = {
+  CREATED:             "bg-blue-100 text-blue-600",
+  STATUS_CHANGED:      "bg-orange-100 text-orange-600",
+  FOLLOW_UP_SET:       "bg-purple-100 text-purple-600",
+  FOLLOW_UP_COMPLETED: "bg-green-100 text-green-600",
+  CONVERTED:           "bg-green-100 text-green-700",
+  REOPENED:            "bg-yellow-100 text-yellow-700",
+  UPDATED:             "bg-gray-100 text-gray-600",
+  REMINDER_CREATED:    "bg-violet-100 text-violet-600",
+};
+
+function ActivityTimeline({ activities }: { activities: LeadActivity[] }) {
+  if (activities.length === 0) {
+    return <p className="text-xs text-muted-foreground">No activity yet.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-0">
+      {activities.map((a, index) => (
+        <div key={a.id} className="flex gap-3">
+          {/* Icon + line */}
+          <div className="flex flex-col items-center flex-shrink-0">
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${ACTIVITY_COLOR[a.type]}`}>
+              {ACTIVITY_ICON[a.type]}
+            </div>
+            {index < activities.length - 1 && (
+              <div className="w-px flex-1 bg-border mt-1" />
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="pb-5 flex-1 min-w-0">
+            <p className="text-sm leading-snug">{a.message}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {a.user.name} · {new Date(a.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface Props {
   lead: Lead | null;
   open: boolean;
@@ -99,13 +153,15 @@ interface Props {
 }
 
 export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
+  const { data: activities = [] } = useLeadActivities(lead?.id ?? null);
   const { data: lifecycle, isLoading: lifecycleLoading } = useLeadLifecycle(
     lead?.status === "WON" ? lead.id : null
   );
   const { data: leadReminders } = useLeadReminders(lead?.nextFollowUpAt ? lead.id : null);
 
-  const followUpReminder = leadReminders?.items.find((r) => r.type === "LEAD");
-  const followUpDone = followUpReminder?.status === "COMPLETED";
+  const leadReminderItems = (leadReminders?.items ?? []).filter((r) => r.type === "LEAD");
+  const pendingFollowUp = leadReminderItems.find((r) => r.status === "PENDING");
+  const followUpDone = !pendingFollowUp && leadReminderItems.some((r) => r.status === "COMPLETED");
 
   if (!lead) return null;
 
@@ -168,12 +224,16 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
                       <span className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center text-[10px]">✓</span>
                       Completed
                     </span>
-                  ) : (
-                    <span className={`text-sm font-medium flex items-center gap-2 ${new Date(lead.nextFollowUpAt) < new Date() ? "text-red-500" : "text-orange-500"}`}>
-                      {new Date(lead.nextFollowUpAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
-                      {new Date(lead.nextFollowUpAt) < new Date() && (
+                  ) : pendingFollowUp ? (
+                    <span className={`text-sm font-medium flex items-center gap-2 ${new Date(pendingFollowUp.dueAt) < new Date() ? "text-red-500" : "text-orange-500"}`}>
+                      {new Date(pendingFollowUp.dueAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+                      {new Date(pendingFollowUp.dueAt) < new Date() && (
                         <span className="text-xs bg-red-100 text-red-500 px-1.5 py-0.5 rounded-full">Overdue</span>
                       )}
+                    </span>
+                  ) : (
+                    <span className={`text-sm font-medium flex items-center gap-2 ${new Date(lead.nextFollowUpAt!) < new Date() ? "text-red-500" : "text-orange-500"}`}>
+                      {new Date(lead.nextFollowUpAt!).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
                     </span>
                   )}
                 </div>
@@ -191,6 +251,13 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
               </p>
             </section>
           )}
+
+          <section className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Activity Timeline
+            </h3>
+            <ActivityTimeline activities={activities} />
+          </section>
         </div>
       </SheetContent>
     </Sheet>
