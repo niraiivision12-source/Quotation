@@ -7,6 +7,7 @@ export const createLeadSchema = z.object({
   email: z.string().email().optional(),
   source: z.string().optional(),
   notes: z.string().optional(),
+  city: z.string().optional(),
   assignedToId: z.string().optional(),
 });
 
@@ -28,6 +29,10 @@ export const updateLeadSchema = z.object({
   notes: z.string().optional().nullable(),
 
   assignedToId: z.string().uuid().optional().nullable(),
+
+  nextFollowUpAt: z.string().optional().nullable(),
+
+  city: z.string().optional().nullable(),
 
   status: z.enum(LeadStatus).optional(),
 });

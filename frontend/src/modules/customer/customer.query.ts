@@ -4,6 +4,7 @@ import { queryClient } from "@/lib/query-client";
 
 import {
   createCustomer,
+  deleteCustomer,
   getCustomerById,
   getCustomerOptions,
   getCustomers,
@@ -35,6 +36,16 @@ export const useCustomerOptions = () => {
   return useQuery<CustomerOption[]>({
     queryKey: ["customer-options"],
     queryFn: getCustomerOptions,
+  });
+};
+
+export const useDeleteCustomer = () => {
+  return useMutation({
+    mutationFn: (id: string) => deleteCustomer(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
   });
 };
 

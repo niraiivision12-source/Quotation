@@ -49,3 +49,8 @@ export const getCustomerById = async (id: string): Promise<CustomerDetails> => {
 
   return response.data.data;
 };
+
+export const deleteCustomer = async (id: string) => {
+  const response = await api.patch(`/customers/${id}/deactivate`);
+  return response.data;
+};

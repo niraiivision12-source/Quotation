@@ -111,7 +111,11 @@ export class ProjectService {
       },
       include: {
         customer: true,
-        phaseTracking: true,
+        phaseTracking: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
       },
     });
 

@@ -102,6 +102,22 @@ enum QuotationRevisionReason {
   OTHER
 }
 
+enum LeadActivityType {
+  CREATED
+  STATUS_CHANGED
+  FOLLOW_UP_SET
+  FOLLOW_UP_COMPLETED
+  NOTE_ADDED
+  LOST
+  REOPENED
+  CONVERTED
+
+  QUOTATION_CREATED
+  QUOTATION_SENT
+  QUOTATION_APPROVED
+  QUOTATION_REJECTED
+}
+
 model User {
   id       String   @id @default(uuid())
   name     String
@@ -122,8 +138,35 @@ model User {
   quotations Quotation[]
   reminders  Reminder[]
 
+  leadActivities LeadActivity[]
+
+  leadNotes LeadNote[]
+
+  projectActivities ProjectActivity[]
+
   assignedTasks Task[] @relation("AssignedTasks")
   createdTasks  Task[] @relation("CreatedTasks")
+}
+
+model LeadNote {
+  id String @id @default(uuid())
+
+  leadId String
+
+  userId String?
+
+  note String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Product {
@@ -151,8 +194,9 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  quotationItems QuotationItem[]
-  ProductMargin  ProductMargin[]
+  quotationItems     QuotationItem[]
+  leadQuotationItems LeadQuotationItem[]
+  ProductMargin      ProductMargin[]
 
   @@index([name])
   @@index([sku])
@@ -182,6 +226,7 @@ model Lead {
   name   String
   mobile String
   email  String?
+  city   String?
 
   source String?
 
@@ -190,6 +235,8 @@ model Lead {
   estimatedValue Decimal? @db.Decimal(12, 2)
 
   notes String?
+
+  notesHistory LeadNote[]
 
   nextFollowUpAt DateTime?
 
@@ -212,17 +259,101 @@ model Lead {
 
   tasks Task[]
 
+  activities LeadActivity[]
+
+  quotations LeadQuotation[]
+
+  reopenedCount Int @default(0)
+
+  customer Customer?
+
   @@index([mobile])
   @@index([status])
   @@index([assignedToId])
   @@index([nextFollowUpAt])
 }
 
+model LeadQuotationItem {
+  id String @id @default(uuid())
+
+  quotationId String
+
+  productId String
+
+  quantity Int
+
+  sellingPrice Decimal @db.Decimal(12, 2)
+
+  totalPrice Decimal @db.Decimal(12, 2)
+
+  quotation LeadQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([quotationId])
+  @@index([productId])
+}
+
+model LeadQuotation {
+  id String @id @default(uuid())
+
+  quotationNumber String @unique
+
+  leadId String
+
+  phase ProjectPhase?
+
+  status     QuotationStatus @default(DRAFT)
+  sentAt     DateTime?
+  approvedAt DateTime?
+  rejectedAt DateTime?
+
+  subtotal Decimal @db.Decimal(12, 2)
+
+  totalAmount Decimal @db.Decimal(12, 2)
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  items LeadQuotationItem[]
+
+  @@index([leadId])
+}
+
+model LeadActivity {
+  id String @id @default(uuid())
+
+  leadId String
+
+  userId String?
+
+  type LeadActivityType
+
+  message String
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
 model Customer {
   id String @id @default(uuid())
 
   name   String
-  mobile String @unique
+  mobile String  @unique
   email  String?
 
   address String?
@@ -243,7 +374,32 @@ model Customer {
 
   tasks Task[]
 
+  activities CustomerActivity[]
+
+  leadId String? @unique
+
+  lead Lead? @relation(fields: [leadId], references: [id])
+
   @@index([assignedToId])
+}
+
+model CustomerActivity {
+  id String @id @default(uuid())
+
+  customerId String
+
+  type String
+
+  message String
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([createdAt])
 }
 
 model Project {
@@ -280,9 +436,35 @@ model Project {
   tasks         Task[]
   phaseTracking ProjectPhaseTracking[]
 
+  activities ProjectActivity[]
+
   @@index([customerId])
   @@index([assignedToId])
   @@index([currentPhase])
+}
+
+model ProjectActivity {
+  id String @id @default(uuid())
+
+  projectId String
+
+  userId String?
+
+  type String
+
+  message String
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model ProjectPhaseTracking {

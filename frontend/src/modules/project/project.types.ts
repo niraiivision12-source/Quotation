@@ -3,17 +3,25 @@ export interface Project {
 
   projectName: string;
 
-  location?: string;
+  location?: string | null;
 
   customerId: string;
 
-  assignedToId?: string;
+  assignedToId?: string | null;
+
+  estimatedBudget?: number | null;
+
+  currentPhase: string;
+
+  isCompleted: boolean;
+
+  isActive: boolean;
 
   customer: {
     id: string;
     name: string;
     mobile: string;
-    email?: string;
+    email?: string | null;
   };
 }
 
@@ -27,11 +35,15 @@ export interface ProjectListResponse {
 export interface ProjectPhase {
   id: string;
 
-  phase: string;
+  phase: "PIPES" | "WIRING" | "SWITCHES" | "LIGHTS" | "FANS";
 
-  status: string;
+  status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED";
 
-  remarks?: string;
+  remarks?: string | null;
+
+  startedAt?: string | null;
+
+  completedAt?: string | null;
 }
 
 export interface ProjectDetails {

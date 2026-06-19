@@ -15,7 +15,7 @@ const schema = z.object({
 
   mobile: z.string().min(10),
 
-  email: z.string().optional(),
+  email: z.email().optional(),
 
   address: z.string().optional(),
 });

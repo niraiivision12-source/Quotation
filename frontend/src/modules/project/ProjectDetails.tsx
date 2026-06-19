@@ -26,7 +26,7 @@ export default function ProjectDetails() {
 
       <ProjectOverview project={data} />
 
-      <ProjectLifecycle phases={data.phaseTracking} />
+      <ProjectLifecycle phases={data.phaseTracking} projectId={id || ""} />
 
       <ProjectQuotations />
 

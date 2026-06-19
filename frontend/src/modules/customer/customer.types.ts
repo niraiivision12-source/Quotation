@@ -1,9 +1,17 @@
 export interface Customer {
   id: string;
+
   name: string;
+
   mobile: string;
-  email?: string;
-  address?: string;
+
+  email?: string | null;
+
+  address?: string | null;
+
+  assignedToId?: string | null;
+
+  isActive: boolean;
 }
 
 export interface CustomerListResponse {

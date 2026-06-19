@@ -7,6 +7,7 @@ export class LeadService {
     name: string;
     mobile: string;
     email?: string;
+    city?: string;
     source?: string;
     notes?: string;
     assignedToId?: string;
@@ -21,8 +22,20 @@ export class LeadService {
       throw new AppError("Lead already exists", 409);
     }
 
-    return prisma.lead.create({
-      data,
+    return prisma.$transaction(async (tx) => {
+      const lead = await tx.lead.create({
+        data,
+      });
+
+      await tx.leadActivity.create({
+        data: {
+          leadId: lead.id,
+          type: "CREATED",
+          message: "Lead created",
+        },
+      });
+
+      return lead;
     });
   }
 
@@ -77,6 +90,41 @@ export class LeadService {
         id,
         isActive: true,
       },
+      include: {
+        customer: true,
+        activities: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+
+        notesHistory: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+
+        quotations: {
+          include: {
+            items: {
+              include: {
+                product: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+      },
     });
 
     if (!lead) {
@@ -128,6 +176,15 @@ export class LeadService {
           mobile: lead.mobile,
           email: lead.email,
           assignedToId: lead.assignedToId,
+          leadId: lead.id,
+        },
+      });
+
+      await tx.customerActivity.create({
+        data: {
+          customerId: customer.id,
+          type: "CREATED",
+          message: "Customer created from lead conversion",
         },
       });
 
@@ -141,34 +198,20 @@ export class LeadService {
         },
       });
 
+      await tx.projectActivity.create({
+        data: {
+          projectId: project.id,
+          type: "CREATED",
+          message: "Project created from lead conversion",
+        },
+      });
+
       await tx.projectPhaseTracking.createMany({
-        data: [
-          {
-            projectId: project.id,
-            phase: ProjectPhase.PIPES,
-            status: LifecycleStatus.NOT_STARTED,
-          },
-          {
-            projectId: project.id,
-            phase: ProjectPhase.WIRING,
-            status: LifecycleStatus.NOT_STARTED,
-          },
-          {
-            projectId: project.id,
-            phase: ProjectPhase.SWITCHES,
-            status: LifecycleStatus.NOT_STARTED,
-          },
-          {
-            projectId: project.id,
-            phase: ProjectPhase.LIGHTS,
-            status: LifecycleStatus.NOT_STARTED,
-          },
-          {
-            projectId: project.id,
-            phase: ProjectPhase.FANS,
-            status: LifecycleStatus.NOT_STARTED,
-          },
-        ],
+        data: Object.values(ProjectPhase).map((phase) => ({
+          projectId: project.id,
+          phase,
+          status: LifecycleStatus.NOT_STARTED,
+        })),
       });
 
       await tx.lead.update({
@@ -178,6 +221,18 @@ export class LeadService {
         data: {
           status: LeadStatus.WON,
           convertedAt: new Date(),
+        },
+      });
+
+      await tx.leadActivity.create({
+        data: {
+          leadId: lead.id,
+          type: "CONVERTED",
+          message: "Lead converted to customer",
+          metadata: {
+            customerId: customer.id,
+            projectId: project.id,
+          },
         },
       });
 
@@ -194,10 +249,12 @@ export class LeadService {
       name?: string;
       mobile?: string;
       email?: string | null;
+      city?: string | null;
       source?: string | null;
       notes?: string | null;
       assignedToId?: string | null;
       status?: LeadStatus;
+      nextFollowUpAt?: string | null;
     },
   ) {
     const lead = await prisma.lead.findUnique({
@@ -223,11 +280,77 @@ export class LeadService {
       }
     }
 
-    return prisma.lead.update({
-      where: { id },
-      data,
+    const updateData = {
+      ...data,
+
+      nextFollowUpAt: data.nextFollowUpAt
+        ? new Date(data.nextFollowUpAt)
+        : data.nextFollowUpAt,
+    };
+
+    return prisma.$transaction(async (tx) => {
+      const updatedLead = await tx.lead.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // Status changed
+      if (data.status && data.status !== lead.status) {
+        await tx.leadActivity.create({
+          data: {
+            leadId: lead.id,
+            type: "STATUS_CHANGED",
+            message: `Status changed from ${lead.status} to ${data.status}`,
+            metadata: {
+              oldStatus: lead.status,
+              newStatus: data.status,
+            },
+          },
+        });
+      }
+
+      // Follow-up scheduled
+      if (data.nextFollowUpAt) {
+        await tx.leadActivity.create({
+          data: {
+            leadId: lead.id,
+            type: "FOLLOW_UP_SET",
+            message: `Follow-up scheduled for ${new Date(
+              data.nextFollowUpAt,
+            ).toLocaleString()}`,
+          },
+        });
+      }
+
+      // Reopen lead
+      if (
+        lead.status === LeadStatus.LOST &&
+        data.status === LeadStatus.FOLLOW_UP
+      ) {
+        await tx.lead.update({
+          where: {
+            id,
+          },
+          data: {
+            reopenedCount: {
+              increment: 1,
+            },
+          },
+        });
+
+        await tx.leadActivity.create({
+          data: {
+            leadId: lead.id,
+            type: "REOPENED",
+            message: "Lead reopened",
+          },
+        });
+      }
+
+      return updatedLead;
     });
   }
+
   static async deactivate(id: string) {
     const lead = await prisma.lead.findUnique({
       where: { id },
