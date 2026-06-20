@@ -6,10 +6,15 @@ import {
 import { z } from "zod";
 
 export const createQuotationSchema = z.object({
-  customerId: z.uuid(),
-  projectId: z.uuid(),
+  createdById: z.uuid().optional(),
 
-  phase: z.enum(ProjectPhase),
+  leadId: z.uuid().optional(),
+
+  customerId: z.uuid().optional(),
+
+  projectId: z.uuid().optional(),
+
+  phase: z.enum(ProjectPhase).optional(),
 
   notes: z.string().optional(),
 

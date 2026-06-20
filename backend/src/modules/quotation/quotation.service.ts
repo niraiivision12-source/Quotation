@@ -8,9 +8,11 @@ import {
 } from "@prisma/client";
 
 type CreateQuotationInput = {
-  customerId: string;
-  projectId: string;
-  phase: ProjectPhase;
+  createdById?: string;
+  leadId?: string;
+  customerId?: string;
+  projectId?: string;
+  phase?: ProjectPhase;
   notes?: string;
   validUntil?: Date;
   items: {
@@ -22,28 +24,43 @@ type CreateQuotationInput = {
 
 export class QuotationService {
   static async create(userId: string, data: CreateQuotationInput) {
-    const project = await prisma.project.findUnique({
-      where: {
-        id: data.projectId,
-      },
-      include: {
-        customer: true,
-      },
-    });
-
-    if (!project) {
-      throw new AppError("Project not found", 404);
+    if (!data.leadId && !data.customerId) {
+      throw new AppError("Quotation must belong to a lead or customer", 400);
     }
 
-    if (project.customerId !== data.customerId) {
-      throw new AppError("Project does not belong to customer", 400);
+    if (data.leadId) {
+      const lead = await prisma.lead.findUnique({
+        where: {
+          id: data.leadId,
+        },
+      });
+
+      if (!lead) {
+        throw new AppError("Lead not found", 404);
+      }
+    }
+
+    if (data.customerId) {
+      const customer = await prisma.customer.findUnique({
+        where: {
+          id: data.customerId,
+        },
+      });
+
+      if (!customer) {
+        throw new AppError("Customer not found", 404);
+      }
     }
 
     const lastQuotation = await prisma.quotation.findFirst({
-      where: {
-        projectId: data.projectId,
-        phase: data.phase,
-      },
+      where: data.projectId
+        ? {
+            projectId: data.projectId,
+            phase: data.phase,
+          }
+        : {
+            leadId: data.leadId,
+          },
       orderBy: {
         version: "desc",
       },
@@ -57,6 +74,11 @@ export class QuotationService {
 
     const itemData: Prisma.QuotationItemUncheckedCreateWithoutQuotationInput[] =
       [];
+
+    // Validate quotation has at least one item
+    if (data.items.length === 0) {
+      throw new AppError("Quotation must contain at least one item", 400);
+    }
 
     for (const item of data.items) {
       if (item.quantity <= 0) {
@@ -100,6 +122,8 @@ export class QuotationService {
         data: {
           quotationNumber,
 
+          leadId: data.leadId,
+
           customerId: data.customerId,
 
           projectId: data.projectId,
@@ -116,7 +140,7 @@ export class QuotationService {
 
           validUntil: data.validUntil,
 
-          createdById: userId,
+          createdById: data.createdById ?? userId,
 
           parentQuotationId: lastQuotation?.id,
 
@@ -129,6 +153,25 @@ export class QuotationService {
         },
       });
 
+      if (quotation.leadId) {
+        await tx.leadActivity.create({
+          data: {
+            leadId: quotation.leadId,
+            type: "QUOTATION_CREATED",
+            message: `Quotation ${quotation.quotationNumber} created`,
+          },
+        });
+
+        await tx.lead.update({
+          where: {
+            id: quotation.leadId,
+          },
+          data: {
+            status: "QUOTATION_SENT",
+          },
+        });
+      }
+
       return quotation;
     });
   }
@@ -136,12 +179,16 @@ export class QuotationService {
   static async getAll(
     page: number,
     limit: number,
+    leadId?: string,
     projectId?: string,
     customerId?: string,
   ) {
     const skip = (page - 1) * limit;
 
     const where = {
+      ...(leadId && {
+        leadId,
+      }),
       ...(projectId && {
         projectId,
       }),
@@ -163,6 +210,14 @@ export class QuotationService {
           status: true,
           totalAmount: true,
           createdAt: true,
+
+          lead: {
+            select: {
+              id: true,
+              name: true,
+              mobile: true,
+            },
+          },
 
           customer: {
             select: {
@@ -202,6 +257,7 @@ export class QuotationService {
         id,
       },
       include: {
+        lead: true,
         customer: true,
         project: true,
         createdBy: true,
@@ -274,17 +330,67 @@ export class QuotationService {
       );
     }
 
-    return prisma.quotation.update({
-      where: {
-        id,
-      },
-      data: {
-        status,
+    return prisma.$transaction(async (tx) => {
+      const updatedQuotation = await tx.quotation.update({
+        where: {
+          id,
+        },
+        data: {
+          status,
 
-        approvedAt: status === QuotationStatus.APPROVED ? new Date() : null,
+          sentAt:
+            status === QuotationStatus.SENT ? new Date() : quotation.sentAt,
 
-        rejectedAt: status === QuotationStatus.REJECTED ? new Date() : null,
-      },
+          approvedAt:
+            status === QuotationStatus.APPROVED
+              ? new Date()
+              : quotation.approvedAt,
+
+          rejectedAt:
+            status === QuotationStatus.REJECTED
+              ? new Date()
+              : quotation.rejectedAt,
+        },
+      });
+
+      if (quotation.leadId) {
+        let activityType:
+          | "QUOTATION_SENT"
+          | "QUOTATION_APPROVED"
+          | "QUOTATION_REJECTED"
+          | null = null;
+
+        if (status === QuotationStatus.SENT) activityType = "QUOTATION_SENT";
+
+        if (status === QuotationStatus.APPROVED)
+          activityType = "QUOTATION_APPROVED";
+
+        if (quotation.leadId && status === QuotationStatus.APPROVED) {
+          await tx.lead.update({
+            where: {
+              id: quotation.leadId,
+            },
+            data: {
+              status: "WON",
+            },
+          });
+        }
+
+        if (status === QuotationStatus.REJECTED)
+          activityType = "QUOTATION_REJECTED";
+
+        if (activityType) {
+          await tx.leadActivity.create({
+            data: {
+              leadId: quotation.leadId,
+              type: activityType,
+              message: `Quotation ${updatedQuotation.quotationNumber} ${status.toLowerCase()}`,
+            },
+          });
+        }
+      }
+
+      return updatedQuotation;
     });
   }
 
@@ -329,7 +435,10 @@ export class QuotationService {
 
     const latestVersion = await prisma.quotation.findFirst({
       where: {
+        leadId: quotation.leadId,
+
         projectId: quotation.projectId,
+
         phase: quotation.phase,
       },
       orderBy: {
@@ -343,6 +452,8 @@ export class QuotationService {
       const newQuotation = await tx.quotation.create({
         data: {
           quotationNumber: `QT-${Date.now()}`,
+
+          leadId: quotation.leadId,
 
           customerId: quotation.customerId,
 

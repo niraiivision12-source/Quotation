@@ -25,7 +25,9 @@ export class ProductController {
 
     const limit = Number(req.query.limit || 20);
 
-    const products = await ProductService.getAll(page, limit);
+    const search = req.query.search?.toString();
+
+    const products = await ProductService.getAll(page, limit, search);
 
     return res.status(200).json({
       success: true,

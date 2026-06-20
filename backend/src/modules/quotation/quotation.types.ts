@@ -1,4 +1,17 @@
 export interface CreateQuotationDTO {
-  customerId: string;
-  projectId: string;
+  leadId?: string;
+  customerId?: string;
+  projectId?: string;
+
+  phase?: string;
+
+  notes?: string;
+
+  validUntil?: Date;
+
+  items: {
+    productId: string;
+    quantity: number;
+    marginPercent: number;
+  }[];
 }

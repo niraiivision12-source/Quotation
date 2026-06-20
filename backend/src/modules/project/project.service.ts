@@ -64,7 +64,12 @@ export class ProjectService {
     return project;
   }
 
-  static async getAll(page: number, limit: number, search?: string) {
+  static async getAll(
+    page: number,
+    limit: number,
+    search?: string,
+    customerId?: string,
+  ) {
     const skip = (page - 1) * limit;
 
     const where = {
@@ -75,6 +80,10 @@ export class ProjectService {
           contains: search,
           mode: "insensitive" as const,
         },
+      }),
+
+      ...(customerId && {
+        customerId,
       }),
     };
 

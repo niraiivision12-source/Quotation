@@ -2,13 +2,30 @@ import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
 
 export class ProductService {
-  static async getAll(page: number, limit: number) {
+  static async getAll(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
       prisma.product.findMany({
         where: {
           isActive: true,
+
+          ...(search && {
+            OR: [
+              {
+                name: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                sku: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+            ],
+          }),
         },
         skip,
         take: limit,
@@ -19,6 +36,23 @@ export class ProductService {
       prisma.product.count({
         where: {
           isActive: true,
+
+          ...(search && {
+            OR: [
+              {
+                name: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                sku: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+            ],
+          }),
         },
       }),
     ]);

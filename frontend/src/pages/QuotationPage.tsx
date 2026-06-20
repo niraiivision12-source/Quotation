@@ -1,3 +1,5 @@
+import QuotationPageMain from "@/modules/quotation/QuotationPageMain";
+
 export default function QuotationPage() {
-  return <div>Quotations</div>;
+  return <QuotationPageMain />;
 }
