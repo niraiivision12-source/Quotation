@@ -1,5 +1,16 @@
 import { MoreVertical } from "lucide-react";
 import { useState } from "react";
+import {
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+  FaPhone,
+  FaUserFriends,
+  FaWalking,
+  FaWhatsapp,
+  FaYoutube,
+  FaGlobe,
+} from "react-icons/fa";
 
 import PageHeader from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -40,6 +51,38 @@ const STATUS_COLORS: Record<string, string> = {
   WON: "bg-green-100 text-green-700",
   LOST: "bg-red-100 text-red-700",
 };
+
+const SOURCE_MAP: Record<
+  string,
+  { icon: React.ReactNode; color: string }
+> = {
+  instagram: { icon: <FaInstagram size={13} />, color: "bg-pink-100 text-pink-600" },
+  facebook: { icon: <FaFacebook size={13} />, color: "bg-blue-100 text-blue-600" },
+  whatsapp: { icon: <FaWhatsapp size={13} />, color: "bg-green-100 text-green-600" },
+  phone: { icon: <FaPhone size={13} />, color: "bg-gray-100 text-gray-600" },
+  "phone call": { icon: <FaPhone size={13} />, color: "bg-gray-100 text-gray-600" },
+  referral: { icon: <FaUserFriends size={13} />, color: "bg-violet-100 text-violet-600" },
+  "walk-in": { icon: <FaWalking size={13} />, color: "bg-orange-100 text-orange-600" },
+  walkin: { icon: <FaWalking size={13} />, color: "bg-orange-100 text-orange-600" },
+  youtube: { icon: <FaYoutube size={13} />, color: "bg-red-100 text-red-600" },
+  linkedin: { icon: <FaLinkedin size={13} />, color: "bg-sky-100 text-sky-600" },
+  website: { icon: <FaGlobe size={13} />, color: "bg-teal-100 text-teal-600" },
+};
+
+function SourceBadge({ source }: { source?: string | null }) {
+  if (!source) return <span className="text-sm text-muted-foreground">—</span>;
+  const key = source.toLowerCase();
+  const match = SOURCE_MAP[key];
+  if (!match) return <span className="text-sm">{source}</span>;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${match.color}`}
+    >
+      {match.icon}
+      {source}
+    </span>
+  );
+}
 
 function LeadAvatar({ name }: { name: string }) {
   const initials = name
@@ -236,7 +279,7 @@ export default function LeadList() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{lead.source ?? "—"}</TableCell>
+                  <TableCell><SourceBadge source={lead.source} /></TableCell>
                   <TableCell>
                     <span
                       className={`text-xs px-2 py-1 rounded-full font-semibold ${STATUS_COLORS[lead.status]}`}
