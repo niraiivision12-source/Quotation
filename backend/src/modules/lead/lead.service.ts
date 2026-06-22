@@ -70,6 +70,14 @@ export class LeadService {
         orderBy: {
           createdAt: "desc",
         },
+        include: {
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
       }),
       prisma.lead.count({
         where,
