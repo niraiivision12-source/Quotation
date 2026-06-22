@@ -1,7 +1,5 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { MoreVertical } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import PageHeader from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -12,14 +10,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -29,459 +26,278 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { useCreateReminder } from "../reminder/reminder.query";
-import { useUsers } from "../user/user.query";
 import LeadDetailDrawer from "./LeadDetailDrawer";
 import LeadForm from "./LeadForm";
-import {
-  useConvertLead,
-  useDeleteLead,
-  useLeads,
-  useUpdateLead,
-} from "./lead.query";
-import type { Lead, LeadStatus } from "./lead.types";
+import { useDeleteLead, useLeads, useUpdateLead } from "./lead.query";
+import type { Lead } from "./lead.types";
 
-const LEAD_STATUSES: LeadStatus[] = [
-  "NEW",
-  "CONTACTED",
-  "FOLLOW_UP",
-  "QUOTATION_SENT",
-  "NEGOTIATION",
-  "WON",
-  "LOST",
-];
+const STATUS_COLORS: Record<string, string> = {
+  NEW: "bg-blue-100 text-blue-700",
+  CONTACTED: "bg-yellow-100 text-yellow-700",
+  FOLLOW_UP: "bg-orange-100 text-orange-700",
+  QUOTATION_SENT: "bg-purple-100 text-purple-700",
+  NEGOTIATION: "bg-pink-100 text-pink-700",
+  WON: "bg-green-100 text-green-700",
+  LOST: "bg-red-100 text-red-700",
+};
 
-const convertSchema = z.object({
-  projectName: z.string().min(2),
-  location: z.string().optional(),
-  estimatedBudget: z.number().optional().or(z.nan()),
-});
+function LeadAvatar({ name }: { name: string }) {
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
+      {initials}
+    </div>
+  );
+}
 
-type ConvertForm = z.infer<typeof convertSchema>;
+function relativeFollowUp(dateStr: string): { label: string; urgent: boolean } {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-function StatusSelect({ lead }: { lead: Lead }) {
-  const [convertOpen, setConvertOpen] = useState(false);
-  const [followUpOpen, setFollowUpOpen] = useState(false);
-  const [followUpDate, setFollowUpDate] = useState("");
+  if (diffMs < 0)
+    return { label: new Date(dateStr).toLocaleDateString(), urgent: true };
+  if (diffDays === 0) return { label: "Today", urgent: true };
+  if (diffDays === 1) return { label: "Tomorrow", urgent: false };
+  return { label: `${diffDays} days left`, urgent: false };
+}
+
+function LeadActions({ lead }: { lead: Lead }) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const deleteMutation = useDeleteLead();
   const updateMutation = useUpdateLead();
-  const convertMutation = useConvertLead();
-  const createReminderMutation = useCreateReminder();
 
-  const form = useForm<ConvertForm>({
-    resolver: zodResolver(convertSchema),
-  });
-
-  const onChange = (status: string) => {
-    if (status === "WON") {
-      setConvertOpen(true);
-    } else if (status === "FOLLOW_UP") {
-      setFollowUpOpen(true);
-    } else {
-      updateMutation.mutate({ id: lead.id, data: { status } });
-    }
+  const reopen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateMutation.mutate({ id: lead.id, data: { status: "FOLLOW_UP" } });
   };
 
-  const submitFollowUp = async () => {
-    await updateMutation.mutateAsync({
-      id: lead.id,
-      data: { status: "FOLLOW_UP", nextFollowUpAt: followUpDate || null },
-    });
-    if (followUpDate) {
-      createReminderMutation.mutate({
-        title: `Follow up with ${lead.name}`,
-        type: "LEAD",
-        priority: "MEDIUM",
-        dueAt: new Date(followUpDate).toISOString(),
-        leadId: lead.id,
-      });
-    }
-    setFollowUpDate("");
-    setFollowUpOpen(false);
-  };
-
-  const submitConvert = async (data: ConvertForm) => {
-    await convertMutation.mutateAsync({
-      id: lead.id,
-      data: {
-        ...data,
-        estimatedBudget: Number.isNaN(data.estimatedBudget)
-          ? undefined
-          : data.estimatedBudget,
-      },
-    });
-
-    form.reset();
-    setConvertOpen(false);
-  };
-
-  const cancelConvert = () => {
-    setConvertOpen(false);
+  const confirmDelete = async () => {
+    await deleteMutation.mutateAsync(lead.id);
+    setDeleteOpen(false);
   };
 
   return (
     <>
-      <Select
-        defaultValue={lead.status}
-        onValueChange={onChange}
-        disabled={lead.status === "WON"}
-      >
-        <SelectTrigger className="w-40">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {LEAD_STATUSES.map((s) => (
-            <SelectItem key={s} value={s}>
-              {s.replace(/_/g, " ")}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Follow Up date dialog */}
-      <Dialog
-        open={followUpOpen}
-        onOpenChange={(o) => {
-          if (!o) setFollowUpOpen(false);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Set Follow-Up Date for {lead.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">
-                Follow-up date & time
-              </label>
-              <Input
-                type="datetime-local"
-                value={followUpDate}
-                min={new Date().toISOString().slice(0, 16)}
-                onChange={(e) => setFollowUpDate(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={submitFollowUp}
-                disabled={updateMutation.isPending || !followUpDate}
-              >
-                {updateMutation.isPending ? "Saving..." : "Set Follow-Up"}
-              </Button>
-              <Button variant="outline" onClick={() => setFollowUpOpen(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Convert to customer dialog */}
-      <Dialog
-        open={convertOpen}
-        onOpenChange={(o) => {
-          if (!o) cancelConvert();
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Convert {lead.name} to Customer</DialogTitle>
-          </DialogHeader>
-          <form
-            onSubmit={form.handleSubmit(submitConvert)}
-            className="space-y-4"
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Input
-              placeholder="Project Name *"
-              {...form.register("projectName")}
-            />
-            <Input placeholder="Location" {...form.register("location")} />
-            <Input
-              placeholder="Estimated Budget"
-              type="number"
-              {...form.register("estimatedBudget", { valueAsNumber: true })}
-            />
-            <div className="flex gap-2">
-              <Button type="submit" disabled={convertMutation.isPending}>
-                {convertMutation.isPending
-                  ? "Converting..."
-                  : "Confirm WON & Convert"}
-              </Button>
-              <Button type="button" variant="outline" onClick={cancelConvert}>
-                Cancel
-              </Button>
-            </div>
-          </form>
+            <MoreVertical size={16} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {lead.status === "LOST" && (
+            <DropdownMenuItem onClick={reopen}>Reopen</DropdownMenuItem>
+          )}
+          <DropdownMenuItem
+            className="text-red-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteOpen(true);
+            }}
+          >
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Delete Lead</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <strong>{lead.name}</strong>? This
+            action cannot be undone.
+          </p>
+          <div className="flex gap-2 mt-4">
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>
   );
 }
 
-const editLeadSchema = z.object({
-  name: z.string().min(2),
-  mobile: z.string().min(10),
-  email: z.string().optional(),
-  city: z.string().optional(),
-  source: z.string().optional(),
-  notes: z.string().optional(),
-  assignedToId: z.string().optional(),
-});
-
-type EditLeadForm = z.infer<typeof editLeadSchema>;
-
-function EditLeadDialog({ lead }: { lead: Lead }) {
-  const [open, setOpen] = useState(false);
-  const mutation = useUpdateLead();
-  const { data: usersData } = useUsers(1);
-
-  const form = useForm<EditLeadForm>({
-    resolver: zodResolver(editLeadSchema),
-    defaultValues: {
-      name: lead.name,
-      mobile: lead.mobile,
-      email: lead.email ?? "",
-      city: lead.city ?? "",
-      source: lead.source ?? "",
-      notes: lead.notes ?? "",
-      assignedToId: lead.assignedToId ?? "",
-    },
-  });
-
-  const submit = async (data: EditLeadForm) => {
-    await mutation.mutateAsync({
-      id: lead.id,
-      data: { ...data, assignedToId: data.assignedToId || null },
-    });
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Edit
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Lead — {lead.name}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
-          <Input placeholder="Name *" {...form.register("name")} />
-          <Input placeholder="Mobile *" {...form.register("mobile")} />
-          <Input placeholder="Email" {...form.register("email")} />
-          <Input placeholder="City" {...form.register("city")} />
-          <Input placeholder="Source" {...form.register("source")} />
-          <Input placeholder="Notes" {...form.register("notes")} />
-          <Select
-            defaultValue={lead.assignedToId ?? ""}
-            onValueChange={(v) => form.setValue("assignedToId", v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Contact Owner" />
-            </SelectTrigger>
-            <SelectContent>
-              {usersData?.items.map((user) => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Saving..." : "Save"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ReopenLeadButton({ lead }: { lead: Lead }) {
-  const mutation = useUpdateLead();
-
-  const reopen = () => {
-    mutation.mutate({ id: lead.id, data: { status: "FOLLOW_UP" } });
-  };
-
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      disabled={mutation.isPending}
-      onClick={reopen}
-    >
-      {mutation.isPending ? "Reopening..." : "Reopen"}
-    </Button>
-  );
-}
-
-function DeleteLeadButton({ lead }: { lead: Lead }) {
-  const [open, setOpen] = useState(false);
-  const deleteMutation = useDeleteLead();
-
-  const confirm = async () => {
-    await deleteMutation.mutateAsync(lead.id);
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="destructive" size="sm">
-          Delete
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete Lead</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground">
-          Are you sure you want to delete <strong>{lead.name}</strong>? This
-          action cannot be undone.
-        </p>
-        <div className="flex gap-2 mt-4">
-          <Button
-            variant="destructive"
-            onClick={confirm}
-            disabled={deleteMutation.isPending}
-          >
-            {deleteMutation.isPending ? "Deleting..." : "Delete"}
-          </Button>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function LeadList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const { data, isLoading } = useLeads(page, search);
 
   return (
     <div>
-      <PageHeader title="Leads" />
+      <PageHeader title="Lead Management" />
 
-      <div className="mb-4">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>Create Lead</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Lead</DialogTitle>
-            </DialogHeader>
-            <LeadForm onSuccess={() => setOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3">
         <Input
-          placeholder="Search leads..."
+          placeholder="Search by name or mobile..."
           value={search}
+          className="max-w-sm"
           onChange={(e) => {
             setPage(1);
             setSearch(e.target.value);
           }}
         />
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button>+ Create Lead</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Lead</DialogTitle>
+            </DialogHeader>
+            <LeadForm onSuccess={() => setCreateOpen(false)} />
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Mobile</TableHead>
-            <TableHead>City</TableHead>
-            <TableHead>Source</TableHead>
-            <TableHead>Contact Owner</TableHead>
-            <TableHead>Notes</TableHead>
-            <TableHead>Created At</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Actions</TableHead>
-            <TableHead>Next Follow Up</TableHead>
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {isLoading && (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={10}>Loading...</TableCell>
+              <TableHead>Customer</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Contact Owner</TableHead>
+              <TableHead>Next Follow-up</TableHead>
+              <TableHead className="w-10" />
             </TableRow>
-          )}
+          </TableHeader>
 
-          {!isLoading && data?.items.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={10}>No leads found.</TableCell>
-            </TableRow>
-          )}
+          <TableBody>
+            {isLoading && (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-10 text-muted-foreground"
+                >
+                  Loading...
+                </TableCell>
+              </TableRow>
+            )}
 
-          {data?.items.map((lead) => (
-            <TableRow
-              key={lead.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => setSelectedLead(lead)}
-            >
-              <TableCell>{lead.name}</TableCell>
-              <TableCell>{lead.mobile}</TableCell>
-              <TableCell>{lead.city ?? "-"}</TableCell>
-              <TableCell>{lead.source ?? "-"}</TableCell>
-              <TableCell>{lead.assignedTo?.name ?? "-"}</TableCell>
-              <TableCell>{lead.notes ?? "-"}</TableCell>
-              <TableCell>
-                {lead.createdAt
-                  ? new Date(lead.createdAt).toLocaleDateString()
-                  : "-"}
-              </TableCell>
-              <TableCell onClick={(e) => e.stopPropagation()}>
-                <StatusSelect lead={lead} />
-              </TableCell>
-              <TableCell onClick={(e) => e.stopPropagation()}>
-                <div className="flex gap-2">
-                  {lead.status === "LOST" ? (
-                    <ReopenLeadButton lead={lead} />
-                  ) : (
-                    <EditLeadDialog lead={lead} />
-                  )}
-                  <DeleteLeadButton lead={lead} />
-                </div>
-              </TableCell>
-              <TableCell>
-                {lead.nextFollowUpAt
-                  ? new Date(lead.nextFollowUpAt).toLocaleString()
-                  : "-"}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+            {!isLoading && data?.items.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-10 text-muted-foreground"
+                >
+                  No leads found.
+                </TableCell>
+              </TableRow>
+            )}
 
-      <div className="flex gap-2 mt-4">
-        <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-          Previous
-        </Button>
-        <Button
-          disabled={!data || page * 20 >= data.total}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Next
-        </Button>
+            {data?.items.map((lead) => {
+              const followUp = lead.nextFollowUpAt
+                ? relativeFollowUp(lead.nextFollowUpAt)
+                : null;
+              return (
+                <TableRow
+                  key={lead.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedLead(lead)}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <LeadAvatar name={lead.name} />
+                      <div>
+                        <p className="font-medium text-sm">{lead.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {lead.mobile}
+                        </p>
+                        {lead.city && (
+                          <p className="text-xs text-muted-foreground">
+                            {lead.city}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{lead.source ?? "—"}</TableCell>
+                  <TableCell>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full font-semibold ${STATUS_COLORS[lead.status]}`}
+                    >
+                      {lead.status.replace(/_/g, " ")}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {lead.assignedTo?.name ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    {followUp ? (
+                      <div>
+                        <p className="text-xs font-medium">
+                          {new Date(lead.nextFollowUpAt!).toLocaleDateString(
+                            [],
+                            { day: "numeric", month: "short" },
+                          )}
+                        </p>
+                        <p
+                          className={`text-xs ${followUp.urgent ? "text-red-500" : "text-muted-foreground"}`}
+                        >
+                          {followUp.label}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <LeadActions lead={lead} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex items-center justify-between mt-4">
+        <p className="text-sm text-muted-foreground">
+          {data ? `Showing ${data.items.length} of ${data.total} leads` : ""}
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!data || page * 20 >= data.total}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       <LeadDetailDrawer
