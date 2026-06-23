@@ -428,8 +428,17 @@ export default function LeadList() {
                       {lead.status.replace(/_/g, " ")}
                     </span>
                   </TableCell>
-                  <TableCell className="text-sm">
-                    {lead.assignedTo?.name ?? "—"}
+                  <TableCell>
+                    {lead.assignedTo ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-xs shrink-0">
+                          {lead.assignedTo.name[0].toUpperCase()}
+                        </div>
+                        <span className="text-sm">{lead.assignedTo.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {followUp ? (
