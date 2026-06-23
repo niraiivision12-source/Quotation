@@ -108,6 +108,7 @@ export const useDeleteLead = () => {
     mutationFn: (id: string) => deleteLead(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-stats"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
