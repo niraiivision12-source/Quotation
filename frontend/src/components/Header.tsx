@@ -1,11 +1,18 @@
 import { useMyReminders } from "@/modules/reminder/reminder.query";
 import { useAuthStore } from "@/store/auth.store";
-import { Bell } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Bell, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Header() {
   const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
   const { data } = useMyReminders();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const cutoff = new Date();
   cutoff.setHours(cutoff.getHours() + 24);
@@ -49,6 +56,14 @@ export default function Header() {
           </p>
         </div>
       </div>
+
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-red-500 transition-colors"
+      >
+        <LogOut size={16} />
+      </button>
     </header>
   );
 }
