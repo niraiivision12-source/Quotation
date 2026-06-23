@@ -141,11 +141,11 @@ export interface LeadQuotation {
 export interface LeadActivity {
   id: string;
   leadId: string;
-  userId: string;
+  userId?: string;
   type: LeadActivityType;
   message: string;
   createdAt: string;
-  user: { id: string; name: string };
+  user?: { id: string; name: string };
 }
 
 export interface LeadListResponse {
