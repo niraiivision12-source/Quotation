@@ -410,6 +410,13 @@ export default function LeadList() {
                             {lead.city}
                           </p>
                         )}
+                        <p className="text-xs text-muted-foreground/70">
+                          {new Date(lead.createdAt).toLocaleDateString([], {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
                       </div>
                     </div>
                   </TableCell>

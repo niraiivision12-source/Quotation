@@ -15,10 +15,16 @@ export default function Header() {
     return new Date(r.dueAt) <= cutoff;
   }).length;
 
-  return (
-    <header className="border-b p-4 flex items-center justify-between">
-      <div className="text-sm font-medium">{user?.name}</div>
+  const initials = user?.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
+  return (
+    <header className="border-b px-6 py-3 flex items-center justify-end gap-4">
+      {/* Notification bell */}
       <Link
         to="/reminders"
         className="relative inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
@@ -30,6 +36,19 @@ export default function Header() {
           </span>
         )}
       </Link>
+
+      {/* User profile */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
+          {initials}
+        </div>
+        <div className="leading-tight">
+          <p className="text-sm font-semibold">{user?.name}</p>
+          <p className="text-xs text-muted-foreground capitalize">
+            {user?.role.toLowerCase()}
+          </p>
+        </div>
+      </div>
     </header>
   );
 }
