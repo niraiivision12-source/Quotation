@@ -3,13 +3,9 @@ import { useState } from "react";
 import {
   FaFacebook,
   FaInstagram,
-  FaLinkedin,
   FaPhone,
   FaUserFriends,
-  FaWalking,
   FaWhatsapp,
-  FaYoutube,
-  FaGlobe,
 } from "react-icons/fa";
 
 import PageHeader from "@/components/ui/PageHeader";
@@ -29,6 +25,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -39,6 +42,7 @@ import {
 
 import LeadDetailDrawer from "./LeadDetailDrawer";
 import LeadForm from "./LeadForm";
+import { useUsers } from "../user/user.query";
 import { useDeleteLead, useLeadStats, useLeads, useUpdateLead } from "./lead.query";
 import type { Lead } from "./lead.types";
 
@@ -62,11 +66,6 @@ const SOURCE_MAP: Record<
   phone: { icon: <FaPhone size={13} />, color: "bg-gray-100 text-gray-600" },
   "phone call": { icon: <FaPhone size={13} />, color: "bg-gray-100 text-gray-600" },
   referral: { icon: <FaUserFriends size={13} />, color: "bg-violet-100 text-violet-600" },
-  "walk-in": { icon: <FaWalking size={13} />, color: "bg-orange-100 text-orange-600" },
-  walkin: { icon: <FaWalking size={13} />, color: "bg-orange-100 text-orange-600" },
-  youtube: { icon: <FaYoutube size={13} />, color: "bg-red-100 text-red-600" },
-  linkedin: { icon: <FaLinkedin size={13} />, color: "bg-sky-100 text-sky-600" },
-  website: { icon: <FaGlobe size={13} />, color: "bg-teal-100 text-teal-600" },
 };
 
 function SourceBadge({ source }: { source?: string | null }) {
@@ -220,9 +219,28 @@ export default function LeadList() {
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [filters, setFilters] = useState<{
+    source?: string;
+    status?: string;
+    assignedToId?: string;
+    city?: string;
+  }>({});
 
-  const { data, isLoading } = useLeads(page, search);
+  const { data: usersData } = useUsers(1);
+  const { data, isLoading } = useLeads(page, search, filters);
   const { data: stats } = useLeadStats();
+
+  const setFilter = (key: keyof typeof filters, value?: string) => {
+    setPage(1);
+    setFilters((prev) => ({ ...prev, [key]: value || undefined }));
+  };
+
+  const hasActiveFilters = Object.values(filters).some(Boolean);
+
+  const clearFilters = () => {
+    setPage(1);
+    setFilters({});
+  };
 
   return (
     <div>
@@ -246,16 +264,79 @@ export default function LeadList() {
         ))}
       </div>
 
-      <div className="flex items-center justify-between mb-4 gap-3">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         <Input
-          placeholder="Search by name or mobile..."
+          placeholder="Search leads..."
           value={search}
-          className="max-w-sm"
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
+          className="w-48"
+          onChange={(e) => { setPage(1); setSearch(e.target.value); }}
         />
+
+        {/* Source filter */}
+        <Select
+          value={filters.source ?? "all"}
+          onValueChange={(v) => setFilter("source", v === "all" ? undefined : v)}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sources</SelectItem>
+            {Object.keys(SOURCE_MAP).map((s) => (
+              <SelectItem key={s} value={s}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Status filter */}
+        <Select
+          value={filters.status ?? "all"}
+          onValueChange={(v) => setFilter("status", v === "all" ? undefined : v)}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {["NEW","CONTACTED","FOLLOW_UP","QUOTATION_SENT","NEGOTIATION","WON","LOST"].map((s) => (
+              <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Contact Owner filter */}
+        <Select
+          value={filters.assignedToId ?? "all"}
+          onValueChange={(v) => setFilter("assignedToId", v === "all" ? undefined : v)}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Contact Owner" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Owners</SelectItem>
+            {usersData?.items.map((u) => (
+              <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* City / Location filter */}
+        <Input
+          placeholder="Location"
+          value={filters.city ?? ""}
+          className="w-36"
+          onChange={(e) => setFilter("city", e.target.value || undefined)}
+        />
+
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+            Clear filters
+          </Button>
+        )}
+
+        <div className="ml-auto">
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button>+ Create Lead</Button>
@@ -267,6 +348,7 @@ export default function LeadList() {
             <LeadForm onSuccess={() => setCreateOpen(false)} />
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="rounded-md border">

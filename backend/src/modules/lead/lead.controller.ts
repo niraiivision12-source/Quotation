@@ -28,10 +28,16 @@ export class LeadController {
   static async getAll(req: Request, res: Response) {
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 20);
-
     const search = req.query.search?.toString();
 
-    const leads = await LeadService.getAll(page, limit, search);
+    const filters = {
+      source: req.query.source?.toString(),
+      status: req.query.status?.toString(),
+      assignedToId: req.query.assignedToId?.toString(),
+      city: req.query.city?.toString(),
+    };
+
+    const leads = await LeadService.getAll(page, limit, search, filters);
 
     return res.status(200).json({
       success: true,

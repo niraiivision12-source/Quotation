@@ -12,10 +12,19 @@ import {
   updateLead,
 } from "./lead.api";
 
-export const useLeads = (page: number, search: string) => {
+export const useLeads = (
+  page: number,
+  search: string,
+  filters?: {
+    source?: string;
+    status?: string;
+    assignedToId?: string;
+    city?: string;
+  },
+) => {
   return useQuery({
-    queryKey: ["leads", page, search],
-    queryFn: () => getLeads(page, 20, search),
+    queryKey: ["leads", page, search, filters],
+    queryFn: () => getLeads(page, 20, search, filters),
   });
 };
 

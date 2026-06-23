@@ -6,9 +6,15 @@ export const getLeads = async (
   page = 1,
   limit = 20,
   search = "",
+  filters?: {
+    source?: string;
+    status?: string;
+    assignedToId?: string;
+    city?: string;
+  },
 ): Promise<LeadListResponse> => {
   const response = await api.get("/leads", {
-    params: { page, limit, search },
+    params: { page, limit, search, ...filters },
   });
 
   return response.data.data;
