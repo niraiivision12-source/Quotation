@@ -6,8 +6,6 @@ export default function Sidebar() {
       <nav className="flex flex-col gap-3">
         <Link to="/">Dashboard</Link>
 
-        <Link to="/customers">Customers</Link>
-
         <Link to="/projects">Projects</Link>
 
         <Link to="/leads">Leads</Link>
