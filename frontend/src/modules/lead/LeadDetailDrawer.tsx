@@ -275,7 +275,7 @@ function StatusSection({ lead }: { lead: Lead }) {
       data: { status: "FOLLOW_UP", nextFollowUpAt: followUpDate || null },
     });
     if (followUpDate) {
-      createReminderMutation.mutate({
+      await createReminderMutation.mutateAsync({
         title: `Follow up with ${lead.name}`,
         type: "LEAD",
         priority: "MEDIUM",
