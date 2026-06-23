@@ -65,3 +65,14 @@ export const getLeadById = async (id: string): Promise<Lead> => {
 
   return response.data.data;
 };
+
+export const getLeadStats = async (): Promise<{
+  total: number;
+  followUp: number;
+  won: number;
+  lost: number;
+  todayFollowUp: number;
+}> => {
+  const response = await api.get("/leads/stats");
+  return response.data.data;
+};

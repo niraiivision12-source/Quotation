@@ -7,6 +7,7 @@ import {
   createLead,
   deleteLead,
   getLeadById,
+  getLeadStats,
   getLeads,
   updateLead,
 } from "./lead.api";
@@ -23,6 +24,7 @@ export const useCreateLead = () => {
     mutationFn: createLead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-stats"] });
     },
   });
 };
@@ -42,6 +44,7 @@ export const useConvertLead = () => {
     }) => convertLead(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-stats"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
@@ -70,6 +73,7 @@ export const useUpdateLead = () => {
     }) => updateLead(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-stats"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
   });
@@ -80,6 +84,13 @@ export const useLead = (id: string | null) => {
     queryKey: ["lead", id],
     queryFn: () => getLeadById(id!),
     enabled: !!id,
+  });
+};
+
+export const useLeadStats = () => {
+  return useQuery({
+    queryKey: ["lead-stats"],
+    queryFn: getLeadStats,
   });
 };
 

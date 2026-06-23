@@ -20,6 +20,11 @@ export class LeadController {
     });
   }
 
+  static async getStats(_req: Request, res: Response) {
+    const stats = await LeadService.getStats();
+    return res.status(200).json({ success: true, data: stats });
+  }
+
   static async getAll(req: Request, res: Response) {
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 20);

@@ -1,4 +1,4 @@
-import { MoreVertical } from "lucide-react";
+import { Calendar, CheckCircle, MoreVertical, Users, XCircle } from "lucide-react";
 import { useState } from "react";
 import {
   FaFacebook,
@@ -39,7 +39,7 @@ import {
 
 import LeadDetailDrawer from "./LeadDetailDrawer";
 import LeadForm from "./LeadForm";
-import { useDeleteLead, useLeads, useUpdateLead } from "./lead.query";
+import { useDeleteLead, useLeadStats, useLeads, useUpdateLead } from "./lead.query";
 import type { Lead } from "./lead.types";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -182,6 +182,39 @@ function LeadActions({ lead }: { lead: Lead }) {
   );
 }
 
+const STAT_CARDS = [
+  {
+    key: "total",
+    label: "All Leads",
+    icon: <Users size={20} className="text-blue-500" />,
+    bg: "bg-blue-50",
+  },
+  {
+    key: "followUp",
+    label: "Follow Up",
+    icon: <Calendar size={20} className="text-orange-500" />,
+    bg: "bg-orange-50",
+  },
+  {
+    key: "todayFollowUp",
+    label: "Today Follow-up",
+    icon: <Calendar size={20} className="text-violet-500" />,
+    bg: "bg-violet-50",
+  },
+  {
+    key: "won",
+    label: "Converted",
+    icon: <CheckCircle size={20} className="text-green-500" />,
+    bg: "bg-green-50",
+  },
+  {
+    key: "lost",
+    label: "Lost",
+    icon: <XCircle size={20} className="text-red-500" />,
+    bg: "bg-red-50",
+  },
+] as const;
+
 export default function LeadList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -189,10 +222,29 @@ export default function LeadList() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const { data, isLoading } = useLeads(page, search);
+  const { data: stats } = useLeadStats();
 
   return (
     <div>
       <PageHeader title="Lead Management" />
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        {STAT_CARDS.map((card) => (
+          <div
+            key={card.key}
+            className={`rounded-xl border p-4 flex items-center gap-3 ${card.bg}`}
+          >
+            <div className="shrink-0">{card.icon}</div>
+            <div>
+              <p className="text-xs text-muted-foreground">{card.label}</p>
+              <p className="text-2xl font-bold">
+                {stats ? stats[card.key] : "—"}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <div className="flex items-center justify-between mb-4 gap-3">
         <Input
