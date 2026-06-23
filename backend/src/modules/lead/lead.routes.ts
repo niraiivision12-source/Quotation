@@ -26,4 +26,6 @@ router.post("/:id/notes", asyncHandler(LeadNoteController.addNote));
 
 router.get("/:id/notes", asyncHandler(LeadNoteController.getNotes));
 
+router.get("/stats", asyncHandler(LeadController.getStats));
+
 export default router;
