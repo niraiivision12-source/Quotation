@@ -106,6 +106,12 @@ export class LeadService {
       },
       include: {
         customer: true,
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         activities: {
           orderBy: {
             createdAt: "desc",
