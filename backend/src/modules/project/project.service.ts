@@ -124,8 +124,38 @@ export class ProjectService {
       include: {
         customer: true,
         phaseTracking: {
-          orderBy: {
-            createdAt: "asc",
+          orderBy: { createdAt: "asc" },
+        },
+        quotations: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            quotationNumber: true,
+            status: true,
+            totalAmount: true,
+            createdAt: true,
+          },
+        },
+        reminders: {
+          where: { status: "PENDING" },
+          orderBy: { dueAt: "asc" },
+          take: 1,
+          select: {
+            id: true,
+            title: true,
+            dueAt: true,
+            priority: true,
+          },
+        },
+        activities: {
+          orderBy: { createdAt: "desc" },
+          take: 4,
+          select: {
+            id: true,
+            type: true,
+            message: true,
+            createdAt: true,
           },
         },
       },

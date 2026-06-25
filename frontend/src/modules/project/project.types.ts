@@ -55,10 +55,37 @@ export interface ProjectDetails {
 
   location?: string;
 
+  currentPhase: string;
+
+  isCompleted: boolean;
+
   customer: {
     id: string;
     name: string;
+    mobile: string;
   };
 
   phaseTracking: ProjectPhase[];
+
+  quotations: {
+    id: string;
+    quotationNumber: string;
+    status: string;
+    totalAmount: string;
+    createdAt: string;
+  }[];
+
+  reminders: {
+    id: string;
+    title: string;
+    dueAt: string;
+    priority: string;
+  }[];
+
+  activities: {
+    id: string;
+    type: string;
+    message: string;
+    createdAt: string;
+  }[];
 }

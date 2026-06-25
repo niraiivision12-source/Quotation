@@ -7,6 +7,7 @@ import PageHeader from "@/components/ui/PageHeader";
 
 import { useLeads } from "../lead/lead.query";
 import type { Lead } from "../lead/lead.types";
+import ProjectQuickDrawer from "./components/ProjectQuickDrawer";
 import CreateProjectDialog from "./CreateProjectDialog";
 import { useProjects } from "./project.query";
 import type { Project } from "./project.types";
@@ -49,36 +50,37 @@ function LeadCard({ lead }: { lead: Lead }) {
   );
 }
 
-function KanbanCard({ project }: { project: Project }) {
+function KanbanCard({ project, onOpen }: { project: Project; onOpen: (id: string) => void }) {
   const initials = project.projectName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   const totalAmount = project.quotations?.reduce((sum, q) => sum + Number(q.totalAmount), 0) ?? 0;
 
   return (
-    <Link to={`/projects/${project.id}`}>
-      <div className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow space-y-2 cursor-pointer">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
-            {initials}
-          </div>
-          <span className="font-medium text-sm truncate">{project.projectName}</span>
+    <div
+      onClick={() => onOpen(project.id)}
+      className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow space-y-2 cursor-pointer"
+    >
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+          {initials}
         </div>
-        <p className="text-xs text-muted-foreground truncate">{project.customer.name}</p>
-        {project.location && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <MapPin size={11} /> {project.location}
-          </p>
-        )}
-        {totalAmount > 0 && (
-          <p className="text-xs font-medium text-green-700">
-            ₹{totalAmount.toLocaleString()}
-          </p>
-        )}
+        <span className="font-medium text-sm truncate">{project.projectName}</span>
       </div>
-    </Link>
+      <p className="text-xs text-muted-foreground truncate">{project.customer.name}</p>
+      {project.location && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <MapPin size={11} /> {project.location}
+        </p>
+      )}
+      {totalAmount > 0 && (
+        <p className="text-xs font-medium text-green-700">
+          ₹{totalAmount.toLocaleString()}
+        </p>
+      )}
+    </div>
   );
 }
 
-function ProjectKanban({ projects, newLeads }: { projects: Project[]; newLeads: Lead[] }) {
+function ProjectKanban({ projects, newLeads, onOpen }: { projects: Project[]; newLeads: Lead[]; onOpen: (id: string) => void }) {
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${KANBAN_COLUMNS.length}, minmax(0, 1fr))` }}>
       {KANBAN_COLUMNS.map(({ phase, label, headerClass, icon }) => {
@@ -115,7 +117,7 @@ function ProjectKanban({ projects, newLeads }: { projects: Project[]; newLeads: 
               ) : (
                 projects
                   .filter((p) => p.currentPhase === phase)
-                  .map((p) => <KanbanCard key={p.id} project={p} />)
+                  .map((p) => <KanbanCard key={p.id} project={p} onOpen={onOpen} />)
               )}
             </div>
           </div>
@@ -127,6 +129,7 @@ function ProjectKanban({ projects, newLeads }: { projects: Project[]; newLeads: 
 
 export default function ProjectList() {
   const [search, setSearch] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const { data: allData } = useProjects(1, search, 200);
   const { data: leadsData } = useLeads(1, search, { status: "NEW" });
@@ -145,7 +148,16 @@ export default function ProjectList() {
         <CreateProjectDialog />
       </div>
 
-      <ProjectKanban projects={allData?.items ?? []} newLeads={leadsData?.items ?? []} />
+      <ProjectKanban
+        projects={allData?.items ?? []}
+        newLeads={leadsData?.items ?? []}
+        onOpen={setSelectedProjectId}
+      />
+
+      <ProjectQuickDrawer
+        projectId={selectedProjectId}
+        onClose={() => setSelectedProjectId(null)}
+      />
     </div>
   );
 }
