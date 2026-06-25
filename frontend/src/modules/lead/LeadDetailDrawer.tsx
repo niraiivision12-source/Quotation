@@ -207,7 +207,12 @@ function EditLeadDialog({
         </DialogHeader>
         <form onSubmit={form.handleSubmit(submit)} className="space-y-3">
           <Input placeholder="Name *" {...form.register("name")} />
-          <Input placeholder="Mobile *" {...form.register("mobile")} />
+          <div className="flex">
+            <span className="inline-flex items-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm font-medium">
+              +91
+            </span>
+            <Input className="rounded-l-none" placeholder="Mobile *" {...form.register("mobile")} />
+          </div>
           <Input placeholder="Email" {...form.register("email")} />
           <Input placeholder="City" {...form.register("city")} />
           <Select
@@ -489,17 +494,15 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
                 </div>
               )}
             </div>
-            {fullLead.status !== "WON" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0"
-                onClick={() => setEditOpen(true)}
-              >
-                <Pencil size={13} className="mr-1" />
-                Edit
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setEditOpen(true)}
+            >
+              <Pencil size={13} className="mr-1" />
+              Edit
+            </Button>
           </div>
 
           <div className="flex-1 px-4 py-4 space-y-5">

@@ -1,4 +1,4 @@
-import { Calendar, CheckCircle, Users, X, XCircle } from "lucide-react";
+import { Calendar, CheckCircle, Download, Users, X, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   FaFacebook,
@@ -10,6 +10,7 @@ import {
 
 import PageHeader from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,8 @@ const STATUS_COLORS: Record<string, string> = {
   LOST: "bg-red-100 text-red-700",
 };
 
+const STATUSES = ["NEW", "CONTACTED", "FOLLOW_UP", "QUOTATION_SENT", "NEGOTIATION", "WON", "LOST"];
+
 const SOURCE_MAP: Record<string, { icon: React.ReactNode; color: string }> = {
   "Walk-in":    { icon: <FaUserFriends size={13} />, color: "bg-orange-100 text-orange-600" },
   "WhatsApp":   { icon: <FaWhatsapp size={13} />,    color: "bg-green-100 text-green-600" },
@@ -79,71 +82,27 @@ type StatCardDef = {
 };
 
 const STAT_CARDS: StatCardDef[] = [
-  {
-    key: "total",
-    label: "All Leads",
-    icon: <Users size={20} className="text-blue-500" />,
-    bg: "bg-blue-50",
-    activeBg: "ring-2 ring-blue-400 bg-blue-100",
-  },
-  {
-    key: "followUp",
-    label: "Follow Up",
-    icon: <Calendar size={20} className="text-orange-500" />,
-    bg: "bg-orange-50",
-    activeBg: "ring-2 ring-orange-400 bg-orange-100",
-    statusFilter: "FOLLOW_UP",
-  },
-  {
-    key: "todayFollowUp",
-    label: "Today Follow-up",
-    icon: <Calendar size={20} className="text-violet-500" />,
-    bg: "bg-violet-50",
-    activeBg: "ring-2 ring-violet-400 bg-violet-100",
-    statusFilter: "FOLLOW_UP",
-    applyToday: true,
-  },
-  {
-    key: "won",
-    label: "Converted",
-    icon: <CheckCircle size={20} className="text-green-500" />,
-    bg: "bg-green-50",
-    activeBg: "ring-2 ring-green-400 bg-green-100",
-    statusFilter: "WON",
-  },
-  {
-    key: "lost",
-    label: "Lost",
-    icon: <XCircle size={20} className="text-red-500" />,
-    bg: "bg-red-50",
-    activeBg: "ring-2 ring-red-400 bg-red-100",
-    statusFilter: "LOST",
-  },
+  { key: "total",        label: "All Leads",       icon: <Users size={20} className="text-blue-500" />,    bg: "bg-blue-50",   activeBg: "ring-2 ring-blue-400 bg-blue-100" },
+  { key: "followUp",     label: "Follow Up",        icon: <Calendar size={20} className="text-orange-500" />, bg: "bg-orange-50", activeBg: "ring-2 ring-orange-400 bg-orange-100", statusFilter: "FOLLOW_UP" },
+  { key: "todayFollowUp",label: "Today Follow-up",  icon: <Calendar size={20} className="text-violet-500" />, bg: "bg-violet-50", activeBg: "ring-2 ring-violet-400 bg-violet-100", statusFilter: "FOLLOW_UP", applyToday: true },
+  { key: "won",          label: "Converted",        icon: <CheckCircle size={20} className="text-green-500" />, bg: "bg-green-50",  activeBg: "ring-2 ring-green-400 bg-green-100", statusFilter: "WON" },
+  { key: "lost",         label: "Lost",             icon: <XCircle size={20} className="text-red-500" />,    bg: "bg-red-50",    activeBg: "ring-2 ring-red-400 bg-red-100", statusFilter: "LOST" },
 ];
 
 function getDateRange(preset: string): { dateFrom: string; dateTo: string } {
   const now = new Date();
   const start = new Date(now);
   const end = new Date(now);
-
   if (preset === "today") {
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
+    start.setHours(0, 0, 0, 0); end.setHours(23, 59, 59, 999);
   } else if (preset === "yesterday") {
-    start.setDate(start.getDate() - 1);
-    start.setHours(0, 0, 0, 0);
-    end.setDate(end.getDate() - 1);
-    end.setHours(23, 59, 59, 999);
+    start.setDate(start.getDate() - 1); start.setHours(0, 0, 0, 0);
+    end.setDate(end.getDate() - 1);     end.setHours(23, 59, 59, 999);
   } else if (preset === "last7") {
-    start.setDate(start.getDate() - 6);
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
+    start.setDate(start.getDate() - 6); start.setHours(0, 0, 0, 0); end.setHours(23, 59, 59, 999);
   } else if (preset === "last30") {
-    start.setDate(start.getDate() - 29);
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
+    start.setDate(start.getDate() - 29); start.setHours(0, 0, 0, 0); end.setHours(23, 59, 59, 999);
   }
-
   return { dateFrom: start.toISOString(), dateTo: end.toISOString() };
 }
 
@@ -158,30 +117,38 @@ function relativeFollowUp(dateStr: string): { label: string; urgent: boolean } {
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
-
   if (diffMs < 0) {
-    const overdueDays = Math.floor(-diffMs / (1000 * 60 * 60 * 24));
-    return {
-      label: overdueDays === 0 ? "Overdue today" : `Overdue ${overdueDays}d`,
-      urgent: true,
-    };
+    const d = Math.floor(-diffMs / (1000 * 60 * 60 * 24));
+    return { label: d === 0 ? "Overdue today" : `Overdue ${d}d`, urgent: true };
   }
-
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   if (diffDays === 0) return { label: "Today", urgent: true };
   if (diffDays === 1) return { label: "Tomorrow", urgent: false };
   return { label: `In ${diffDays}d`, urgent: false };
 }
 
-function leadAge(dateStr: string): string {
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const h = Math.floor(diffMs / 3_600_000);
-  const d = Math.floor(diffMs / 86_400_000);
-  if (h < 1) return "Just now";
-  if (h < 24) return `${h}h ago`;
-  if (d === 1) return "Yesterday";
-  if (d < 30) return `${d}d ago`;
-  return new Date(dateStr).toLocaleDateString([], { day: "numeric", month: "short" });
+function exportToCSV(leads: Lead[]) {
+  const headers = ["Name", "Mobile", "City", "Source", "Status", "Assigned To", "Created", "Next Follow-up"];
+  const rows = leads.map((l) => [
+    l.name,
+    l.mobile,
+    l.city ?? "",
+    l.source ?? "",
+    l.status.replace(/_/g, " "),
+    l.assignedTo?.name ?? "",
+    new Date(l.createdAt).toLocaleDateString(),
+    l.nextFollowUpAt ? new Date(l.nextFollowUpAt).toLocaleDateString() : "",
+  ]);
+  const csv = [headers, ...rows]
+    .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `leads_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function SourceBadge({ source }: { source?: string | null }) {
@@ -189,9 +156,8 @@ function SourceBadge({ source }: { source?: string | null }) {
   const match = SOURCE_MAP[source];
   if (!match) return <span className="text-sm">{source}</span>;
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${match.color}`}>
-      {match.icon}
-      {source}
+    <span className={`inline-flex items-center gap-1.5 text-sm font-medium px-2.5 py-1 rounded-full ${match.color}`}>
+      {match.icon}{source}
     </span>
   );
 }
@@ -199,7 +165,7 @@ function SourceBadge({ source }: { source?: string | null }) {
 function LeadAvatar({ name }: { name: string }) {
   const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
+    <div className="w-11 h-11 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-base shrink-0">
       {initials}
     </div>
   );
@@ -224,12 +190,7 @@ function LeadActions({ lead }: { lead: Lead }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
             <span className="sr-only">Actions</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
@@ -237,16 +198,8 @@ function LeadActions({ lead }: { lead: Lead }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {lead.status === "LOST" && (
-            <DropdownMenuItem onClick={reopen}>Reopen</DropdownMenuItem>
-          )}
-          <DropdownMenuItem
-            className="text-red-600"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteOpen(true);
-            }}
-          >
+          {lead.status === "LOST" && <DropdownMenuItem onClick={reopen}>Reopen</DropdownMenuItem>}
+          <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}>
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -254,9 +207,7 @@ function LeadActions({ lead }: { lead: Lead }) {
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle>Delete Lead</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Delete Lead</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             Are you sure you want to delete <strong>{lead.name}</strong>? This action cannot be undone.
           </p>
@@ -264,13 +215,84 @@ function LeadActions({ lead }: { lead: Lead }) {
             <Button variant="destructive" onClick={confirmDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
           </div>
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function MobileLeadCard({
+  lead,
+  selected,
+  onSelect,
+  onOpen,
+  onStatusChange,
+}: {
+  lead: Lead;
+  selected: boolean;
+  onSelect: (id: string, checked: boolean) => void;
+  onOpen: (lead: Lead) => void;
+  onStatusChange: (id: string, status: string) => void;
+}) {
+  const followUp = lead.nextFollowUpAt ? relativeFollowUp(lead.nextFollowUpAt) : null;
+  const isOverdue = !!followUp?.urgent && !!lead.nextFollowUpAt && new Date(lead.nextFollowUpAt) < new Date();
+
+  return (
+    <div
+      className={`bg-white border rounded-xl p-4 space-y-3 ${isOverdue ? "border-l-4 border-l-red-400" : ""} ${selected ? "ring-2 ring-violet-400" : ""}`}
+      onClick={() => onOpen(lead)}
+    >
+      <div className="flex items-start gap-3">
+        <div onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(c) => onSelect(lead.id, !!c)}
+          />
+        </div>
+        <LeadAvatar name={lead.name} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-semibold text-base truncate">{lead.name}</p>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Select value={lead.status} onValueChange={(v) => onStatusChange(lead.id, v)}>
+                <SelectTrigger className={`text-xs font-semibold border-0 shadow-none px-2 py-0.5 h-auto rounded-full w-auto ${STATUS_COLORS[lead.status]}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUSES.map((s) => (
+                    <SelectItem key={s} value={s} className="text-sm">{s.replace(/_/g, " ")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-sm text-foreground/70">{lead.mobile}</p>
+          {lead.city && <p className="text-sm text-foreground/60">{lead.city}</p>}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 pt-1 border-t">
+        <SourceBadge source={lead.source} />
+        {followUp ? (
+          <span className={`text-xs font-medium ${followUp.urgent ? "text-red-500" : "text-muted-foreground"}`}>
+            {followUp.label}
+          </span>
+        ) : null}
+        {lead.assignedTo && (
+          <div className="flex items-center gap-1">
+            <div className="w-6 h-6 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold shrink-0">
+              {lead.assignedTo.name[0].toUpperCase()}
+            </div>
+            <span className="text-xs text-muted-foreground">{lead.assignedTo.name}</span>
+          </div>
+        )}
+        <div onClick={(e) => e.stopPropagation()}>
+          <LeadActions lead={lead} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -285,6 +307,8 @@ export default function LeadList() {
   const [datePreset, setDatePreset] = useState<string>("all");
   const [myLeads, setMyLeads] = useState(false);
   const [activeStatCard, setActiveStatCard] = useState<StatCardKey | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAssignUserId, setBulkAssignUserId] = useState<string>("");
   const [filters, setFilters] = useState<{
     source?: string;
     status?: string;
@@ -294,18 +318,15 @@ export default function LeadList() {
     dateTo?: string;
   }>({});
 
-  // 300ms search debounce
   useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 300);
+    const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
     return () => clearTimeout(t);
   }, [search]);
 
   const { data: usersData } = useUsers(1);
   const { data, isLoading } = useLeads(page, debouncedSearch, filters);
   const { data: stats } = useLeadStats();
+  const updateMutation = useUpdateLead();
 
   const setFilter = (key: keyof typeof filters, value?: string) => {
     setPage(1);
@@ -324,18 +345,10 @@ export default function LeadList() {
   };
 
   const handleStatCardClick = (card: StatCardDef) => {
-    if (activeStatCard === card.key) {
-      // deselect
-      setActiveStatCard(null);
-      clearFilters();
-      return;
-    }
+    if (activeStatCard === card.key) { setActiveStatCard(null); clearFilters(); return; }
     setActiveStatCard(card.key);
     setPage(1);
-    if (!card.statusFilter) {
-      clearFilters();
-      return;
-    }
+    if (!card.statusFilter) { clearFilters(); return; }
     const dateRange = card.applyToday ? getDateRange("today") : {};
     setFilters((prev) => ({ ...prev, status: card.statusFilter, ...dateRange }));
     setDatePreset(card.applyToday ? "today" : "all");
@@ -348,16 +361,36 @@ export default function LeadList() {
     setFilters((prev) => ({ ...prev, assignedToId: next ? (user?.id ?? undefined) : undefined }));
   };
 
-  const hasActiveFilters =
-    Object.values(filters).some(Boolean) || datePreset !== "all";
+  const hasActiveFilters = Object.values(filters).some(Boolean) || datePreset !== "all";
 
   const clearFilters = () => {
-    setPage(1);
-    setFilters({});
-    setDatePreset("all");
-    setMyLeads(false);
-    setActiveStatCard(null);
+    setPage(1); setFilters({}); setDatePreset("all"); setMyLeads(false); setActiveStatCard(null);
   };
+
+  // Bulk select helpers
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      checked ? next.add(id) : next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked && data) setSelectedIds(new Set(data.items.map((l) => l.id)));
+    else setSelectedIds(new Set());
+  };
+
+  const handleBulkAssign = () => {
+    if (!bulkAssignUserId || selectedIds.size === 0) return;
+    selectedIds.forEach((id) =>
+      updateMutation.mutate({ id, data: { assignedToId: bulkAssignUserId } })
+    );
+    setSelectedIds(new Set());
+    setBulkAssignUserId("");
+  };
+
+  const allSelected = !!data && data.items.length > 0 && data.items.every((l) => selectedIds.has(l.id));
 
   const start = (page - 1) * 20 + 1;
   const end = data ? Math.min(page * 20, data.total) : 0;
@@ -394,73 +427,45 @@ export default function LeadList() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        {/* My Leads toggle */}
         <button
           onClick={toggleMyLeads}
           className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-            myLeads
-              ? "bg-violet-600 text-white border-violet-600"
-              : "border-input hover:bg-muted text-muted-foreground"
+            myLeads ? "bg-violet-600 text-white border-violet-600" : "border-input hover:bg-muted text-muted-foreground"
           }`}
         >
           My Leads
         </button>
 
-        {/* Source filter */}
-        <Select
-          value={filters.source ?? "all"}
-          onValueChange={(v) => setFilter("source", v === "all" ? undefined : v)}
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Source" />
-          </SelectTrigger>
+        <Select value={filters.source ?? "all"} onValueChange={(v) => setFilter("source", v === "all" ? undefined : v)}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Source" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Sources</SelectItem>
-            {Object.keys(SOURCE_MAP).map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
-            ))}
+            {Object.keys(SOURCE_MAP).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
 
-        {/* Status filter */}
         <Select
           value={filters.status ?? "all"}
-          onValueChange={(v) => {
-            setFilter("status", v === "all" ? undefined : v);
-            setActiveStatCard(null);
-          }}
+          onValueChange={(v) => { setFilter("status", v === "all" ? undefined : v); setActiveStatCard(null); }}
         >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            {["NEW","CONTACTED","FOLLOW_UP","QUOTATION_SENT","NEGOTIATION","WON","LOST"].map((s) => (
-              <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>
-            ))}
+            {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}
           </SelectContent>
         </Select>
 
-        {/* Contact Owner filter */}
         <Select
           value={filters.assignedToId ?? "all"}
-          onValueChange={(v) => {
-            setMyLeads(false);
-            setFilter("assignedToId", v === "all" ? undefined : v);
-          }}
+          onValueChange={(v) => { setMyLeads(false); setFilter("assignedToId", v === "all" ? undefined : v); }}
         >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Contact Owner" />
-          </SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Contact Owner" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Owners</SelectItem>
-            {usersData?.items.map((u) => (
-              <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-            ))}
+            {usersData?.items.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
           </SelectContent>
         </Select>
 
-        {/* City filter */}
         <Input
           placeholder="Location"
           value={filters.city ?? ""}
@@ -475,9 +480,7 @@ export default function LeadList() {
               key={p.value}
               onClick={() => applyDatePreset(datePreset === p.value ? "all" : p.value)}
               className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                datePreset === p.value
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted text-muted-foreground"
+                datePreset === p.value ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
               }`}
             >
               {p.label}
@@ -488,12 +491,10 @@ export default function LeadList() {
         {/* Custom date range */}
         <div className="flex items-center gap-1.5">
           <Input
-            type="date"
-            className="w-36 text-xs"
+            type="date" className="w-36 text-xs"
             value={datePreset === "custom" ? (filters.dateFrom ? filters.dateFrom.slice(0, 10) : "") : ""}
             onChange={(e) => {
-              setDatePreset("custom");
-              setPage(1);
+              setDatePreset("custom"); setPage(1);
               const from = e.target.value ? new Date(e.target.value) : undefined;
               if (from) from.setHours(0, 0, 0, 0);
               setFilters((prev) => ({ ...prev, dateFrom: from?.toISOString() }));
@@ -501,12 +502,10 @@ export default function LeadList() {
           />
           <span className="text-xs text-muted-foreground">to</span>
           <Input
-            type="date"
-            className="w-36 text-xs"
+            type="date" className="w-36 text-xs"
             value={datePreset === "custom" ? (filters.dateTo ? filters.dateTo.slice(0, 10) : "") : ""}
             onChange={(e) => {
-              setDatePreset("custom");
-              setPage(1);
+              setDatePreset("custom"); setPage(1);
               const to = e.target.value ? new Date(e.target.value) : undefined;
               if (to) to.setHours(23, 59, 59, 999);
               setFilters((prev) => ({ ...prev, dateTo: to?.toISOString() }));
@@ -514,15 +513,18 @@ export default function LeadList() {
           />
         </div>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {data && data.items.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => exportToCSV(data.items)}>
+              <Download size={14} className="mr-1" /> Export CSV
+            </Button>
+          )}
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
               <Button>+ Create Lead</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Lead</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>Create Lead</DialogTitle></DialogHeader>
               <LeadForm onSuccess={() => setCreateOpen(false)} />
             </DialogContent>
           </Dialog>
@@ -535,33 +537,25 @@ export default function LeadList() {
           {filters.status && (
             <span className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
               Status: {filters.status.replace(/_/g, " ")}
-              <button onClick={() => { setFilter("status", undefined); setActiveStatCard(null); }}>
-                <X size={10} />
-              </button>
+              <button onClick={() => { setFilter("status", undefined); setActiveStatCard(null); }}><X size={10} /></button>
             </span>
           )}
           {filters.source && (
             <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
               Source: {filters.source}
-              <button onClick={() => setFilter("source", undefined)}>
-                <X size={10} />
-              </button>
+              <button onClick={() => setFilter("source", undefined)}><X size={10} /></button>
             </span>
           )}
           {filters.assignedToId && (
             <span className="inline-flex items-center gap-1 text-xs bg-violet-100 text-violet-700 px-2 py-1 rounded-full">
               Owner: {usersData?.items.find((u) => u.id === filters.assignedToId)?.name ?? "Unknown"}
-              <button onClick={() => { setFilter("assignedToId", undefined); setMyLeads(false); }}>
-                <X size={10} />
-              </button>
+              <button onClick={() => { setFilter("assignedToId", undefined); setMyLeads(false); }}><X size={10} /></button>
             </span>
           )}
           {filters.city && (
             <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
               City: {filters.city}
-              <button onClick={() => setFilter("city", undefined)}>
-                <X size={10} />
-              </button>
+              <button onClick={() => setFilter("city", undefined)}><X size={10} /></button>
             </span>
           )}
           {datePreset !== "all" && (
@@ -569,26 +563,69 @@ export default function LeadList() {
               {datePreset === "custom"
                 ? `${filters.dateFrom?.slice(0, 10) ?? ""} → ${filters.dateTo?.slice(0, 10) ?? ""}`
                 : DATE_PRESETS.find((p) => p.value === datePreset)?.label}
-              <button onClick={() => applyDatePreset("all")}>
-                <X size={10} />
-              </button>
+              <button onClick={() => applyDatePreset("all")}><X size={10} /></button>
             </span>
           )}
-          <button
-            onClick={clearFilters}
-            className="text-xs text-muted-foreground hover:text-foreground underline ml-1"
-          >
+          <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground underline ml-1">
             Clear all
           </button>
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-md border">
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-violet-50 border border-violet-200 rounded-lg">
+          <span className="text-sm font-medium text-violet-700">{selectedIds.size} selected</span>
+          <Select value={bulkAssignUserId} onValueChange={setBulkAssignUserId}>
+            <SelectTrigger className="w-40 h-8 text-sm"><SelectValue placeholder="Assign to…" /></SelectTrigger>
+            <SelectContent>
+              {usersData?.items.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button size="sm" onClick={handleBulkAssign} disabled={!bulkAssignUserId}>
+            Assign
+          </Button>
+          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground">
+            Clear selection
+          </button>
+        </div>
+      )}
+
+      {/* Mobile card layout */}
+      <div className="md:hidden space-y-3">
+        {isLoading && (
+          <div className="text-center py-10 text-muted-foreground">Loading...</div>
+        )}
+        {!isLoading && data?.items.length === 0 && (
+          <div className="flex flex-col items-center gap-3 py-16">
+            <Users size={40} className="text-muted-foreground/20" />
+            <p className="text-muted-foreground font-medium">No leads found</p>
+            {hasActiveFilters && <Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button>}
+          </div>
+        )}
+        {data?.items.map((lead) => (
+          <MobileLeadCard
+            key={lead.id}
+            lead={lead}
+            selected={selectedIds.has(lead.id)}
+            onSelect={toggleSelect}
+            onOpen={setSelectedLead}
+            onStatusChange={(id, status) => updateMutation.mutate({ id, data: { status } })}
+          />
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
+              </TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead className="hidden md:table-cell">Phone</TableHead>
+              <TableHead className="hidden md:table-cell">Created</TableHead>
               <TableHead>Source</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Contact Owner</TableHead>
@@ -600,23 +637,17 @@ export default function LeadList() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                  Loading...
-                </TableCell>
+                <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             )}
 
             {!isLoading && data?.items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-16 text-center">
+                <TableCell colSpan={9} className="py-16 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <Users size={40} className="text-muted-foreground/20" />
                     <p className="text-muted-foreground font-medium">No leads found</p>
-                    {hasActiveFilters && (
-                      <Button variant="outline" size="sm" onClick={clearFilters}>
-                        Clear filters
-                      </Button>
-                    )}
+                    {hasActiveFilters && <Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button>}
                   </div>
                 </TableCell>
               </TableRow>
@@ -629,46 +660,53 @@ export default function LeadList() {
               return (
                 <TableRow
                   key={lead.id}
-                  className={`cursor-pointer hover:bg-muted/50 group ${isOverdue ? "border-l-2 border-l-red-400" : ""}`}
+                  className={`cursor-pointer hover:bg-muted/50 group ${isOverdue ? "border-l-2 border-l-red-400" : ""} ${selectedIds.has(lead.id) ? "bg-violet-50" : ""}`}
                   onClick={() => setSelectedLead(lead)}
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={(c) => toggleSelect(lead.id, !!c)} />
+                  </TableCell>
+
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <LeadAvatar name={lead.name} />
                       <div>
-                        <p className="font-medium text-sm">{lead.name}</p>
-                        <p className="text-xs text-foreground/70">{lead.mobile}</p>
-                        {lead.city && (
-                          <p className="text-xs text-foreground/60">{lead.city}</p>
-                        )}
-                        <p className="text-xs text-violet-500 font-medium">
-                          {new Date(lead.createdAt).toLocaleDateString([], {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </p>
+                        <p className="font-semibold text-base">{lead.name}</p>
+                        {lead.city && <p className="text-sm text-foreground/60">{lead.city}</p>}
                       </div>
                     </div>
                   </TableCell>
 
-                  <TableCell>
-                    <SourceBadge source={lead.source} />
+                  <TableCell className="hidden md:table-cell">
+                    <p className="text-base text-foreground/70">{lead.mobile}</p>
                   </TableCell>
 
-                  <TableCell>
-                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${STATUS_COLORS[lead.status]}`}>
-                      {lead.status.replace(/_/g, " ")}
-                    </span>
+                  <TableCell className="hidden md:table-cell">
+                    <p className="text-sm text-slate-700 font-medium">
+                      {new Date(lead.createdAt).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}
+                    </p>
+                  </TableCell>
+
+                  <TableCell><SourceBadge source={lead.source} /></TableCell>
+
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Select value={lead.status} onValueChange={(val) => updateMutation.mutate({ id: lead.id, data: { status: val } })}>
+                      <SelectTrigger className={`text-sm font-semibold border-0 shadow-none px-2.5 py-1 h-auto rounded-full w-auto ${STATUS_COLORS[lead.status]}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUSES.map((s) => <SelectItem key={s} value={s} className="text-sm">{s.replace(/_/g, " ")}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
 
                   <TableCell>
                     {lead.assignedTo ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-xs shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-sm shrink-0">
                           {lead.assignedTo.name[0].toUpperCase()}
                         </div>
-                        <span className="text-sm">{lead.assignedTo.name}</span>
+                        <span className="text-base">{lead.assignedTo.name}</span>
                       </div>
                     ) : (
                       <span className="text-sm text-muted-foreground">—</span>
@@ -678,13 +716,10 @@ export default function LeadList() {
                   <TableCell>
                     {followUp ? (
                       <div>
-                        <p className="text-xs font-medium">
-                          {new Date(lead.nextFollowUpAt!).toLocaleDateString([], {
-                            day: "numeric",
-                            month: "short",
-                          })}
+                        <p className="text-sm font-medium">
+                          {new Date(lead.nextFollowUpAt!).toLocaleDateString([], { day: "numeric", month: "short" })}
                         </p>
-                        <p className={`text-xs font-medium ${followUp.urgent ? "text-red-500" : "text-muted-foreground"}`}>
+                        <p className={`text-sm font-medium ${followUp.urgent ? "text-red-500" : "text-muted-foreground"}`}>
                           {followUp.label}
                         </p>
                       </div>
@@ -706,37 +741,15 @@ export default function LeadList() {
       {/* Pagination */}
       <div className="flex items-center justify-between mt-4">
         <p className="text-sm text-muted-foreground">
-          {data && data.total > 0
-            ? `Showing ${start}–${end} of ${data.total} leads`
-            : data?.total === 0
-            ? "No leads"
-            : ""}
+          {data && data.total > 0 ? `Showing ${start}–${end} of ${data.total} leads` : data?.total === 0 ? "No leads" : ""}
         </p>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!data || page * 20 >= data.total}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
+          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+          <Button variant="outline" size="sm" disabled={!data || page * 20 >= data.total} onClick={() => setPage((p) => p + 1)}>Next</Button>
         </div>
       </div>
 
-      <LeadDetailDrawer
-        lead={selectedLead}
-        open={!!selectedLead}
-        onClose={() => setSelectedLead(null)}
-      />
+      <LeadDetailDrawer lead={selectedLead} open={!!selectedLead} onClose={() => setSelectedLead(null)} />
     </div>
   );
 }

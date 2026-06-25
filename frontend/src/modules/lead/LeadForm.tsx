@@ -52,7 +52,12 @@ export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
       <Input placeholder="Name *" {...form.register("name")} />
-      <Input placeholder="Mobile *" {...form.register("mobile")} />
+      <div className="flex">
+        <span className="inline-flex items-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm font-medium">
+          +91
+        </span>
+        <Input className="rounded-l-none" placeholder="Mobile *" {...form.register("mobile")} />
+      </div>
       <Input placeholder="Email" {...form.register("email")} />
       <Input placeholder="City" {...form.register("city")} />
       <Select onValueChange={(value) => form.setValue("source", value)}>
