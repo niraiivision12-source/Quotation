@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Check, MapPin, Pencil } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -26,6 +26,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
+import { CopyPhone } from "@/components/ui/CopyPhone";
 import { useCreateReminder } from "../reminder/reminder.query";
 import { useUsers } from "../user/user.query";
 import {
@@ -182,7 +183,7 @@ function EditLeadDialog({
     resolver: zodResolver(editSchema),
     defaultValues: {
       name: lead.name,
-      mobile: lead.mobile,
+      mobile: lead.mobile?.replace(/^\+?91/, "") ?? "",
       email: lead.email ?? "",
       city: lead.city ?? "",
       source: lead.source ?? "",
@@ -191,10 +192,28 @@ function EditLeadDialog({
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: lead.name,
+        mobile: lead.mobile?.replace(/^\+?91/, "") ?? "",
+        email: lead.email ?? "",
+        city: lead.city ?? "",
+        source: lead.source ?? "",
+        notes: lead.notes ?? "",
+        assignedToId: lead.assignedToId ?? "",
+      });
+    }
+  }, [open, lead]);
+
   const submit = async (data: EditForm) => {
     await mutation.mutateAsync({
       id: lead.id,
-      data: { ...data, assignedToId: data.assignedToId || null },
+      data: {
+        ...data,
+        mobile: "+91" + data.mobile.replace(/^\+?91/, ""),
+        assignedToId: data.assignedToId || null,
+      },
     });
     onClose();
   };
@@ -483,8 +502,8 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
                 </span>
               </div>
               {fullLead.mobile && (
-                <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
-                  <span>{fullLead.mobile}</span>
+                <div className="mt-1 text-sm">
+                  <CopyPhone mobile={fullLead.mobile} />
                 </div>
               )}
               {fullLead.city && (

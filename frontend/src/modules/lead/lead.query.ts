@@ -23,10 +23,11 @@ export const useLeads = (
     dateFrom?: string;
     dateTo?: string;
   },
+  limit = 20,
 ) => {
   return useQuery({
-    queryKey: ["leads", page, search, filters],
-    queryFn: () => getLeads(page, 20, search, filters),
+    queryKey: ["leads", page, search, filters, limit],
+    queryFn: () => getLeads(page, limit, search, filters),
   });
 };
 

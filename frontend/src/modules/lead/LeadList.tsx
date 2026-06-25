@@ -42,9 +42,11 @@ import {
 } from "@/components/ui/table";
 import { useAuthStore } from "@/store/auth.store";
 
+import { CopyPhone } from "@/components/ui/CopyPhone";
 import { useUsers } from "../user/user.query";
 import LeadDetailDrawer from "./LeadDetailDrawer";
 import LeadForm from "./LeadForm";
+import { getLeads } from "./lead.api";
 import { useDeleteLead, useLeadStats, useLeads, useUpdateLead } from "./lead.query";
 import type { Lead } from "./lead.types";
 
@@ -121,10 +123,14 @@ function relativeFollowUp(dateStr: string): { label: string; urgent: boolean } {
     const d = Math.floor(-diffMs / (1000 * 60 * 60 * 24));
     return { label: d === 0 ? "Overdue today" : `Overdue ${d}d`, urgent: true };
   }
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   if (diffDays === 0) return { label: "Today", urgent: true };
   if (diffDays === 1) return { label: "Tomorrow", urgent: false };
   return { label: `In ${diffDays}d`, urgent: false };
+}
+
+function stripCountryCode(mobile: string): string {
+  return mobile.replace(/^\+?91/, "");
 }
 
 function exportToCSV(leads: Lead[]) {
@@ -268,7 +274,7 @@ function MobileLeadCard({
               </Select>
             </div>
           </div>
-          <p className="text-sm text-foreground/70">{lead.mobile}</p>
+          <CopyPhone mobile={stripCountryCode(lead.mobile)} />
           {lead.city && <p className="text-sm text-foreground/60">{lead.city}</p>}
         </div>
       </div>
@@ -300,6 +306,7 @@ export default function LeadList() {
   const { user } = useAuthStore();
 
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -323,8 +330,11 @@ export default function LeadList() {
     return () => clearTimeout(t);
   }, [search]);
 
+  // Clear bulk selection when page changes
+  useEffect(() => { setSelectedIds(new Set()); }, [page]);
+
   const { data: usersData } = useUsers(1);
-  const { data, isLoading } = useLeads(page, debouncedSearch, filters);
+  const { data, isLoading } = useLeads(page, debouncedSearch, filters, limit);
   const { data: stats } = useLeadStats();
   const updateMutation = useUpdateLead();
 
@@ -345,10 +355,18 @@ export default function LeadList() {
   };
 
   const handleStatCardClick = (card: StatCardDef) => {
-    if (activeStatCard === card.key) { setActiveStatCard(null); clearFilters(); return; }
+    if (activeStatCard === card.key) {
+      setActiveStatCard(null);
+      resetFilters();
+      return;
+    }
     setActiveStatCard(card.key);
+    if (!card.statusFilter) {
+      // "All Leads" — clear filters but keep card highlighted
+      resetFilters();
+      return;
+    }
     setPage(1);
-    if (!card.statusFilter) { clearFilters(); return; }
     const dateRange = card.applyToday ? getDateRange("today") : {};
     setFilters((prev) => ({ ...prev, status: card.statusFilter, ...dateRange }));
     setDatePreset(card.applyToday ? "today" : "all");
@@ -363,8 +381,12 @@ export default function LeadList() {
 
   const hasActiveFilters = Object.values(filters).some(Boolean) || datePreset !== "all";
 
+  const resetFilters = () => {
+    setPage(1); setFilters({}); setDatePreset("all"); setMyLeads(false);
+  };
+
   const clearFilters = () => {
-    setPage(1); setFilters({}); setDatePreset("all"); setMyLeads(false); setActiveStatCard(null);
+    resetFilters(); setActiveStatCard(null);
   };
 
   // Bulk select helpers
@@ -392,8 +414,8 @@ export default function LeadList() {
 
   const allSelected = !!data && data.items.length > 0 && data.items.every((l) => selectedIds.has(l.id));
 
-  const start = (page - 1) * 20 + 1;
-  const end = data ? Math.min(page * 20, data.total) : 0;
+  const start = (page - 1) * limit + 1;
+  const end = data ? Math.min(page * limit, data.total) : 0;
 
   return (
     <div>
@@ -515,7 +537,14 @@ export default function LeadList() {
 
         <div className="ml-auto flex items-center gap-2">
           {data && data.items.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => exportToCSV(data.items)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const all = await getLeads(1, 1000, debouncedSearch, filters);
+                exportToCSV(all.items);
+              }}
+            >
               <Download size={14} className="mr-1" /> Export CSV
             </Button>
           )}
@@ -677,8 +706,8 @@ export default function LeadList() {
                     </div>
                   </TableCell>
 
-                  <TableCell className="hidden md:table-cell">
-                    <p className="text-base text-foreground/70">{lead.mobile}</p>
+                  <TableCell className="hidden md:table-cell text-base">
+                    <CopyPhone mobile={stripCountryCode(lead.mobile)} />
                   </TableCell>
 
                   <TableCell className="hidden md:table-cell">
@@ -739,13 +768,34 @@ export default function LeadList() {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between mt-4">
+      <div className="flex items-center justify-between mt-4 gap-4">
         <p className="text-sm text-muted-foreground">
           {data && data.total > 0 ? `Showing ${start}–${end} of ${data.total} leads` : data?.total === 0 ? "No leads" : ""}
         </p>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-          <Button variant="outline" size="sm" disabled={!data || page * 20 >= data.total} onClick={() => setPage((p) => p + 1)}>Next</Button>
+
+        <div className="flex items-center gap-3">
+          {/* Per page selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Rows per page</span>
+            <div className="flex border rounded-md overflow-hidden">
+              {[20, 50, 100].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => { setLimit(n); setPage(1); }}
+                  className={`px-3 py-1 text-xs font-medium transition-colors ${
+                    limit === n ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+            <Button variant="outline" size="sm" disabled={!data || page * limit >= data.total} onClick={() => setPage((p) => p + 1)}>Next</Button>
+          </div>
         </div>
       </div>
 

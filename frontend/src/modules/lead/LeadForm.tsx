@@ -38,7 +38,7 @@ export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
   const submit = async (data: FormData) => {
     await mutation.mutateAsync({
       name: data.name,
-      mobile: data.mobile,
+      mobile: "+91" + data.mobile.replace(/^\+?91/, ""),
       email: data.email || undefined,
       city: data.city || undefined,
       source: data.source || undefined,
