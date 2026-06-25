@@ -51,6 +51,8 @@ function LeadCard({ lead }: { lead: Lead }) {
 
 function KanbanCard({ project }: { project: Project }) {
   const initials = project.projectName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const totalAmount = project.quotations?.reduce((sum, q) => sum + Number(q.totalAmount), 0) ?? 0;
+
   return (
     <Link to={`/projects/${project.id}`}>
       <div className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow space-y-2 cursor-pointer">
@@ -66,9 +68,9 @@ function KanbanCard({ project }: { project: Project }) {
             <MapPin size={11} /> {project.location}
           </p>
         )}
-        {project.estimatedBudget && (
+        {totalAmount > 0 && (
           <p className="text-xs font-medium text-green-700">
-            ₹{Number(project.estimatedBudget).toLocaleString()}
+            ₹{totalAmount.toLocaleString()}
           </p>
         )}
       </div>
@@ -81,16 +83,26 @@ function ProjectKanban({ projects, newLeads }: { projects: Project[]; newLeads: 
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${KANBAN_COLUMNS.length}, minmax(0, 1fr))` }}>
       {KANBAN_COLUMNS.map(({ phase, label, headerClass, icon }) => {
         const isLeadColumn = phase === "NEW_LEAD";
-        const count = isLeadColumn ? newLeads.length : projects.filter((p) => p.currentPhase === phase).length;
+        const columnProjects = isLeadColumn ? [] : projects.filter((p) => p.currentPhase === phase);
+        const count = isLeadColumn ? newLeads.length : columnProjects.length;
+        const totalAmount = columnProjects.reduce(
+          (sum, p) => sum + (p.quotations?.reduce((s, q) => s + Number(q.totalAmount), 0) ?? 0),
+          0,
+        );
 
         return (
           <div key={phase} className="flex flex-col gap-2 min-w-0">
-            <div className={`rounded-md px-2 py-2 flex items-center justify-between ${headerClass}`}>
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="shrink-0">{icon}</span>
-                <span className="text-xs font-semibold truncate">{label}</span>
+            <div className={`rounded-md px-2 py-2 flex flex-col gap-0.5 ${headerClass}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className="shrink-0">{icon}</span>
+                  <span className="text-xs font-semibold truncate">{label}</span>
+                </div>
+                <span className="text-xs font-bold ml-1 shrink-0">{count}</span>
               </div>
-              <span className="text-xs font-bold ml-1 shrink-0">{count}</span>
+              <span className="text-xs font-medium opacity-80">
+                ₹{totalAmount.toLocaleString()}
+              </span>
             </div>
 
             <div className="flex flex-col gap-2 min-h-[60px]">

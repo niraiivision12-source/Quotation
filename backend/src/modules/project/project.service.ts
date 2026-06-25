@@ -94,6 +94,9 @@ export class ProjectService {
         take: limit,
         include: {
           customer: true,
+          quotations: {
+            select: { totalAmount: true },
+          },
         },
         orderBy: {
           createdAt: "desc",

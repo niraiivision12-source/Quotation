@@ -23,6 +23,8 @@ export interface Project {
     mobile: string;
     email?: string | null;
   };
+
+  quotations?: { totalAmount: string }[];
 }
 
 export interface ProjectListResponse {
