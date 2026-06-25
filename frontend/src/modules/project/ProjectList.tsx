@@ -1,24 +1,53 @@
-import { Lightbulb, MapPin, Star, Wind, Wrench, Zap, ToggleLeft } from "lucide-react";
+import { Lightbulb, MapPin, Phone, Star, Wind, Wrench, Zap, ToggleLeft } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/ui/PageHeader";
 
+import { useLeads } from "../lead/lead.query";
+import type { Lead } from "../lead/lead.types";
 import CreateProjectDialog from "./CreateProjectDialog";
 import { useProjects } from "./project.query";
 import type { Project } from "./project.types";
 
 const KANBAN_COLUMNS: { phase: string; label: string; headerClass: string; icon: React.ReactNode }[] = [
-  { phase: "NEW_LEAD",  label: "New Lead",  headerClass: "bg-pink-100 text-pink-700",     icon: <Star size={14} /> },
-  { phase: "PIPES",     label: "Pipes",     headerClass: "bg-orange-100 text-orange-700", icon: <Wrench size={14} /> },
-  { phase: "WIRING",    label: "Wiring",    headerClass: "bg-yellow-100 text-yellow-700", icon: <Zap size={14} /> },
-  { phase: "SWITCHES",  label: "Switches",  headerClass: "bg-blue-100 text-blue-700",     icon: <ToggleLeft size={14} /> },
-  { phase: "LIGHTS",    label: "Lights",    headerClass: "bg-violet-100 text-violet-700", icon: <Lightbulb size={14} /> },
-  { phase: "FANS",      label: "Fans",      headerClass: "bg-teal-100 text-teal-700",     icon: <Wind size={14} /> },
-  { phase: "COMPLETED",           label: "Closed with Sale",    headerClass: "bg-green-100 text-green-700",  icon: null },
-  { phase: "CLOSED_WITHOUT_SALE", label: "Closed without Sale", headerClass: "bg-red-100 text-red-700",      icon: null },
+  { phase: "NEW_LEAD",          label: "New Lead",          headerClass: "bg-pink-100 text-pink-700",     icon: <Star size={14} /> },
+  { phase: "PIPES",             label: "Pipes",             headerClass: "bg-orange-100 text-orange-700", icon: <Wrench size={14} /> },
+  { phase: "WIRING",            label: "Wiring",            headerClass: "bg-yellow-100 text-yellow-700", icon: <Zap size={14} /> },
+  { phase: "SWITCHES",          label: "Switches",          headerClass: "bg-blue-100 text-blue-700",     icon: <ToggleLeft size={14} /> },
+  { phase: "LIGHTS",            label: "Lights",            headerClass: "bg-violet-100 text-violet-700", icon: <Lightbulb size={14} /> },
+  { phase: "FANS",              label: "Fans",              headerClass: "bg-teal-100 text-teal-700",     icon: <Wind size={14} /> },
+  { phase: "COMPLETED",         label: "Closed with Sale",  headerClass: "bg-green-100 text-green-700",   icon: null },
+  { phase: "CLOSED_WITHOUT_SALE", label: "Closed without Sale", headerClass: "bg-red-100 text-red-700",  icon: null },
 ];
+
+function LeadCard({ lead }: { lead: Lead }) {
+  const initials = lead.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <Link to="/leads">
+      <div className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow space-y-1.5 cursor-pointer">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-xs shrink-0">
+            {initials}
+          </div>
+          <span className="font-medium text-sm truncate">{lead.name}</span>
+        </div>
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Phone size={11} /> {lead.mobile}
+        </p>
+        {lead.city && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <MapPin size={11} /> {lead.city}
+          </p>
+        )}
+        {lead.source && (
+          <span className="text-xs bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full">{lead.source}</span>
+        )}
+      </div>
+    </Link>
+  );
+}
 
 function KanbanCard({ project }: { project: Project }) {
   const initials = project.projectName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -47,11 +76,13 @@ function KanbanCard({ project }: { project: Project }) {
   );
 }
 
-function ProjectKanban({ projects }: { projects: Project[] }) {
+function ProjectKanban({ projects, newLeads }: { projects: Project[]; newLeads: Lead[] }) {
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${KANBAN_COLUMNS.length}, minmax(0, 1fr))` }}>
       {KANBAN_COLUMNS.map(({ phase, label, headerClass, icon }) => {
-        const cards = projects.filter((p) => p.currentPhase === phase);
+        const isLeadColumn = phase === "NEW_LEAD";
+        const count = isLeadColumn ? newLeads.length : projects.filter((p) => p.currentPhase === phase).length;
+
         return (
           <div key={phase} className="flex flex-col gap-2 min-w-0">
             <div className={`rounded-md px-2 py-2 flex items-center justify-between ${headerClass}`}>
@@ -59,15 +90,20 @@ function ProjectKanban({ projects }: { projects: Project[] }) {
                 <span className="shrink-0">{icon}</span>
                 <span className="text-xs font-semibold truncate">{label}</span>
               </div>
-              <span className="text-xs font-bold ml-1 shrink-0">{cards.length}</span>
+              <span className="text-xs font-bold ml-1 shrink-0">{count}</span>
             </div>
+
             <div className="flex flex-col gap-2 min-h-[60px]">
-              {cards.length === 0 ? (
+              {count === 0 ? (
                 <div className="border border-dashed rounded-lg h-14 flex items-center justify-center">
                   <span className="text-xs text-muted-foreground/40">No projects</span>
                 </div>
+              ) : isLeadColumn ? (
+                newLeads.map((lead) => <LeadCard key={lead.id} lead={lead} />)
               ) : (
-                cards.map((p) => <KanbanCard key={p.id} project={p} />)
+                projects
+                  .filter((p) => p.currentPhase === phase)
+                  .map((p) => <KanbanCard key={p.id} project={p} />)
               )}
             </div>
           </div>
@@ -81,6 +117,7 @@ export default function ProjectList() {
   const [search, setSearch] = useState("");
 
   const { data: allData } = useProjects(1, search, 200);
+  const { data: leadsData } = useLeads(1, search, { status: "NEW" });
 
   return (
     <div>
@@ -96,7 +133,7 @@ export default function ProjectList() {
         <CreateProjectDialog />
       </div>
 
-      <ProjectKanban projects={allData?.items ?? []} />
+      <ProjectKanban projects={allData?.items ?? []} newLeads={leadsData?.items ?? []} />
     </div>
   );
 }
