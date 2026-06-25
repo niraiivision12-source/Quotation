@@ -55,10 +55,19 @@ export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
       <Input placeholder="Mobile *" {...form.register("mobile")} />
       <Input placeholder="Email" {...form.register("email")} />
       <Input placeholder="City" {...form.register("city")} />
-      <Input
-        placeholder="Source (e.g. Facebook)"
-        {...form.register("source")}
-      />
+      <Select onValueChange={(value) => form.setValue("source", value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select Source" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Walk-in">Walk-in</SelectItem>
+          <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+          <SelectItem value="Instagram">Instagram</SelectItem>
+          <SelectItem value="Facebook">Facebook</SelectItem>
+          <SelectItem value="Phone Call">Phone Call</SelectItem>
+          <SelectItem value="Referral">Referral</SelectItem>
+        </SelectContent>
+      </Select>
       <Select onValueChange={(value) => form.setValue("assignedToId", value)}>
         <SelectTrigger>
           <SelectValue placeholder="Select Contact Owner" />

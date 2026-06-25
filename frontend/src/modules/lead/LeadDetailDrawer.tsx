@@ -210,7 +210,22 @@ function EditLeadDialog({
           <Input placeholder="Mobile *" {...form.register("mobile")} />
           <Input placeholder="Email" {...form.register("email")} />
           <Input placeholder="City" {...form.register("city")} />
-          <Input placeholder="Source" {...form.register("source")} />
+          <Select
+            defaultValue={lead.source ?? ""}
+            onValueChange={(v) => form.setValue("source", v)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Walk-in">Walk-in</SelectItem>
+              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+              <SelectItem value="Instagram">Instagram</SelectItem>
+              <SelectItem value="Facebook">Facebook</SelectItem>
+              <SelectItem value="Phone Call">Phone Call</SelectItem>
+              <SelectItem value="Referral">Referral</SelectItem>
+            </SelectContent>
+          </Select>
           <Input placeholder="Notes" {...form.register("notes")} />
           <Select
             defaultValue={lead.assignedToId ?? ""}

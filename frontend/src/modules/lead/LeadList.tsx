@@ -56,27 +56,21 @@ const STATUS_COLORS: Record<string, string> = {
   LOST: "bg-red-100 text-red-700",
 };
 
-const SOURCE_MAP: Record<
-  string,
-  { icon: React.ReactNode; color: string }
-> = {
-  instagram: { icon: <FaInstagram size={13} />, color: "bg-pink-100 text-pink-600" },
-  facebook: { icon: <FaFacebook size={13} />, color: "bg-blue-100 text-blue-600" },
-  whatsapp: { icon: <FaWhatsapp size={13} />, color: "bg-green-100 text-green-600" },
-  phone: { icon: <FaPhone size={13} />, color: "bg-gray-100 text-gray-600" },
-  "phone call": { icon: <FaPhone size={13} />, color: "bg-gray-100 text-gray-600" },
-  referral: { icon: <FaUserFriends size={13} />, color: "bg-violet-100 text-violet-600" },
+const SOURCE_MAP: Record<string, { icon: React.ReactNode; color: string }> = {
+  "Walk-in":    { icon: <FaUserFriends size={13} />, color: "bg-orange-100 text-orange-600" },
+  "WhatsApp":   { icon: <FaWhatsapp size={13} />,    color: "bg-green-100 text-green-600" },
+  "Instagram":  { icon: <FaInstagram size={13} />,   color: "bg-pink-100 text-pink-600" },
+  "Facebook":   { icon: <FaFacebook size={13} />,    color: "bg-blue-100 text-blue-600" },
+  "Phone Call": { icon: <FaPhone size={13} />,       color: "bg-gray-100 text-gray-600" },
+  "Referral":   { icon: <FaUserFriends size={13} />, color: "bg-violet-100 text-violet-600" },
 };
 
 function SourceBadge({ source }: { source?: string | null }) {
   if (!source) return <span className="text-sm text-muted-foreground">—</span>;
-  const key = source.toLowerCase();
-  const match = SOURCE_MAP[key];
+  const match = SOURCE_MAP[source];
   if (!match) return <span className="text-sm">{source}</span>;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${match.color}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${match.color}`}>
       {match.icon}
       {source}
     </span>
@@ -283,9 +277,7 @@ export default function LeadList() {
           <SelectContent>
             <SelectItem value="all">All Sources</SelectItem>
             {Object.keys(SOURCE_MAP).map((s) => (
-              <SelectItem key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
-              </SelectItem>
+              <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
           </SelectContent>
         </Select>
