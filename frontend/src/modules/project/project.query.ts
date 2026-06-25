@@ -34,6 +34,7 @@ export const useUpdatePhase = (projectId: string) => {
     }) => updatePhase(phaseId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 };
