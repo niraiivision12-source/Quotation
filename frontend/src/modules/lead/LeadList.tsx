@@ -162,7 +162,7 @@ function SourceBadge({ source }: { source?: string | null }) {
   const match = SOURCE_MAP[source];
   if (!match) return <span className="text-sm">{source}</span>;
   return (
-    <span className={`inline-flex items-center gap-1.5 text-sm font-medium px-2.5 py-1 rounded-full ${match.color}`}>
+    <span className={`inline-flex items-center gap-1 text-xs md:text-sm font-medium px-2 md:px-2.5 py-0.5 md:py-1 rounded-full whitespace-nowrap ${match.color}`}>
       {match.icon}{source}
     </span>
   );
@@ -422,44 +422,69 @@ export default function LeadList() {
       <PageHeader title="Lead Management" />
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 mb-6">
         {STAT_CARDS.map((card) => (
           <div
             key={card.key}
             onClick={() => handleStatCardClick(card)}
-            className={`rounded-xl border p-4 flex items-center gap-3 cursor-pointer transition-all ${
+            className={`rounded-xl border p-3 flex items-center gap-2 cursor-pointer transition-all ${
               activeStatCard === card.key ? card.activeBg : card.bg + " hover:brightness-95"
             }`}
           >
             <div className="shrink-0">{card.icon}</div>
-            <div>
-              <p className="text-xs text-muted-foreground">{card.label}</p>
-              <p className="text-2xl font-bold">{stats ? stats[card.key] : "—"}</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">{card.label}</p>
+              <p className="text-xl font-bold">{stats ? stats[card.key] : "—"}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 mb-2">
+      {/* Filter bar — row 1: search + action buttons */}
+      <div className="flex items-center gap-2 mb-2">
         <Input
           placeholder="Search leads..."
           value={search}
-          className="w-48"
+          className="flex-1 min-w-0 max-w-xs"
           onChange={(e) => setSearch(e.target.value)}
         />
-
         <button
           onClick={toggleMyLeads}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
             myLeads ? "bg-violet-600 text-white border-violet-600" : "border-input hover:bg-muted text-muted-foreground"
           }`}
         >
           My Leads
         </button>
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          {data && data.items.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const all = await getLeads(1, 1000, debouncedSearch, filters);
+                exportToCSV(all.items);
+              }}
+            >
+              <Download size={14} className="mr-1" /> Export
+            </Button>
+          )}
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">+ Create Lead</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Create Lead</DialogTitle></DialogHeader>
+              <LeadForm onSuccess={() => setCreateOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
 
+      {/* Filter bar — row 2: filter selects */}
+      <div className="flex flex-wrap items-center gap-2 mb-2">
         <Select value={filters.source ?? "all"} onValueChange={(v) => setFilter("source", v === "all" ? undefined : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Source" /></SelectTrigger>
+          <SelectTrigger className="w-28 text-xs"><SelectValue placeholder="Source" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Sources</SelectItem>
             {Object.keys(SOURCE_MAP).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -470,7 +495,7 @@ export default function LeadList() {
           value={filters.status ?? "all"}
           onValueChange={(v) => { setFilter("status", v === "all" ? undefined : v); setActiveStatCard(null); }}
         >
-          <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-28 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}
@@ -481,7 +506,7 @@ export default function LeadList() {
           value={filters.assignedToId ?? "all"}
           onValueChange={(v) => { setMyLeads(false); setFilter("assignedToId", v === "all" ? undefined : v); }}
         >
-          <SelectTrigger className="w-36"><SelectValue placeholder="Contact Owner" /></SelectTrigger>
+          <SelectTrigger className="w-28 text-xs"><SelectValue placeholder="Owner" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Owners</SelectItem>
             {usersData?.items.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
@@ -489,19 +514,21 @@ export default function LeadList() {
         </Select>
 
         <Input
-          placeholder="Location"
+          placeholder="City"
           value={filters.city ?? ""}
-          className="w-32"
+          className="w-24 text-xs"
           onChange={(e) => setFilter("city", e.target.value || undefined)}
         />
+      </div>
 
-        {/* Date presets */}
-        <div className="flex border rounded-md overflow-hidden">
+      {/* Filter bar — row 3: date filters */}
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <div className="flex border rounded-md overflow-hidden shrink-0">
           {DATE_PRESETS.map((p) => (
             <button
               key={p.value}
               onClick={() => applyDatePreset(datePreset === p.value ? "all" : p.value)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
                 datePreset === p.value ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
               }`}
             >
@@ -510,10 +537,9 @@ export default function LeadList() {
           ))}
         </div>
 
-        {/* Custom date range */}
         <div className="flex items-center gap-1.5">
           <Input
-            type="date" className="w-36 text-xs"
+            type="date" className="w-32 text-xs"
             value={datePreset === "custom" ? (filters.dateFrom ? filters.dateFrom.slice(0, 10) : "") : ""}
             onChange={(e) => {
               setDatePreset("custom"); setPage(1);
@@ -524,7 +550,7 @@ export default function LeadList() {
           />
           <span className="text-xs text-muted-foreground">to</span>
           <Input
-            type="date" className="w-36 text-xs"
+            type="date" className="w-32 text-xs"
             value={datePreset === "custom" ? (filters.dateTo ? filters.dateTo.slice(0, 10) : "") : ""}
             onChange={(e) => {
               setDatePreset("custom"); setPage(1);
@@ -533,30 +559,6 @@ export default function LeadList() {
               setFilters((prev) => ({ ...prev, dateTo: to?.toISOString() }));
             }}
           />
-        </div>
-
-        <div className="ml-auto flex items-center gap-2">
-          {data && data.items.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                const all = await getLeads(1, 1000, debouncedSearch, filters);
-                exportToCSV(all.items);
-              }}
-            >
-              <Download size={14} className="mr-1" /> Export CSV
-            </Button>
-          )}
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button>+ Create Lead</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Create Lead</DialogTitle></DialogHeader>
-              <LeadForm onSuccess={() => setCreateOpen(false)} />
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
@@ -645,21 +647,21 @@ export default function LeadList() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden md:block rounded-md border">
+      <div className="hidden md:block rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">
+              <TableHead className="w-8">
                 <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
               </TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead className="hidden md:table-cell">Phone</TableHead>
-              <TableHead className="hidden md:table-cell">Created</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Created</TableHead>
               <TableHead>Source</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Contact Owner</TableHead>
-              <TableHead>Next Follow-up</TableHead>
-              <TableHead className="w-16" />
+              <TableHead>Owner</TableHead>
+              <TableHead>Follow-up</TableHead>
+              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
 
@@ -696,31 +698,38 @@ export default function LeadList() {
                     <Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={(c) => toggleSelect(lead.id, !!c)} />
                   </TableCell>
 
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <LeadAvatar name={lead.name} />
-                      <div>
-                        <p className="font-semibold text-base">{lead.name}</p>
-                        {lead.city && <p className="text-sm text-foreground/60">{lead.city}</p>}
+                  {/* Customer */}
+                  <TableCell className="py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
+                        {lead.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm md:text-base truncate">{lead.name}</p>
+                        {lead.city && <p className="text-xs text-foreground/60 truncate">{lead.city}</p>}
                       </div>
                     </div>
                   </TableCell>
 
-                  <TableCell className="hidden md:table-cell text-base">
+                  {/* Phone */}
+                  <TableCell className="py-2 text-sm">
                     <CopyPhone mobile={stripCountryCode(lead.mobile)} />
                   </TableCell>
 
-                  <TableCell className="hidden md:table-cell">
-                    <p className="text-sm text-slate-700 font-medium">
-                      {new Date(lead.createdAt).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}
+                  {/* Created */}
+                  <TableCell className="py-2">
+                    <p className="text-xs md:text-sm text-slate-700 font-medium whitespace-nowrap">
+                      {new Date(lead.createdAt).toLocaleDateString([], { day: "numeric", month: "short", year: "2-digit" })}
                     </p>
                   </TableCell>
 
-                  <TableCell><SourceBadge source={lead.source} /></TableCell>
+                  {/* Source */}
+                  <TableCell className="py-2"><SourceBadge source={lead.source} /></TableCell>
 
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  {/* Status */}
+                  <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
                     <Select value={lead.status} onValueChange={(val) => updateMutation.mutate({ id: lead.id, data: { status: val } })}>
-                      <SelectTrigger className={`text-sm font-semibold border-0 shadow-none px-2.5 py-1 h-auto rounded-full w-auto ${STATUS_COLORS[lead.status]}`}>
+                      <SelectTrigger className={`text-xs font-semibold border-0 shadow-none px-2 py-1 h-auto rounded-full w-auto ${STATUS_COLORS[lead.status]}`}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -729,26 +738,28 @@ export default function LeadList() {
                     </Select>
                   </TableCell>
 
-                  <TableCell>
+                  {/* Owner */}
+                  <TableCell className="py-2">
                     {lead.assignedTo ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-sm shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-xs shrink-0">
                           {lead.assignedTo.name[0].toUpperCase()}
                         </div>
-                        <span className="text-base">{lead.assignedTo.name}</span>
+                        <span className="text-xs md:text-sm truncate max-w-[80px]">{lead.assignedTo.name}</span>
                       </div>
                     ) : (
                       <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
 
-                  <TableCell>
+                  {/* Follow-up */}
+                  <TableCell className="py-2">
                     {followUp ? (
                       <div>
-                        <p className="text-sm font-medium">
+                        <p className="text-xs md:text-sm font-medium whitespace-nowrap">
                           {new Date(lead.nextFollowUpAt!).toLocaleDateString([], { day: "numeric", month: "short" })}
                         </p>
-                        <p className={`text-sm font-medium ${followUp.urgent ? "text-red-500" : "text-muted-foreground"}`}>
+                        <p className={`text-xs font-medium ${followUp.urgent ? "text-red-500" : "text-muted-foreground"}`}>
                           {followUp.label}
                         </p>
                       </div>

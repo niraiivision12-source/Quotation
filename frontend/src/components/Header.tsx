@@ -1,9 +1,9 @@
 import { useMyReminders } from "@/modules/reminder/reminder.query";
 import { useAuthStore } from "@/store/auth.store";
-import { Bell, LogOut } from "lucide-react";
+import { Bell, LogOut, Menu } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
@@ -30,8 +30,18 @@ export default function Header() {
     .toUpperCase();
 
   return (
-    <header className="border-b px-6 py-3 flex items-center justify-end gap-4">
-      {/* Notification bell */}
+    <header className="border-b px-4 lg:px-6 py-3 flex items-center justify-between bg-white shrink-0">
+      <div className="flex items-center lg:hidden">
+        <button
+          onClick={onMenuClick}
+          className="p-2 -ml-2 text-gray-600 hover:text-gray-900"
+        >
+          <Menu size={24} />
+        </button>
+      </div>
+
+      <div className="flex items-center justify-end gap-4 ml-auto">
+        {/* Notification bell */}
       <Link
         to="/reminders"
         className="relative inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
@@ -64,6 +74,7 @@ export default function Header() {
       >
         <LogOut size={16} />
       </button>
+      </div>
     </header>
   );
 }

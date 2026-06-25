@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { to: "/users", label: "Users", icon: <UserRound size={18} /> },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onMobileClose }: { onMobileClose?: () => void }) {
   return (
     <aside className="w-60 border-r h-screen flex flex-col bg-white shrink-0">
       {/* Logo */}
@@ -39,6 +39,7 @@ export default function Sidebar() {
             key={item.to}
             to={item.to}
             end={item.exact}
+            onClick={() => onMobileClose?.()}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
