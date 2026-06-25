@@ -1,209 +1,86 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { MoreVertical } from "lucide-react";
+import { Lightbulb, MapPin, Star, Wind, Wrench, Zap, ToggleLeft } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
-import { z } from "zod";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/ui/PageHeader";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 import CreateProjectDialog from "./CreateProjectDialog";
-import {
-  useDeleteProject,
-  useProjects,
-  useUpdateProject,
-} from "./project.query";
+import { useProjects } from "./project.query";
 import type { Project } from "./project.types";
 
-const PHASE_COLORS: Record<string, string> = {
-  PIPES: "bg-orange-100 text-orange-700",
-  WIRING: "bg-yellow-100 text-yellow-700",
-  SWITCHES: "bg-blue-100 text-blue-700",
-  LIGHTS: "bg-violet-100 text-violet-700",
-  FANS: "bg-teal-100 text-teal-700",
-  COMPLETED: "bg-green-100 text-green-700",
-};
+const KANBAN_COLUMNS: { phase: string; label: string; headerClass: string; icon: React.ReactNode }[] = [
+  { phase: "NEW_LEAD",  label: "New Lead",  headerClass: "bg-pink-100 text-pink-700",     icon: <Star size={14} /> },
+  { phase: "PIPES",     label: "Pipes",     headerClass: "bg-orange-100 text-orange-700", icon: <Wrench size={14} /> },
+  { phase: "WIRING",    label: "Wiring",    headerClass: "bg-yellow-100 text-yellow-700", icon: <Zap size={14} /> },
+  { phase: "SWITCHES",  label: "Switches",  headerClass: "bg-blue-100 text-blue-700",     icon: <ToggleLeft size={14} /> },
+  { phase: "LIGHTS",    label: "Lights",    headerClass: "bg-violet-100 text-violet-700", icon: <Lightbulb size={14} /> },
+  { phase: "FANS",      label: "Fans",      headerClass: "bg-teal-100 text-teal-700",     icon: <Wind size={14} /> },
+  { phase: "COMPLETED",           label: "Closed with Sale",    headerClass: "bg-green-100 text-green-700",  icon: null },
+  { phase: "CLOSED_WITHOUT_SALE", label: "Closed without Sale", headerClass: "bg-red-100 text-red-700",      icon: null },
+];
 
-const editProjectSchema = z.object({
-  projectName: z.string().min(2),
-  location: z.string().optional(),
-  estimatedBudget: z.number().optional(),
-});
-
-type EditProjectForm = z.infer<typeof editProjectSchema>;
-
-function ProjectAvatar({ name }: { name: string }) {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+function KanbanCard({ project }: { project: Project }) {
+  const initials = project.projectName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
-      {initials}
-    </div>
-  );
-}
-
-function CustomerAvatar({ name }: { name: string }) {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-  return (
-    <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
-      {initials}
-    </div>
-  );
-}
-
-function EditProjectDialog({ project }: { project: Project }) {
-  const [open, setOpen] = useState(false);
-  const mutation = useUpdateProject();
-
-  const form = useForm<EditProjectForm>({
-    resolver: zodResolver(editProjectSchema),
-    defaultValues: {
-      projectName: project.projectName,
-      location: project.location ?? "",
-      estimatedBudget: project.estimatedBudget
-        ? Number(project.estimatedBudget)
-        : undefined,
-    },
-  });
-
-  const submit = async (data: EditProjectForm) => {
-    await mutation.mutateAsync({ id: project.id, data });
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-          Edit
-        </DropdownMenuItem>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Project — {project.projectName}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
-          <Input
-            placeholder="Project Name *"
-            {...form.register("projectName")}
-          />
-          <Input placeholder="Location" {...form.register("location")} />
-          <Input
-            placeholder="Estimated Budget"
-            type="number"
-            {...form.register("estimatedBudget", { valueAsNumber: true })}
-          />
-          <div className="flex gap-2">
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Saving..." : "Save"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
+    <Link to={`/projects/${project.id}`}>
+      <div className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow space-y-2 cursor-pointer">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+            {initials}
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ProjectActions({ project }: { project: Project }) {
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const deleteMutation = useDeleteProject();
-
-  const confirm = async () => {
-    await deleteMutation.mutateAsync(project.id);
-    setDeleteOpen(false);
-  };
-
-  return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-            <MoreVertical size={16} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <EditProjectDialog project={project} />
-          <DropdownMenuItem
-            className="text-red-600"
-            onClick={() => setDeleteOpen(true)}
-          >
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Project</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete{" "}
-            <strong>{project.projectName}</strong>? This action cannot be
-            undone.
+          <span className="font-medium text-sm truncate">{project.projectName}</span>
+        </div>
+        <p className="text-xs text-muted-foreground truncate">{project.customer.name}</p>
+        {project.location && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <MapPin size={11} /> {project.location}
           </p>
-          <div className="flex gap-2 mt-4">
-            <Button
-              variant="destructive"
-              onClick={confirm}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </Button>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
-            </Button>
+        )}
+        {project.estimatedBudget && (
+          <p className="text-xs font-medium text-green-700">
+            ₹{Number(project.estimatedBudget).toLocaleString()}
+          </p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function ProjectKanban({ projects }: { projects: Project[] }) {
+  return (
+    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${KANBAN_COLUMNS.length}, minmax(0, 1fr))` }}>
+      {KANBAN_COLUMNS.map(({ phase, label, headerClass, icon }) => {
+        const cards = projects.filter((p) => p.currentPhase === phase);
+        return (
+          <div key={phase} className="flex flex-col gap-2 min-w-0">
+            <div className={`rounded-md px-2 py-2 flex items-center justify-between ${headerClass}`}>
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="shrink-0">{icon}</span>
+                <span className="text-xs font-semibold truncate">{label}</span>
+              </div>
+              <span className="text-xs font-bold ml-1 shrink-0">{cards.length}</span>
+            </div>
+            <div className="flex flex-col gap-2 min-h-[60px]">
+              {cards.length === 0 ? (
+                <div className="border border-dashed rounded-lg h-14 flex items-center justify-center">
+                  <span className="text-xs text-muted-foreground/40">No projects</span>
+                </div>
+              ) : (
+                cards.map((p) => <KanbanCard key={p.id} project={p} />)
+              )}
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        );
+      })}
+    </div>
   );
 }
 
 export default function ProjectList() {
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  const { data, isLoading } = useProjects(page, search);
+  const { data: allData } = useProjects(1, search, 200);
 
   return (
     <div>
@@ -214,145 +91,12 @@ export default function ProjectList() {
           placeholder="Search projects..."
           value={search}
           className="max-w-sm"
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
+          onChange={(e) => setSearch(e.target.value)}
         />
         <CreateProjectDialog />
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Project</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Current Phase</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Budget</TableHead>
-              <TableHead className="w-10" />
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {isLoading && (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center py-10 text-muted-foreground"
-                >
-                  Loading...
-                </TableCell>
-              </TableRow>
-            )}
-
-            {!isLoading && data?.items.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center py-10 text-muted-foreground"
-                >
-                  No projects found.
-                </TableCell>
-              </TableRow>
-            )}
-
-            {data?.items.map((project) => (
-              <TableRow key={project.id} className="hover:bg-muted/50">
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <ProjectAvatar name={project.projectName} />
-                    <div>
-                      <Link
-                        to={`/projects/${project.id}`}
-                        className="font-medium text-sm hover:underline text-violet-700"
-                      >
-                        {project.projectName}
-                      </Link>
-                      {project.location && (
-                        <p className="text-xs text-muted-foreground">
-                          {project.location}
-                        </p>
-                      )}
-                      {project.customer.mobile && (
-                        <p className="text-xs text-muted-foreground">
-                          {project.customer.mobile}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <CustomerAvatar name={project.customer.name} />
-                    <div>
-                      <p className="font-medium text-sm">
-                        {project.customer.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {project.customer.mobile}
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
-
-                <TableCell>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-semibold ${PHASE_COLORS[project.currentPhase] ?? "bg-gray-100 text-gray-700"}`}
-                  >
-                    {project.currentPhase.charAt(0) +
-                      project.currentPhase.slice(1).toLowerCase()}
-                  </span>
-                </TableCell>
-
-                <TableCell>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-semibold ${project.isCompleted ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}
-                  >
-                    {project.isCompleted ? "Completed" : "Active"}
-                  </span>
-                </TableCell>
-
-                <TableCell className="text-sm">
-                  {project.estimatedBudget
-                    ? `₹${Number(project.estimatedBudget).toLocaleString()}`
-                    : "—"}
-                </TableCell>
-
-                <TableCell>
-                  <ProjectActions project={project} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex items-center justify-between mt-4">
-        <p className="text-sm text-muted-foreground">
-          {data ? `Showing ${data.items.length} of ${data.total} projects` : ""}
-        </p>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage((prev) => prev - 1)}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!data || page * 20 >= data.total}
-            onClick={() => setPage((prev) => prev + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <ProjectKanban projects={allData?.items ?? []} />
     </div>
   );
 }

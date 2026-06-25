@@ -66,7 +66,6 @@ function PhaseStep({
 
   return (
     <div className="flex gap-4">
-      {/* Left — icon + connector line */}
       <div className="flex flex-col items-center shrink-0">
         <div
           className={`w-9 h-9 rounded-full flex items-center justify-center ${
@@ -90,7 +89,6 @@ function PhaseStep({
         {!isLast && <div className="w-px flex-1 bg-border mt-1 min-h-6" />}
       </div>
 
-      {/* Right — content */}
       <div className="pb-6 flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-1">
           <span className="font-semibold text-sm">
