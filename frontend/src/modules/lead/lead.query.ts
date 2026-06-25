@@ -20,6 +20,8 @@ export const useLeads = (
     status?: string;
     assignedToId?: string;
     city?: string;
+    dateFrom?: string;
+    dateTo?: string;
   },
 ) => {
   return useQuery({

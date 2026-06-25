@@ -11,6 +11,8 @@ export const getLeads = async (
     status?: string;
     assignedToId?: string;
     city?: string;
+    dateFrom?: string;
+    dateTo?: string;
   },
 ): Promise<LeadListResponse> => {
   const response = await api.get("/leads", {

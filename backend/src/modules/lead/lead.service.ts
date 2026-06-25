@@ -48,6 +48,8 @@ export class LeadService {
       status?: string;
       assignedToId?: string;
       city?: string;
+      dateFrom?: string;
+      dateTo?: string;
     },
   ) {
     const skip = (page - 1) * limit;
@@ -59,6 +61,12 @@ export class LeadService {
       ...(filters?.assignedToId && { assignedToId: filters.assignedToId }),
       ...(filters?.city && {
         city: { contains: filters.city, mode: "insensitive" as const },
+      }),
+      ...((filters?.dateFrom || filters?.dateTo) && {
+        createdAt: {
+          ...(filters.dateFrom && { gte: new Date(filters.dateFrom) }),
+          ...(filters.dateTo && { lte: new Date(filters.dateTo) }),
+        },
       }),
       ...(search && {
         OR: [

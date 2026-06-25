@@ -175,6 +175,39 @@ function LeadActions({ lead }: { lead: Lead }) {
   );
 }
 
+function getDateRange(preset: string): { dateFrom: string; dateTo: string } {
+  const now = new Date();
+  const start = new Date(now);
+  const end = new Date(now);
+
+  if (preset === "today") {
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+  } else if (preset === "yesterday") {
+    start.setDate(start.getDate() - 1);
+    start.setHours(0, 0, 0, 0);
+    end.setDate(end.getDate() - 1);
+    end.setHours(23, 59, 59, 999);
+  } else if (preset === "last7") {
+    start.setDate(start.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+  } else if (preset === "last30") {
+    start.setDate(start.getDate() - 29);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+  }
+
+  return { dateFrom: start.toISOString(), dateTo: end.toISOString() };
+}
+
+const DATE_PRESETS = [
+  { value: "today",     label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "last7",     label: "Last 7 Days" },
+  { value: "last30",    label: "Last 30 Days" },
+];
+
 const STAT_CARDS = [
   {
     key: "total",
@@ -213,11 +246,14 @@ export default function LeadList() {
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [datePreset, setDatePreset] = useState<string>("all");
   const [filters, setFilters] = useState<{
     source?: string;
     status?: string;
     assignedToId?: string;
     city?: string;
+    dateFrom?: string;
+    dateTo?: string;
   }>({});
 
   const { data: usersData } = useUsers(1);
@@ -229,11 +265,23 @@ export default function LeadList() {
     setFilters((prev) => ({ ...prev, [key]: value || undefined }));
   };
 
-  const hasActiveFilters = Object.values(filters).some(Boolean);
+  const applyDatePreset = (preset: string) => {
+    setDatePreset(preset);
+    setPage(1);
+    if (preset === "all") {
+      setFilters((prev) => ({ ...prev, dateFrom: undefined, dateTo: undefined }));
+    } else {
+      const { dateFrom, dateTo } = getDateRange(preset);
+      setFilters((prev) => ({ ...prev, dateFrom, dateTo }));
+    }
+  };
+
+  const hasActiveFilters = Object.values(filters).some(Boolean) || datePreset !== "all";
 
   const clearFilters = () => {
     setPage(1);
     setFilters({});
+    setDatePreset("all");
   };
 
   return (
@@ -322,6 +370,52 @@ export default function LeadList() {
           onChange={(e) => setFilter("city", e.target.value || undefined)}
         />
 
+        {/* Date presets */}
+        <div className="flex border rounded-md overflow-hidden">
+          {DATE_PRESETS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => applyDatePreset(datePreset === p.value ? "all" : p.value)}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                datePreset === p.value
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted text-muted-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom date range */}
+        <div className="flex items-center gap-1.5">
+          <Input
+            type="date"
+            className="w-36 text-xs"
+            value={datePreset === "custom" ? (filters.dateFrom ? filters.dateFrom.slice(0, 10) : "") : ""}
+            onChange={(e) => {
+              setDatePreset("custom");
+              setPage(1);
+              const from = e.target.value ? new Date(e.target.value) : undefined;
+              if (from) from.setHours(0, 0, 0, 0);
+              setFilters((prev) => ({ ...prev, dateFrom: from?.toISOString() }));
+            }}
+          />
+          <span className="text-xs text-muted-foreground">to</span>
+          <Input
+            type="date"
+            className="w-36 text-xs"
+            value={datePreset === "custom" ? (filters.dateTo ? filters.dateTo.slice(0, 10) : "") : ""}
+            onChange={(e) => {
+              setDatePreset("custom");
+              setPage(1);
+              const to = e.target.value ? new Date(e.target.value) : undefined;
+              if (to) to.setHours(23, 59, 59, 999);
+              setFilters((prev) => ({ ...prev, dateTo: to?.toISOString() }));
+            }}
+          />
+        </div>
+
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
             Clear filters
@@ -394,15 +488,15 @@ export default function LeadList() {
                       <LeadAvatar name={lead.name} />
                       <div>
                         <p className="font-medium text-sm">{lead.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-foreground/70">
                           {lead.mobile}
                         </p>
                         {lead.city && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-foreground/60">
                             {lead.city}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground/70">
+                        <p className="text-xs text-violet-500 font-medium">
                           {new Date(lead.createdAt).toLocaleDateString([], {
                             day: "numeric",
                             month: "short",
