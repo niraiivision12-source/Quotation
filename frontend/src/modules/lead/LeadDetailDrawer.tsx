@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Check, MapPin, Pencil, Phone } from "lucide-react";
+import { Calendar, Check, MapPin, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -479,7 +479,6 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
               </div>
               {fullLead.mobile && (
                 <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
-                  <Phone size={12} />
                   <span>{fullLead.mobile}</span>
                 </div>
               )}

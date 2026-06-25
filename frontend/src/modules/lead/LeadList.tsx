@@ -1,5 +1,5 @@
-import { Calendar, CheckCircle, MoreVertical, Users, XCircle } from "lucide-react";
-import { useState } from "react";
+import { Calendar, CheckCircle, Users, X, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   FaFacebook,
   FaInstagram,
@@ -39,10 +39,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuthStore } from "@/store/auth.store";
 
+import { useUsers } from "../user/user.query";
 import LeadDetailDrawer from "./LeadDetailDrawer";
 import LeadForm from "./LeadForm";
-import { useUsers } from "../user/user.query";
 import { useDeleteLead, useLeadStats, useLeads, useUpdateLead } from "./lead.query";
 import type { Lead } from "./lead.types";
 
@@ -65,115 +66,60 @@ const SOURCE_MAP: Record<string, { icon: React.ReactNode; color: string }> = {
   "Referral":   { icon: <FaUserFriends size={13} />, color: "bg-violet-100 text-violet-600" },
 };
 
-function SourceBadge({ source }: { source?: string | null }) {
-  if (!source) return <span className="text-sm text-muted-foreground">—</span>;
-  const match = SOURCE_MAP[source];
-  if (!match) return <span className="text-sm">{source}</span>;
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${match.color}`}>
-      {match.icon}
-      {source}
-    </span>
-  );
-}
+type StatCardKey = "total" | "followUp" | "todayFollowUp" | "won" | "lost";
 
-function LeadAvatar({ name }: { name: string }) {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-  return (
-    <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
-      {initials}
-    </div>
-  );
-}
+type StatCardDef = {
+  key: StatCardKey;
+  label: string;
+  icon: React.ReactNode;
+  bg: string;
+  activeBg: string;
+  statusFilter?: string;
+  applyToday?: boolean;
+};
 
-function relativeFollowUp(dateStr: string): { label: string; urgent: boolean } {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMs < 0)
-    return { label: new Date(dateStr).toLocaleDateString(), urgent: true };
-  if (diffDays === 0) return { label: "Today", urgent: true };
-  if (diffDays === 1) return { label: "Tomorrow", urgent: false };
-  return { label: `${diffDays} days left`, urgent: false };
-}
-
-function LeadActions({ lead }: { lead: Lead }) {
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const deleteMutation = useDeleteLead();
-  const updateMutation = useUpdateLead();
-
-  const reopen = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    updateMutation.mutate({ id: lead.id, data: { status: "FOLLOW_UP" } });
-  };
-
-  const confirmDelete = async () => {
-    await deleteMutation.mutateAsync(lead.id);
-    setDeleteOpen(false);
-  };
-
-  return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreVertical size={16} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {lead.status === "LOST" && (
-            <DropdownMenuItem onClick={reopen}>Reopen</DropdownMenuItem>
-          )}
-          <DropdownMenuItem
-            className="text-red-600"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteOpen(true);
-            }}
-          >
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle>Delete Lead</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete <strong>{lead.name}</strong>? This
-            action cannot be undone.
-          </p>
-          <div className="flex gap-2 mt-4">
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </Button>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
+const STAT_CARDS: StatCardDef[] = [
+  {
+    key: "total",
+    label: "All Leads",
+    icon: <Users size={20} className="text-blue-500" />,
+    bg: "bg-blue-50",
+    activeBg: "ring-2 ring-blue-400 bg-blue-100",
+  },
+  {
+    key: "followUp",
+    label: "Follow Up",
+    icon: <Calendar size={20} className="text-orange-500" />,
+    bg: "bg-orange-50",
+    activeBg: "ring-2 ring-orange-400 bg-orange-100",
+    statusFilter: "FOLLOW_UP",
+  },
+  {
+    key: "todayFollowUp",
+    label: "Today Follow-up",
+    icon: <Calendar size={20} className="text-violet-500" />,
+    bg: "bg-violet-50",
+    activeBg: "ring-2 ring-violet-400 bg-violet-100",
+    statusFilter: "FOLLOW_UP",
+    applyToday: true,
+  },
+  {
+    key: "won",
+    label: "Converted",
+    icon: <CheckCircle size={20} className="text-green-500" />,
+    bg: "bg-green-50",
+    activeBg: "ring-2 ring-green-400 bg-green-100",
+    statusFilter: "WON",
+  },
+  {
+    key: "lost",
+    label: "Lost",
+    icon: <XCircle size={20} className="text-red-500" />,
+    bg: "bg-red-50",
+    activeBg: "ring-2 ring-red-400 bg-red-100",
+    statusFilter: "LOST",
+  },
+];
 
 function getDateRange(preset: string): { dateFrom: string; dateTo: string } {
   const now = new Date();
@@ -208,45 +154,137 @@ const DATE_PRESETS = [
   { value: "last30",    label: "Last 30 Days" },
 ];
 
-const STAT_CARDS = [
-  {
-    key: "total",
-    label: "All Leads",
-    icon: <Users size={20} className="text-blue-500" />,
-    bg: "bg-blue-50",
-  },
-  {
-    key: "followUp",
-    label: "Follow Up",
-    icon: <Calendar size={20} className="text-orange-500" />,
-    bg: "bg-orange-50",
-  },
-  {
-    key: "todayFollowUp",
-    label: "Today Follow-up",
-    icon: <Calendar size={20} className="text-violet-500" />,
-    bg: "bg-violet-50",
-  },
-  {
-    key: "won",
-    label: "Converted",
-    icon: <CheckCircle size={20} className="text-green-500" />,
-    bg: "bg-green-50",
-  },
-  {
-    key: "lost",
-    label: "Lost",
-    icon: <XCircle size={20} className="text-red-500" />,
-    bg: "bg-red-50",
-  },
-] as const;
+function relativeFollowUp(dateStr: string): { label: string; urgent: boolean } {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+
+  if (diffMs < 0) {
+    const overdueDays = Math.floor(-diffMs / (1000 * 60 * 60 * 24));
+    return {
+      label: overdueDays === 0 ? "Overdue today" : `Overdue ${overdueDays}d`,
+      urgent: true,
+    };
+  }
+
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return { label: "Today", urgent: true };
+  if (diffDays === 1) return { label: "Tomorrow", urgent: false };
+  return { label: `In ${diffDays}d`, urgent: false };
+}
+
+function leadAge(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const h = Math.floor(diffMs / 3_600_000);
+  const d = Math.floor(diffMs / 86_400_000);
+  if (h < 1) return "Just now";
+  if (h < 24) return `${h}h ago`;
+  if (d === 1) return "Yesterday";
+  if (d < 30) return `${d}d ago`;
+  return new Date(dateStr).toLocaleDateString([], { day: "numeric", month: "short" });
+}
+
+function SourceBadge({ source }: { source?: string | null }) {
+  if (!source) return <span className="text-sm text-muted-foreground">—</span>;
+  const match = SOURCE_MAP[source];
+  if (!match) return <span className="text-sm">{source}</span>;
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${match.color}`}>
+      {match.icon}
+      {source}
+    </span>
+  );
+}
+
+function LeadAvatar({ name }: { name: string }) {
+  const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
+      {initials}
+    </div>
+  );
+}
+
+function LeadActions({ lead }: { lead: Lead }) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const deleteMutation = useDeleteLead();
+  const updateMutation = useUpdateLead();
+
+  const reopen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateMutation.mutate({ id: lead.id, data: { status: "FOLLOW_UP" } });
+  };
+
+  const confirmDelete = async () => {
+    await deleteMutation.mutateAsync(lead.id);
+    setDeleteOpen(false);
+  };
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="sr-only">Actions</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
+            </svg>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {lead.status === "LOST" && (
+            <DropdownMenuItem onClick={reopen}>Reopen</DropdownMenuItem>
+          )}
+          <DropdownMenuItem
+            className="text-red-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteOpen(true);
+            }}
+          >
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Delete Lead</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <strong>{lead.name}</strong>? This action cannot be undone.
+          </p>
+          <div className="flex gap-2 mt-4">
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export default function LeadList() {
+  const { user } = useAuthStore();
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [datePreset, setDatePreset] = useState<string>("all");
+  const [myLeads, setMyLeads] = useState(false);
+  const [activeStatCard, setActiveStatCard] = useState<StatCardKey | null>(null);
   const [filters, setFilters] = useState<{
     source?: string;
     status?: string;
@@ -256,8 +294,17 @@ export default function LeadList() {
     dateTo?: string;
   }>({});
 
+  // 300ms search debounce
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const { data: usersData } = useUsers(1);
-  const { data, isLoading } = useLeads(page, search, filters);
+  const { data, isLoading } = useLeads(page, debouncedSearch, filters);
   const { data: stats } = useLeadStats();
 
   const setFilter = (key: keyof typeof filters, value?: string) => {
@@ -276,13 +323,44 @@ export default function LeadList() {
     }
   };
 
-  const hasActiveFilters = Object.values(filters).some(Boolean) || datePreset !== "all";
+  const handleStatCardClick = (card: StatCardDef) => {
+    if (activeStatCard === card.key) {
+      // deselect
+      setActiveStatCard(null);
+      clearFilters();
+      return;
+    }
+    setActiveStatCard(card.key);
+    setPage(1);
+    if (!card.statusFilter) {
+      clearFilters();
+      return;
+    }
+    const dateRange = card.applyToday ? getDateRange("today") : {};
+    setFilters((prev) => ({ ...prev, status: card.statusFilter, ...dateRange }));
+    setDatePreset(card.applyToday ? "today" : "all");
+  };
+
+  const toggleMyLeads = () => {
+    const next = !myLeads;
+    setMyLeads(next);
+    setPage(1);
+    setFilters((prev) => ({ ...prev, assignedToId: next ? (user?.id ?? undefined) : undefined }));
+  };
+
+  const hasActiveFilters =
+    Object.values(filters).some(Boolean) || datePreset !== "all";
 
   const clearFilters = () => {
     setPage(1);
     setFilters({});
     setDatePreset("all");
+    setMyLeads(false);
+    setActiveStatCard(null);
   };
+
+  const start = (page - 1) * 20 + 1;
+  const end = data ? Math.min(page * 20, data.total) : 0;
 
   return (
     <div>
@@ -293,26 +371,40 @@ export default function LeadList() {
         {STAT_CARDS.map((card) => (
           <div
             key={card.key}
-            className={`rounded-xl border p-4 flex items-center gap-3 ${card.bg}`}
+            onClick={() => handleStatCardClick(card)}
+            className={`rounded-xl border p-4 flex items-center gap-3 cursor-pointer transition-all ${
+              activeStatCard === card.key ? card.activeBg : card.bg + " hover:brightness-95"
+            }`}
           >
             <div className="shrink-0">{card.icon}</div>
             <div>
               <p className="text-xs text-muted-foreground">{card.label}</p>
-              <p className="text-2xl font-bold">
-                {stats ? stats[card.key] : "—"}
-              </p>
+              <p className="text-2xl font-bold">{stats ? stats[card.key] : "—"}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-2">
         <Input
           placeholder="Search leads..."
           value={search}
           className="w-48"
-          onChange={(e) => { setPage(1); setSearch(e.target.value); }}
+          onChange={(e) => setSearch(e.target.value)}
         />
+
+        {/* My Leads toggle */}
+        <button
+          onClick={toggleMyLeads}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+            myLeads
+              ? "bg-violet-600 text-white border-violet-600"
+              : "border-input hover:bg-muted text-muted-foreground"
+          }`}
+        >
+          My Leads
+        </button>
 
         {/* Source filter */}
         <Select
@@ -333,7 +425,10 @@ export default function LeadList() {
         {/* Status filter */}
         <Select
           value={filters.status ?? "all"}
-          onValueChange={(v) => setFilter("status", v === "all" ? undefined : v)}
+          onValueChange={(v) => {
+            setFilter("status", v === "all" ? undefined : v);
+            setActiveStatCard(null);
+          }}
         >
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Status" />
@@ -349,7 +444,10 @@ export default function LeadList() {
         {/* Contact Owner filter */}
         <Select
           value={filters.assignedToId ?? "all"}
-          onValueChange={(v) => setFilter("assignedToId", v === "all" ? undefined : v)}
+          onValueChange={(v) => {
+            setMyLeads(false);
+            setFilter("assignedToId", v === "all" ? undefined : v);
+          }}
         >
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Contact Owner" />
@@ -362,11 +460,11 @@ export default function LeadList() {
           </SelectContent>
         </Select>
 
-        {/* City / Location filter */}
+        {/* City filter */}
         <Input
           placeholder="Location"
           value={filters.city ?? ""}
-          className="w-36"
+          className="w-32"
           onChange={(e) => setFilter("city", e.target.value || undefined)}
         />
 
@@ -416,27 +514,76 @@ export default function LeadList() {
           />
         </div>
 
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
-            Clear filters
-          </Button>
-        )}
-
         <div className="ml-auto">
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>+ Create Lead</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Lead</DialogTitle>
-            </DialogHeader>
-            <LeadForm onSuccess={() => setCreateOpen(false)} />
-          </DialogContent>
-        </Dialog>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button>+ Create Lead</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Lead</DialogTitle>
+              </DialogHeader>
+              <LeadForm onSuccess={() => setCreateOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
+      {/* Active filter chips */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {filters.status && (
+            <span className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+              Status: {filters.status.replace(/_/g, " ")}
+              <button onClick={() => { setFilter("status", undefined); setActiveStatCard(null); }}>
+                <X size={10} />
+              </button>
+            </span>
+          )}
+          {filters.source && (
+            <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+              Source: {filters.source}
+              <button onClick={() => setFilter("source", undefined)}>
+                <X size={10} />
+              </button>
+            </span>
+          )}
+          {filters.assignedToId && (
+            <span className="inline-flex items-center gap-1 text-xs bg-violet-100 text-violet-700 px-2 py-1 rounded-full">
+              Owner: {usersData?.items.find((u) => u.id === filters.assignedToId)?.name ?? "Unknown"}
+              <button onClick={() => { setFilter("assignedToId", undefined); setMyLeads(false); }}>
+                <X size={10} />
+              </button>
+            </span>
+          )}
+          {filters.city && (
+            <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+              City: {filters.city}
+              <button onClick={() => setFilter("city", undefined)}>
+                <X size={10} />
+              </button>
+            </span>
+          )}
+          {datePreset !== "all" && (
+            <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+              {datePreset === "custom"
+                ? `${filters.dateFrom?.slice(0, 10) ?? ""} → ${filters.dateTo?.slice(0, 10) ?? ""}`
+                : DATE_PRESETS.find((p) => p.value === datePreset)?.label}
+              <button onClick={() => applyDatePreset("all")}>
+                <X size={10} />
+              </button>
+            </span>
+          )}
+          <button
+            onClick={clearFilters}
+            className="text-xs text-muted-foreground hover:text-foreground underline ml-1"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
+      {/* Table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -446,17 +593,14 @@ export default function LeadList() {
               <TableHead>Status</TableHead>
               <TableHead>Contact Owner</TableHead>
               <TableHead>Next Follow-up</TableHead>
-              <TableHead className="w-10" />
+              <TableHead className="w-16" />
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center py-10 text-muted-foreground"
-                >
+                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                   Loading...
                 </TableCell>
               </TableRow>
@@ -464,23 +608,28 @@ export default function LeadList() {
 
             {!isLoading && data?.items.length === 0 && (
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center py-10 text-muted-foreground"
-                >
-                  No leads found.
+                <TableCell colSpan={6} className="py-16 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <Users size={40} className="text-muted-foreground/20" />
+                    <p className="text-muted-foreground font-medium">No leads found</p>
+                    {hasActiveFilters && (
+                      <Button variant="outline" size="sm" onClick={clearFilters}>
+                        Clear filters
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             )}
 
             {data?.items.map((lead) => {
-              const followUp = lead.nextFollowUpAt
-                ? relativeFollowUp(lead.nextFollowUpAt)
-                : null;
+              const followUp = lead.nextFollowUpAt ? relativeFollowUp(lead.nextFollowUpAt) : null;
+              const isOverdue = !!followUp?.urgent && !!lead.nextFollowUpAt && new Date(lead.nextFollowUpAt) < new Date();
+
               return (
                 <TableRow
                   key={lead.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className={`cursor-pointer hover:bg-muted/50 group ${isOverdue ? "border-l-2 border-l-red-400" : ""}`}
                   onClick={() => setSelectedLead(lead)}
                 >
                   <TableCell>
@@ -488,13 +637,9 @@ export default function LeadList() {
                       <LeadAvatar name={lead.name} />
                       <div>
                         <p className="font-medium text-sm">{lead.name}</p>
-                        <p className="text-xs text-foreground/70">
-                          {lead.mobile}
-                        </p>
+                        <p className="text-xs text-foreground/70">{lead.mobile}</p>
                         {lead.city && (
-                          <p className="text-xs text-foreground/60">
-                            {lead.city}
-                          </p>
+                          <p className="text-xs text-foreground/60">{lead.city}</p>
                         )}
                         <p className="text-xs text-violet-500 font-medium">
                           {new Date(lead.createdAt).toLocaleDateString([], {
@@ -506,14 +651,17 @@ export default function LeadList() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell><SourceBadge source={lead.source} /></TableCell>
+
                   <TableCell>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-semibold ${STATUS_COLORS[lead.status]}`}
-                    >
+                    <SourceBadge source={lead.source} />
+                  </TableCell>
+
+                  <TableCell>
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${STATUS_COLORS[lead.status]}`}>
                       {lead.status.replace(/_/g, " ")}
                     </span>
                   </TableCell>
+
                   <TableCell>
                     {lead.assignedTo ? (
                       <div className="flex items-center gap-2">
@@ -526,18 +674,17 @@ export default function LeadList() {
                       <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
+
                   <TableCell>
                     {followUp ? (
                       <div>
                         <p className="text-xs font-medium">
-                          {new Date(lead.nextFollowUpAt!).toLocaleDateString(
-                            [],
-                            { day: "numeric", month: "short" },
-                          )}
+                          {new Date(lead.nextFollowUpAt!).toLocaleDateString([], {
+                            day: "numeric",
+                            month: "short",
+                          })}
                         </p>
-                        <p
-                          className={`text-xs ${followUp.urgent ? "text-red-500" : "text-muted-foreground"}`}
-                        >
+                        <p className={`text-xs font-medium ${followUp.urgent ? "text-red-500" : "text-muted-foreground"}`}>
                           {followUp.label}
                         </p>
                       </div>
@@ -545,6 +692,7 @@ export default function LeadList() {
                       <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
+
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <LeadActions lead={lead} />
                   </TableCell>
@@ -555,9 +703,14 @@ export default function LeadList() {
         </Table>
       </div>
 
+      {/* Pagination */}
       <div className="flex items-center justify-between mt-4">
         <p className="text-sm text-muted-foreground">
-          {data ? `Showing ${data.items.length} of ${data.total} leads` : ""}
+          {data && data.total > 0
+            ? `Showing ${start}–${end} of ${data.total} leads`
+            : data?.total === 0
+            ? "No leads"
+            : ""}
         </p>
         <div className="flex gap-2">
           <Button
