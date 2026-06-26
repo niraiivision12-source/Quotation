@@ -181,7 +181,7 @@ export default function QuotationPageMain() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 p-6">
+    <div className="bg-slate-100 min-h-full rounded-lg md:p-6 p-4 -m-4 md:-m-6">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
           <QuotationInfoCard

@@ -3,11 +3,11 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 import { createProject, deleteProject, getProjectById, getProjects, updatePhase, updateProject } from "./project.api";
 
-export const useProjects = (page: number, search: string) => {
+export const useProjects = (page: number, search: string, limit = 20) => {
   return useQuery({
-    queryKey: ["projects", page, search],
+    queryKey: ["projects", page, search, limit],
 
-    queryFn: () => getProjects(page, 20, search),
+    queryFn: () => getProjects(page, limit, search),
   });
 };
 
@@ -34,6 +34,7 @@ export const useUpdatePhase = (projectId: string) => {
     }) => updatePhase(phaseId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 };

@@ -6,9 +6,17 @@ export const getLeads = async (
   page = 1,
   limit = 20,
   search = "",
+  filters?: {
+    source?: string;
+    status?: string;
+    assignedToId?: string;
+    city?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  },
 ): Promise<LeadListResponse> => {
   const response = await api.get("/leads", {
-    params: { page, limit, search },
+    params: { page, limit, search, ...filters },
   });
 
   return response.data.data;
@@ -63,5 +71,16 @@ export const deleteLead = async (id: string) => {
 export const getLeadById = async (id: string): Promise<Lead> => {
   const response = await api.get(`/leads/${id}`);
 
+  return response.data.data;
+};
+
+export const getLeadStats = async (): Promise<{
+  total: number;
+  followUp: number;
+  won: number;
+  lost: number;
+  todayFollowUp: number;
+}> => {
+  const response = await api.get("/leads/stats");
   return response.data.data;
 };

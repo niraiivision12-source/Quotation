@@ -72,22 +72,25 @@ export class LifecycleService {
       },
     });
 
-    const incomplete = await prisma.projectPhaseTracking.count({
-      where: {
-        projectId: phase.projectId,
-
-        status: {
-          not: LifecycleStatus.COMPLETED,
-        },
-      },
+    // Re-fetch all phases after update to determine the new currentPhase
+    const allPhases = await prisma.projectPhaseTracking.findMany({
+      where: { projectId: phase.projectId },
+      orderBy: { createdAt: "asc" },
     });
 
+    const inProgressPhase = allPhases.find((p) => p.status === LifecycleStatus.IN_PROGRESS);
+    const notStartedPhase = allPhases.find((p) => p.status === LifecycleStatus.NOT_STARTED);
+    const allDone = allPhases.every(
+      (p) => p.status === LifecycleStatus.COMPLETED || p.status === LifecycleStatus.SKIPPED,
+    );
+
+    const newCurrentPhase = inProgressPhase?.phase ?? notStartedPhase?.phase ?? allPhases[allPhases.length - 1].phase;
+
     await prisma.project.update({
-      where: {
-        id: phase.projectId,
-      },
+      where: { id: phase.projectId },
       data: {
-        isCompleted: incomplete === 0,
+        currentPhase: newCurrentPhase,
+        isCompleted: allDone,
       },
     });
 

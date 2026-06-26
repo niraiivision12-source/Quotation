@@ -38,7 +38,7 @@ export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
   const submit = async (data: FormData) => {
     await mutation.mutateAsync({
       name: data.name,
-      mobile: data.mobile,
+      mobile: "+91" + data.mobile.replace(/^\+?91/, ""),
       email: data.email || undefined,
       city: data.city || undefined,
       source: data.source || undefined,
@@ -52,13 +52,27 @@ export default function LeadForm({ onSuccess }: { onSuccess?: () => void }) {
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
       <Input placeholder="Name *" {...form.register("name")} />
-      <Input placeholder="Mobile *" {...form.register("mobile")} />
+      <div className="flex">
+        <span className="inline-flex items-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm font-medium">
+          +91
+        </span>
+        <Input className="rounded-l-none" placeholder="Mobile *" {...form.register("mobile")} />
+      </div>
       <Input placeholder="Email" {...form.register("email")} />
       <Input placeholder="City" {...form.register("city")} />
-      <Input
-        placeholder="Source (e.g. Facebook)"
-        {...form.register("source")}
-      />
+      <Select onValueChange={(value) => form.setValue("source", value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select Source" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Walk-in">Walk-in</SelectItem>
+          <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+          <SelectItem value="Instagram">Instagram</SelectItem>
+          <SelectItem value="Facebook">Facebook</SelectItem>
+          <SelectItem value="Phone Call">Phone Call</SelectItem>
+          <SelectItem value="Referral">Referral</SelectItem>
+        </SelectContent>
+      </Select>
       <Select onValueChange={(value) => form.setValue("assignedToId", value)}>
         <SelectTrigger>
           <SelectValue placeholder="Select Contact Owner" />

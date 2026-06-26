@@ -1,11 +1,18 @@
 import { useMyReminders } from "@/modules/reminder/reminder.query";
 import { useAuthStore } from "@/store/auth.store";
-import { Bell } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Bell, LogOut, Menu } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
   const { data } = useMyReminders();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const cutoff = new Date();
   cutoff.setHours(cutoff.getHours() + 24);
@@ -15,10 +22,26 @@ export default function Header() {
     return new Date(r.dueAt) <= cutoff;
   }).length;
 
-  return (
-    <header className="border-b p-4 flex items-center justify-between">
-      <div className="text-sm font-medium">{user?.name}</div>
+  const initials = user?.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
+  return (
+    <header className="border-b px-4 lg:px-6 py-3 flex items-center justify-between bg-white shrink-0">
+      <div className="flex items-center lg:hidden">
+        <button
+          onClick={onMenuClick}
+          className="p-2 -ml-2 text-gray-600 hover:text-gray-900"
+        >
+          <Menu size={24} />
+        </button>
+      </div>
+
+      <div className="flex items-center justify-end gap-4 ml-auto">
+        {/* Notification bell */}
       <Link
         to="/reminders"
         className="relative inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
@@ -30,6 +53,28 @@ export default function Header() {
           </span>
         )}
       </Link>
+
+      {/* User profile */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
+          {initials}
+        </div>
+        <div className="leading-tight">
+          <p className="text-sm font-semibold">{user?.name}</p>
+          <p className="text-xs text-muted-foreground capitalize">
+            {user?.role.toLowerCase()}
+          </p>
+        </div>
+      </div>
+
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-red-500 transition-colors"
+      >
+        <LogOut size={16} />
+      </button>
+      </div>
     </header>
   );
 }

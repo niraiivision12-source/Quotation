@@ -39,25 +39,39 @@ export class LeadService {
     });
   }
 
-  static async getAll(page: number, limit: number, search?: string) {
+  static async getAll(
+    page: number,
+    limit: number,
+    search?: string,
+    filters?: {
+      source?: string;
+      status?: string;
+      assignedToId?: string;
+      city?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
+  ) {
     const skip = (page - 1) * limit;
 
     const where = {
       isActive: true,
-
+      ...(filters?.source && { source: filters.source }),
+      ...(filters?.status && { status: filters.status as LeadStatus }),
+      ...(filters?.assignedToId && { assignedToId: filters.assignedToId }),
+      ...(filters?.city && {
+        city: { contains: filters.city, mode: "insensitive" as const },
+      }),
+      ...((filters?.dateFrom || filters?.dateTo) && {
+        createdAt: {
+          ...(filters.dateFrom && { gte: new Date(filters.dateFrom) }),
+          ...(filters.dateTo && { lte: new Date(filters.dateTo) }),
+        },
+      }),
       ...(search && {
         OR: [
-          {
-            name: {
-              contains: search,
-              mode: "insensitive" as const,
-            },
-          },
-          {
-            mobile: {
-              contains: search,
-            },
-          },
+          { name: { contains: search, mode: "insensitive" as const } },
+          { mobile: { contains: search } },
         ],
       }),
     };
@@ -100,6 +114,12 @@ export class LeadService {
       },
       include: {
         customer: true,
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         activities: {
           orderBy: {
             createdAt: "desc",
@@ -357,6 +377,28 @@ export class LeadService {
 
       return updatedLead;
     });
+  }
+
+  static async getStats() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [total, followUp, won, lost, todayFollowUp] = await Promise.all([
+      prisma.lead.count({ where: { isActive: true } }),
+      prisma.lead.count({ where: { isActive: true, status: "FOLLOW_UP" } }),
+      prisma.lead.count({ where: { isActive: true, status: "WON" } }),
+      prisma.lead.count({ where: { isActive: true, status: "LOST" } }),
+      prisma.lead.count({
+        where: {
+          isActive: true,
+          nextFollowUpAt: { gte: today, lt: tomorrow },
+        },
+      }),
+    ]);
+
+    return { total, followUp, won, lost, todayFollowUp };
   }
 
   static async deactivate(id: string) {
