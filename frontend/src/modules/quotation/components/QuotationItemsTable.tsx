@@ -38,7 +38,7 @@ export default function QuotationItemsTable({
   }, [onAddRow]);
 
   return (
-    <div className="overflow-visible rounded-2xl border bg-white shadow-sm">
+    <div className="max-w-full overflow-hidden rounded-lg border bg-white shadow-sm">
       {/* Header */}
       <div className="border-b bg-slate-50 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -61,9 +61,9 @@ export default function QuotationItemsTable({
       </div>
 
       {/* Table */}
-      <div className="relative overflow-visible">
-        <div className="overflow-x-auto overflow-y-visible">
-          <table className="min-w-275 w-full overflow-visible">
+      <div className="relative">
+        <div className="max-w-full overflow-x-auto">
+          <table className="w-full min-w-245">
             <thead className="bg-slate-100 text-sm">
               <tr>
                 <th className="p-4 text-left">Product</th>

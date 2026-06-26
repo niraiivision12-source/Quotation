@@ -91,9 +91,4 @@ export class LeadController {
       data: lead,
     });
   }
-
-  static async getStats(req: Request, res: Response) {
-    const stats = await LeadService.getStats();
-    return res.status(200).json({ success: true, data: stats });
-  }
 }

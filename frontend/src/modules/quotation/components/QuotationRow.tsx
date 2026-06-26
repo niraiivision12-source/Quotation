@@ -37,6 +37,16 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
 
   const [debouncedSearch, setDebouncedSearch] = useState(item.search || "");
 
+  const [costPriceInput, setCostPriceInput] = useState(String(item.costPrice));
+
+  const [marginInput, setMarginInput] = useState(String(item.marginPercent));
+
+  const [quantityInput, setQuantityInput] = useState(String(item.quantity));
+
+  const activeNumberFieldRef = useRef<"cost" | "margin" | "quantity" | null>(
+    null,
+  );
+
   // fetch products
   const { data } = useProducts(debouncedSearch);
 
@@ -114,6 +124,44 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
     return () => clearTimeout(timeout);
   }, [item.search]);
 
+  useEffect(() => {
+    if (activeNumberFieldRef.current === "cost") return;
+
+    setCostPriceInput(String(item.costPrice));
+  }, [item.costPrice]);
+
+  useEffect(() => {
+    if (activeNumberFieldRef.current === "margin") return;
+
+    setMarginInput(String(item.marginPercent));
+  }, [item.marginPercent]);
+
+  useEffect(() => {
+    if (activeNumberFieldRef.current === "quantity") return;
+
+    setQuantityInput(String(item.quantity));
+  }, [item.quantity]);
+
+  function handleNumberFocus(field: "cost" | "margin" | "quantity") {
+    activeNumberFieldRef.current = field;
+  }
+
+  function handleNumberBlur(field: "cost" | "margin" | "quantity") {
+    activeNumberFieldRef.current = null;
+
+    if (field === "cost" && costPriceInput === "") {
+      setCostPriceInput("0");
+    }
+
+    if (field === "margin" && marginInput === "") {
+      setMarginInput("0");
+    }
+
+    if (field === "quantity" && quantityInput === "") {
+      setQuantityInput("0");
+    }
+  }
+
   // PRODUCT SELECT
   function selectProduct(product: Product) {
     const costPrice = Number(product.costPrice);
@@ -138,7 +186,11 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
 
   // COST PRICE
   function handleCostPriceChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const costPrice = Number(e.target.value);
+    const rawValue = e.target.value;
+
+    setCostPriceInput(rawValue);
+
+    const costPrice = rawValue === "" ? 0 : Number(rawValue);
 
     const sellingPrice = calculateSellingPrice(costPrice, item.marginPercent);
 
@@ -153,7 +205,11 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
 
   // MARGIN
   function handleMarginChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const marginPercent = Number(e.target.value);
+    const rawValue = e.target.value;
+
+    setMarginInput(rawValue);
+
+    const marginPercent = rawValue === "" ? 0 : Number(rawValue);
 
     const sellingPrice = calculateSellingPrice(item.costPrice, marginPercent);
 
@@ -168,7 +224,11 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
 
   // QUANTITY
   function handleQuantityChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const quantity = Number(e.target.value);
+    const rawValue = e.target.value;
+
+    setQuantityInput(rawValue);
+
+    const quantity = rawValue === "" ? 0 : Number(rawValue);
 
     const totalPrice = calculateTotal(item.sellingPrice, quantity);
 
@@ -286,8 +346,10 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
       <td className="w-36 p-3">
         <input
           type="number"
-          value={item.costPrice}
+          value={costPriceInput}
           className="w-full rounded border p-2"
+          onFocus={() => handleNumberFocus("cost")}
+          onBlur={() => handleNumberBlur("cost")}
           onChange={handleCostPriceChange}
         />
       </td>
@@ -296,8 +358,10 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
       <td className="w-32 p-3">
         <input
           type="number"
-          value={item.marginPercent}
+          value={marginInput}
           className="w-full rounded border p-2"
+          onFocus={() => handleNumberFocus("margin")}
+          onBlur={() => handleNumberBlur("margin")}
           onChange={handleMarginChange}
         />
       </td>
@@ -315,8 +379,10 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
       <td className="w-28 p-3">
         <input
           type="number"
-          value={item.quantity}
+          value={quantityInput}
           className="w-full rounded border p-2"
+          onFocus={() => handleNumberFocus("quantity")}
+          onBlur={() => handleNumberBlur("quantity")}
           onChange={handleQuantityChange}
         />
       </td>

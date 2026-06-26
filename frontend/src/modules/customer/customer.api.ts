@@ -33,6 +33,20 @@ export const createCustomer = async (data: {
   return response.data;
 };
 
+export const updateCustomer = async (
+  id: string,
+  data: {
+    name?: string;
+    mobile?: string;
+    email?: string | null;
+    address?: string | null;
+  },
+) => {
+  const response = await api.patch(`/customers/${id}`, data);
+
+  return response.data;
+};
+
 export const getCustomerOptions = async (): Promise<CustomerOption[]> => {
   const response = await api.get("/customers", {
     params: {

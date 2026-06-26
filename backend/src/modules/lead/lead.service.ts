@@ -417,26 +417,4 @@ export class LeadService {
       },
     });
   }
-
-  static async getStats() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const [total, followUp, won, lost, todayFollowUp] = await Promise.all([
-      prisma.lead.count({ where: { isActive: true } }),
-      prisma.lead.count({ where: { isActive: true, status: "FOLLOW_UP" } }),
-      prisma.lead.count({ where: { isActive: true, status: "WON" } }),
-      prisma.lead.count({ where: { isActive: true, status: "LOST" } }),
-      prisma.lead.count({
-        where: {
-          isActive: true,
-          nextFollowUpAt: { gte: today, lt: tomorrow },
-        },
-      }),
-    ]);
-
-    return { total, followUp, won, lost, todayFollowUp };
-  }
 }

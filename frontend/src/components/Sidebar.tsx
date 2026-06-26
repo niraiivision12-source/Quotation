@@ -1,16 +1,21 @@
 import {
   Bell,
+  Briefcase,
   LayoutDashboard,
   ListTodo,
   ScrollText,
-  Users,
-  Briefcase,
   UserRound,
+  Users,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", icon: <LayoutDashboard size={18} />, exact: true },
+  {
+    to: "/",
+    label: "Dashboard",
+    icon: <LayoutDashboard size={18} />,
+    exact: true,
+  },
   { to: "/projects", label: "Projects", icon: <Briefcase size={18} /> },
   { to: "/leads", label: "Leads", icon: <Users size={18} /> },
   { to: "/reminders", label: "Reminders", icon: <Bell size={18} /> },
@@ -19,11 +24,15 @@ const NAV_ITEMS = [
   { to: "/users", label: "Users", icon: <UserRound size={18} /> },
 ];
 
-export default function Sidebar({ onMobileClose }: { onMobileClose?: () => void }) {
+export default function Sidebar({
+  onMobileClose,
+}: {
+  onMobileClose?: () => void;
+}) {
   return (
     <aside className="w-60 border-r h-screen flex flex-col bg-white shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b">
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b">
         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
           <span className="text-white font-bold text-sm">C</span>
         </div>
