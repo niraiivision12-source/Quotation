@@ -5,7 +5,7 @@ import type { CreateQuotationDTO, QuotationItemForm } from "./quotation.types";
 
 interface DownloadQuotationPDFProps {
   quotationNumber: string;
-  quotationType: "LEAD" | "CUSTOMER";
+  quotationType: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
   targetName?: string;
   projectName?: string;
   payload: CreateQuotationDTO;
@@ -52,17 +52,38 @@ export function downloadQuotationPDF({
   // -----------------------------
   doc.setFontSize(11);
 
-  doc.text(
-    `${quotationType === "LEAD" ? "Lead" : "Customer"} : ${targetName ?? "-"}`,
-    14,
-    42,
-  );
+  let currentY = 42;
+  if (quotationType === "WALK_IN_CUSTOMER") {
+    doc.text(`Walk-In Customer: ${payload.walkInName ?? "-"}`, 14, currentY);
+    currentY += 8;
+    doc.text(`Mobile: ${payload.walkInMobile ?? "-"}`, 14, currentY);
+    if (payload.walkInEmail) {
+      currentY += 8;
+      doc.text(`Email: ${payload.walkInEmail}`, 14, currentY);
+    }
+    if (payload.walkInAddress) {
+      currentY += 8;
+      doc.text(`Address: ${payload.walkInAddress}`, 14, currentY);
+    }
+    currentY += 8;
+    doc.text(`Valid Until: ${payload.validUntil ?? "-"}`, 14, currentY);
+  } else {
+    doc.text(
+      `${quotationType === "LEAD" ? "Lead" : "Customer"}: ${targetName ?? "-"}`,
+      14,
+      currentY,
+    );
+    currentY += 8;
+    doc.text(`Project: ${projectName ?? "-"}`, 14, currentY);
+    if (payload.phase) {
+      currentY += 8;
+      doc.text(`Phase: ${payload.phase}`, 14, currentY);
+    }
+    currentY += 8;
+    doc.text(`Valid Until: ${payload.validUntil ?? "-"}`, 14, currentY);
+  }
 
-  doc.text(`Project : ${projectName ?? "-"}`, 14, 50);
-
-  doc.text(`Phase : ${payload.phase}`, 14, 58);
-
-  doc.text(`Valid Until : ${payload.validUntil ?? "-"}`, 14, 66);
+  const startTableY = currentY + 10;
 
   // -----------------------------
   // Items
@@ -78,7 +99,7 @@ export function downloadQuotationPDF({
     ]);
 
   autoTable(doc, {
-    startY: 75,
+    startY: startTableY,
 
     head: [["Product", "Qty", "Margin %", "Rate", "Amount"]],
 

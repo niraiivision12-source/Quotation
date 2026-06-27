@@ -16,7 +16,8 @@ class ProductController {
     static async getAll(req, res) {
         const page = Number(req.query.page || 1);
         const limit = Number(req.query.limit || 20);
-        const products = await product_service_1.ProductService.getAll(page, limit);
+        const search = req.query.search?.toString();
+        const products = await product_service_1.ProductService.getAll(page, limit, search);
         return res.status(200).json({
             success: true,
             message: "Products fetched",

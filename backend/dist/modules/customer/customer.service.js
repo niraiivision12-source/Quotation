@@ -21,6 +21,7 @@ class CustomerService {
         const skip = (page - 1) * limit;
         const where = search
             ? {
+                isActive: true,
                 OR: [
                     {
                         name: {
@@ -35,7 +36,7 @@ class CustomerService {
                     },
                 ],
             }
-            : {};
+            : { isActive: true };
         const [items, total] = await Promise.all([
             prisma_1.prisma.customer.findMany({
                 where,
@@ -58,7 +59,7 @@ class CustomerService {
     }
     static async getById(id) {
         const customer = await prisma_1.prisma.customer.findUnique({
-            where: { id },
+            where: { id, isActive: true },
             include: {
                 projects: {
                     orderBy: {

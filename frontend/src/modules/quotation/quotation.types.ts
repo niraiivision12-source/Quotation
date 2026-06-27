@@ -34,13 +34,23 @@ export interface QuotationItemForm {
 export interface CreateQuotationDTO {
   createdById?: string;
 
+  type?: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
+
   leadId?: string;
 
   customerId?: string;
 
   projectId?: string;
 
-  phase: ProjectPhase;
+  phase?: ProjectPhase | null;
+
+  walkInName?: string;
+
+  walkInMobile?: string;
+
+  walkInEmail?: string | null;
+
+  walkInAddress?: string | null;
 
   notes?: string;
 
@@ -58,13 +68,23 @@ export interface Quotation {
 
   quotationNumber: string;
 
+  type: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
+
   leadId?: string;
 
   customerId?: string;
 
   projectId?: string;
 
-  phase?: ProjectPhase;
+  phase?: ProjectPhase | null;
+
+  walkInName?: string;
+
+  walkInMobile?: string;
+
+  walkInEmail?: string;
+
+  walkInAddress?: string;
 
   version: number;
 

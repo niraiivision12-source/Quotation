@@ -1,4 +1,4 @@
-import { MapPin, Phone, User } from "lucide-react";
+import { Phone } from "lucide-react";
 
 interface Props {
   project: {

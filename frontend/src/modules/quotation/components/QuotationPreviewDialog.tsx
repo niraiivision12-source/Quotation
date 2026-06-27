@@ -20,7 +20,7 @@ interface User {
 interface Props {
   open: boolean;
   payload: CreateQuotationDTO | null;
-  quotationType: "LEAD" | "CUSTOMER";
+  quotationType: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
   targetName?: string;
   projectName?: string;
   items: QuotationItemForm[];
@@ -62,12 +62,26 @@ export default function QuotationPreviewDialog({
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 rounded-lg border bg-slate-50 p-3 text-sm md:grid-cols-3">
               <PreviewStat
-                label={quotationType === "LEAD" ? "Lead" : "Customer"}
-                value={targetName ?? "-"}
+                label={
+                  quotationType === "LEAD"
+                    ? "Lead"
+                    : quotationType === "CUSTOMER"
+                    ? "Customer"
+                    : "Walk-In Customer"
+                }
+                value={
+                  quotationType === "WALK_IN_CUSTOMER"
+                    ? payload.walkInName ?? "-"
+                    : targetName ?? "-"
+                }
               />
-              <PreviewStat label="Project" value={projectName ?? "-"} />
+              {quotationType !== "WALK_IN_CUSTOMER" && (
+                <PreviewStat label="Project" value={projectName ?? "-"} />
+              )}
               <PreviewStat label="Type" value={quotationType} />
-              <PreviewStat label="Phase" value={payload.phase} />
+              {quotationType === "CUSTOMER" && (
+                <PreviewStat label="Phase" value={payload.phase ?? "-"} />
+              )}
               <PreviewStat label="Owner" value={owner?.name ?? "-"} />
               <PreviewStat
                 label="Valid Until"

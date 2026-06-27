@@ -102,6 +102,12 @@ enum QuotationRevisionReason {
   OTHER
 }
 
+enum QuotationType {
+  LEAD
+  CUSTOMER
+  WALK_IN_CUSTOMER
+}
+
 enum LeadActivityType {
   CREATED
   STATUS_CHANGED
@@ -116,6 +122,11 @@ enum LeadActivityType {
   QUOTATION_SENT
   QUOTATION_APPROVED
   QUOTATION_REJECTED
+
+  CONTACTED
+  NEGOTIATION_STARTED
+  REMINDER_CREATED
+  REMINDER_COMPLETED
 }
 
 model User {
@@ -533,6 +544,8 @@ model Quotation {
 
   quotationNumber String @unique
 
+  type QuotationType @default(LEAD)
+
   leadId String?
 
   customerId String?
@@ -540,6 +553,11 @@ model Quotation {
   projectId String?
 
   phase ProjectPhase?
+
+  walkInName    String?
+  walkInMobile  String?
+  walkInEmail   String?
+  walkInAddress String?
 
   version Int @default(1)
 

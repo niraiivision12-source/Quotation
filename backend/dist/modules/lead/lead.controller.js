@@ -13,11 +13,23 @@ class LeadController {
             data: lead,
         });
     }
+    static async getStats(_req, res) {
+        const stats = await lead_service_1.LeadService.getStats();
+        return res.status(200).json({ success: true, data: stats });
+    }
     static async getAll(req, res) {
         const page = Number(req.query.page || 1);
         const limit = Number(req.query.limit || 20);
         const search = req.query.search?.toString();
-        const leads = await lead_service_1.LeadService.getAll(page, limit, search);
+        const filters = {
+            source: req.query.source?.toString(),
+            status: req.query.status?.toString(),
+            assignedToId: req.query.assignedToId?.toString(),
+            city: req.query.city?.toString(),
+            dateFrom: req.query.dateFrom?.toString(),
+            dateTo: req.query.dateTo?.toString(),
+        };
+        const leads = await lead_service_1.LeadService.getAll(page, limit, search, filters);
         return res.status(200).json({
             success: true,
             message: "Leads fetched",
@@ -43,7 +55,7 @@ class LeadController {
     }
     static async update(req, res) {
         const data = lead_validation_1.updateLeadSchema.parse(req.body);
-        const lead = await lead_service_1.LeadService.update(req.params.id, data);
+        const lead = await lead_service_1.LeadService.update(req.params.id, req.user.id, data);
         return res.status(200).json({
             success: true,
             message: "Lead updated",

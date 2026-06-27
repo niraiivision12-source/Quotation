@@ -16,9 +16,10 @@ class QuotationController {
     static async getAll(req, res) {
         const page = Number(req.query.page || 1);
         const limit = Number(req.query.limit || 20);
+        const leadId = req.query.leadId?.toString();
         const projectId = req.query.projectId?.toString();
         const customerId = req.query.customerId?.toString();
-        const result = await quotation_service_1.QuotationService.getAll(page, limit, projectId, customerId);
+        const result = await quotation_service_1.QuotationService.getAll(page, limit, leadId, projectId, customerId);
         return res.status(200).json({
             success: true,
             data: result,
@@ -40,7 +41,7 @@ class QuotationController {
     }
     static async updateStatus(req, res) {
         const data = quotation_validation_1.updateQuotationStatusSchema.parse(req.body);
-        const result = await quotation_service_1.QuotationService.updateStatus(req.params.id, data.status);
+        const result = await quotation_service_1.QuotationService.updateStatus(req.params.id, data.status, req.user.id, data.followUp);
         return res.status(200).json({
             success: true,
             message: "Quotation updated",

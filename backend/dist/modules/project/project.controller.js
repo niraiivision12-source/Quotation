@@ -17,7 +17,8 @@ class ProjectController {
         const page = Number(req.query.page || 1);
         const limit = Number(req.query.limit || 20);
         const search = req.query.search?.toString();
-        const projects = await project_service_1.ProjectService.getAll(page, limit, search);
+        const customerId = req.query.customerId?.toString();
+        const projects = await project_service_1.ProjectService.getAll(page, limit, search, customerId);
         return res.status(200).json({
             success: true,
             message: "Projects fetched",

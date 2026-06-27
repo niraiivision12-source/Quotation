@@ -100,7 +100,7 @@ export default function ProjectQuickDrawer({ projectId, onClose }: Props) {
               <section className="space-y-1.5">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Lifecycle</p>
                 <div className="flex gap-1">
-                  {data.phaseTracking.map((phase) => (
+                  {data.phaseTracking.map((phase: any) => (
                     <div key={phase.id} className="flex-1 flex flex-col items-center gap-1">
                       <div className={`h-1.5 w-full rounded-full ${
                         phase.status === "COMPLETED" ? "bg-green-500" :
@@ -165,7 +165,7 @@ export default function ProjectQuickDrawer({ projectId, onClose }: Props) {
                   <p className="text-xs text-muted-foreground italic">No activity yet</p>
                 ) : (
                   <div className="space-y-2">
-                    {activities.map((activity) => (
+                    {activities.map((activity: any) => (
                       <div key={activity.id} className="flex gap-2 items-start">
                         <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 mt-1.5 shrink-0" />
                         <div className="min-w-0">

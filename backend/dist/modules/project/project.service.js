@@ -54,7 +54,7 @@ class ProjectService {
         });
         return project;
     }
-    static async getAll(page, limit, search) {
+    static async getAll(page, limit, search, customerId) {
         const skip = (page - 1) * limit;
         const where = {
             isActive: true,
@@ -64,6 +64,9 @@ class ProjectService {
                     mode: "insensitive",
                 },
             }),
+            ...(customerId && {
+                customerId,
+            }),
         };
         const [items, total] = await Promise.all([
             prisma_1.prisma.project.findMany({
@@ -72,6 +75,9 @@ class ProjectService {
                 take: limit,
                 include: {
                     customer: true,
+                    quotations: {
+                        select: { totalAmount: true },
+                    },
                 },
                 orderBy: {
                     createdAt: "desc",
@@ -96,7 +102,41 @@ class ProjectService {
             },
             include: {
                 customer: true,
-                phaseTracking: true,
+                phaseTracking: {
+                    orderBy: { createdAt: "asc" },
+                },
+                quotations: {
+                    orderBy: { createdAt: "desc" },
+                    take: 1,
+                    select: {
+                        id: true,
+                        quotationNumber: true,
+                        status: true,
+                        totalAmount: true,
+                        createdAt: true,
+                    },
+                },
+                reminders: {
+                    where: { status: "PENDING" },
+                    orderBy: { dueAt: "asc" },
+                    take: 1,
+                    select: {
+                        id: true,
+                        title: true,
+                        dueAt: true,
+                        priority: true,
+                    },
+                },
+                activities: {
+                    orderBy: { createdAt: "desc" },
+                    take: 4,
+                    select: {
+                        id: true,
+                        type: true,
+                        message: true,
+                        createdAt: true,
+                    },
+                },
             },
         });
         if (!project) {

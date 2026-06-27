@@ -5,15 +5,21 @@ import {
   ProjectPhase,
   QuotationRevisionReason,
   QuotationStatus,
+  QuotationType,
   ReminderPriority,
 } from "@prisma/client";
 
 type CreateQuotationInput = {
   createdById?: string;
+  type?: QuotationType;
   leadId?: string;
   customerId?: string;
   projectId?: string;
-  phase?: ProjectPhase;
+  phase?: ProjectPhase | null;
+  walkInName?: string;
+  walkInMobile?: string;
+  walkInEmail?: string | null;
+  walkInAddress?: string | null;
   notes?: string;
   validUntil?: Date;
   items: {
@@ -50,8 +56,18 @@ async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: stri
 
 export class QuotationService {
   static async create(userId: string, data: CreateQuotationInput) {
-    if (!data.leadId && !data.customerId) {
-      throw new AppError("Quotation must belong to a lead or customer", 400);
+    const type = data.type ?? (data.leadId ? QuotationType.LEAD : data.customerId ? QuotationType.CUSTOMER : QuotationType.WALK_IN_CUSTOMER);
+
+    if (type === QuotationType.LEAD && !data.leadId) {
+      throw new AppError("Quotation must belong to a lead", 400);
+    }
+
+    if (type === QuotationType.CUSTOMER && !data.customerId) {
+      throw new AppError("Quotation must belong to a customer", 400);
+    }
+
+    if (type === QuotationType.WALK_IN_CUSTOMER && (!data.walkInName || !data.walkInMobile)) {
+      throw new AppError("Walk-in customer name and mobile are required", 400);
     }
 
     if (data.followUp) {
@@ -60,7 +76,7 @@ export class QuotationService {
       }
     }
 
-    if (data.leadId) {
+    if (type === QuotationType.LEAD && data.leadId) {
       const lead = await prisma.lead.findUnique({
         where: {
           id: data.leadId,
@@ -72,7 +88,7 @@ export class QuotationService {
       }
     }
 
-    if (data.customerId) {
+    if (type === QuotationType.CUSTOMER && data.customerId) {
       const customer = await prisma.customer.findUnique({
         where: {
           id: data.customerId,
@@ -84,19 +100,21 @@ export class QuotationService {
       }
     }
 
-    const lastQuotation = await prisma.quotation.findFirst({
-      where: data.projectId
-        ? {
-            projectId: data.projectId,
-            phase: data.phase,
-          }
-        : {
-            leadId: data.leadId,
+    const lastQuotation = type === QuotationType.WALK_IN_CUSTOMER
+      ? null
+      : await prisma.quotation.findFirst({
+          where: data.projectId
+            ? {
+                projectId: data.projectId,
+                phase: data.phase ?? undefined,
+              }
+            : {
+                leadId: data.leadId,
+              },
+          orderBy: {
+            version: "desc",
           },
-      orderBy: {
-        version: "desc",
-      },
-    });
+        });
 
     const version = lastQuotation ? lastQuotation.version + 1 : 1;
 
@@ -154,13 +172,20 @@ export class QuotationService {
         data: {
           quotationNumber,
 
-          leadId: data.leadId,
+          type,
 
-          customerId: data.customerId,
+          leadId: type === QuotationType.LEAD ? data.leadId : null,
 
-          projectId: data.projectId,
+          customerId: type === QuotationType.CUSTOMER ? data.customerId : null,
 
-          phase: data.phase,
+          projectId: type === QuotationType.CUSTOMER ? data.projectId : null,
+
+          phase: type === QuotationType.CUSTOMER ? data.phase : null,
+
+          walkInName: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInName : null,
+          walkInMobile: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInMobile : null,
+          walkInEmail: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInEmail : null,
+          walkInAddress: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInAddress : null,
 
           version,
 
@@ -209,7 +234,7 @@ export class QuotationService {
           data: {
             title: data.followUp.title ?? `Follow up on Quotation ${quotation.quotationNumber}`,
             description: data.followUp.description,
-            type: "LEAD",
+            type: quotation.leadId ? "LEAD" : quotation.customerId ? "CUSTOMER" : "QUOTATION",
             priority: data.followUp.priority ?? "MEDIUM",
             dueAt: new Date(data.followUp.dueAt),
             userId,
@@ -266,11 +291,16 @@ export class QuotationService {
         select: {
           id: true,
           quotationNumber: true,
+          type: true,
           phase: true,
           version: true,
           status: true,
           totalAmount: true,
           createdAt: true,
+          walkInName: true,
+          walkInMobile: true,
+          walkInEmail: true,
+          walkInAddress: true,
 
           lead: {
             select: {
@@ -472,7 +502,7 @@ export class QuotationService {
           data: {
             title: followUp.title ?? `Follow up on Quotation ${quotation.quotationNumber}`,
             description: followUp.description,
-            type: "LEAD",
+            type: quotation.leadId ? "LEAD" : quotation.customerId ? "CUSTOMER" : "QUOTATION",
             priority: followUp.priority ?? "MEDIUM",
             dueAt: new Date(followUp.dueAt),
             userId,
@@ -539,25 +569,29 @@ export class QuotationService {
       throw new AppError("Approved quotation cannot be revised", 400);
     }
 
-    const latestVersion = await prisma.quotation.findFirst({
-      where: {
-        leadId: quotation.leadId,
+    const latestVersion = quotation.type === QuotationType.WALK_IN_CUSTOMER
+      ? null
+      : await prisma.quotation.findFirst({
+          where: {
+            leadId: quotation.leadId,
 
-        projectId: quotation.projectId,
+            projectId: quotation.projectId,
 
-        phase: quotation.phase,
-      },
-      orderBy: {
-        version: "desc",
-      },
-    });
+            phase: quotation.phase,
+          },
+          orderBy: {
+            version: "desc",
+          },
+        });
 
-    const version = latestVersion ? latestVersion.version + 1 : 1;
+    const version = latestVersion ? latestVersion.version + 1 : quotation.version + 1;
 
     return prisma.$transaction(async (tx) => {
       const newQuotation = await tx.quotation.create({
         data: {
           quotationNumber: `QT-${Date.now()}`,
+
+          type: quotation.type,
 
           leadId: quotation.leadId,
 
@@ -566,6 +600,11 @@ export class QuotationService {
           projectId: quotation.projectId,
 
           phase: quotation.phase,
+
+          walkInName: quotation.walkInName,
+          walkInMobile: quotation.walkInMobile,
+          walkInEmail: quotation.walkInEmail,
+          walkInAddress: quotation.walkInAddress,
 
           version,
 

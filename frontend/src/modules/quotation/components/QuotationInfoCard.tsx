@@ -22,20 +22,30 @@ import { createLead, getLeadById, updateLead } from "@/modules/lead/lead.api";
 import { getCustomers, getLeads, getProjects } from "../quotation.api";
 
 interface Props {
-  quotationType: "LEAD" | "CUSTOMER";
-  onQuotationTypeChange: (value: "LEAD" | "CUSTOMER") => void;
+  quotationType: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
+  onQuotationTypeChange: (
+    value: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER",
+  ) => void;
   leadId?: string;
   customerId?: string;
   projectId?: string;
   phase?: string;
   validUntil?: string;
   notes?: string;
+  walkInName?: string;
+  walkInMobile?: string;
+  walkInEmail?: string;
+  walkInAddress?: string;
   onLeadChange: (id: string) => void;
   onCustomerChange: (id: string) => void;
   onProjectChange: (id: string) => void;
   onPhaseChange: (phase: string) => void;
   onValidUntilChange: (value: string) => void;
   onNotesChange: (value: string) => void;
+  onWalkInNameChange: (value: string) => void;
+  onWalkInMobileChange: (value: string) => void;
+  onWalkInEmailChange: (value: string) => void;
+  onWalkInAddressChange: (value: string) => void;
   onPreviewDetailsChange?: (details: {
     targetName?: string;
     projectName?: string;
@@ -97,12 +107,20 @@ export default function QuotationInfoCard({
   phase,
   validUntil,
   notes,
+  walkInName = "",
+  walkInMobile = "",
+  walkInEmail = "",
+  walkInAddress = "",
   onLeadChange,
   onCustomerChange,
   onProjectChange,
   onPhaseChange,
   onValidUntilChange,
   onNotesChange,
+  onWalkInNameChange,
+  onWalkInMobileChange,
+  onWalkInEmailChange,
+  onWalkInAddressChange,
   onPreviewDetailsChange,
 }: Props) {
   const searchWrapRef = useRef<HTMLDivElement | null>(null);
@@ -112,7 +130,7 @@ export default function QuotationInfoCard({
   const [leads, setLeads] = useState<LeadOption[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [projects, setProjects] = useState<
-    { id: string; projectName: string }[]
+    { id: string; projectName: string; currentPhase: string }[]
   >([]);
 
   const [selectedLead, setSelectedLead] = useState<LeadOption | null>(null);
@@ -121,6 +139,7 @@ export default function QuotationInfoCard({
   const [detailForm, setDetailForm] = useState<DetailForm>(emptyDetailForm);
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isSavingDetails, setIsSavingDetails] = useState(false);
+  const [isEditingPhase, setIsEditingPhase] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<DetailForm>(emptyDetailForm);
   const [isCreating, setIsCreating] = useState(false);
@@ -397,10 +416,11 @@ export default function QuotationInfoCard({
     }
   }
 
-  function handleTypeChange(value: "LEAD" | "CUSTOMER") {
+  function handleTypeChange(value: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER") {
     setSearch("");
     setIsDropdownOpen(false);
     setIsEditingDetails(false);
+    setIsEditingPhase(false);
     setCreateForm(emptyDetailForm);
     onPreviewDetailsChange?.({});
     onQuotationTypeChange(value);
@@ -416,14 +436,16 @@ export default function QuotationInfoCard({
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <Plus />
-          Add {quotationType === "LEAD" ? "Lead" : "Customer"}
-        </Button>
+        {quotationType !== "WALK_IN_CUSTOMER" && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <Plus />
+            Add {quotationType === "LEAD" ? "Lead" : "Customer"}
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
@@ -433,80 +455,123 @@ export default function QuotationInfoCard({
             value={quotationType}
             className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
             onChange={(e) =>
-              handleTypeChange(e.target.value as "LEAD" | "CUSTOMER")
+              handleTypeChange(e.target.value as "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER")
             }
           >
             <option value="LEAD">Lead Quotation</option>
             <option value="CUSTOMER">Customer Quotation</option>
+            <option value="WALK_IN_CUSTOMER">Walk-in Customer Quotation</option>
           </select>
         </div>
 
-        <div>
-          <label className="text-sm font-medium">Phase</label>
-          <select
-            value={phase ?? ""}
-            className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-            onChange={(e) => onPhaseChange(e.target.value)}
+        {/* Phase selector removed from top-level grid to be shown inside project details section */}
+
+        {quotationType !== "WALK_IN_CUSTOMER" && (
+          <div
+            ref={searchWrapRef}
+            className="relative lg:col-span-2 2xl:col-span-1"
           >
-            <option value="">Select Phase</option>
-            <option value="PIPES">Pipes</option>
-            <option value="WIRING">Wiring</option>
-            <option value="SWITCHES">Switches</option>
-            <option value="LIGHTS">Lights</option>
-            <option value="FANS">Fans</option>
-          </select>
-        </div>
-
-        <div
-          ref={searchWrapRef}
-          className="relative lg:col-span-2 2xl:col-span-1"
-        >
-          <label className="text-sm font-medium">
-            Search {quotationType === "LEAD" ? "Lead" : "Customer"}
-          </label>
-          <div className="relative mt-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              className="pl-9"
-              placeholder={`Search ${quotationType === "LEAD" ? "lead" : "customer"}...`}
-              onClick={() => setIsDropdownOpen(true)}
-              onFocus={() => setIsDropdownOpen(true)}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setIsDropdownOpen(true);
-              }}
-            />
-          </div>
-
-          {isDropdownOpen && (
-            <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-lg border bg-white shadow-lg">
-              {activeOptions.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">
-                  No {quotationType === "LEAD" ? "leads" : "customers"} found
-                </div>
-              ) : (
-                activeOptions.map((target) => (
-                  <button
-                    key={target.id}
-                    type="button"
-                    className={`block w-full px-4 py-3 text-left hover:bg-muted ${
-                      selectedTarget?.id === target.id ? "bg-muted" : ""
-                    }`}
-                    onClick={() => handleTargetSelect(target)}
-                  >
-                    <span className="block text-sm font-medium">
-                      {target.name}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {target.mobile}
-                    </span>
-                  </button>
-                ))
-              )}
+            <label className="text-sm font-medium">
+              Search {quotationType === "LEAD" ? "Lead" : "Customer"}
+            </label>
+            <div className="relative mt-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                className="pl-9"
+                placeholder={`Search ${quotationType === "LEAD" ? "lead" : "customer"}...`}
+                onClick={() => setIsDropdownOpen(true)}
+                onFocus={() => setIsDropdownOpen(true)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setIsDropdownOpen(true);
+                }}
+              />
             </div>
-          )}
-        </div>
+
+            {isDropdownOpen && (
+              <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-lg border bg-white shadow-lg">
+                {activeOptions.length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground">
+                    No {quotationType === "LEAD" ? "leads" : "customers"} found
+                  </div>
+                ) : (
+                  activeOptions.map((target) => (
+                    <button
+                      key={target.id}
+                      type="button"
+                      className={`block w-full px-4 py-3 text-left hover:bg-muted ${
+                        selectedTarget?.id === target.id ? "bg-muted" : ""
+                      }`}
+                      onClick={() => handleTargetSelect(target)}
+                    >
+                      <span className="block text-sm font-medium">
+                        {target.name}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {target.mobile}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {quotationType === "WALK_IN_CUSTOMER" && (
+          <>
+            <div>
+              <label className="text-sm font-medium">
+                Customer Name <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={walkInName}
+                className="mt-1"
+                placeholder="Enter customer name"
+                onChange={(e) => {
+                  onWalkInNameChange(e.target.value);
+                  onPreviewDetailsChange?.({
+                    targetName: e.target.value,
+                  });
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">
+                Mobile Number <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={walkInMobile}
+                className="mt-1"
+                placeholder="Enter mobile number"
+                onChange={(e) => onWalkInMobileChange(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Email Address</label>
+              <Input
+                type="email"
+                value={walkInEmail}
+                className="mt-1"
+                placeholder="Enter email address"
+                onChange={(e) => onWalkInEmailChange(e.target.value)}
+              />
+            </div>
+
+            <div className="lg:col-span-2 2xl:col-span-3">
+              <label className="text-sm font-medium">Address</label>
+              <Textarea
+                value={walkInAddress}
+                className="mt-1 min-h-14 bg-white"
+                placeholder="Enter address"
+                onChange={(e) => onWalkInAddressChange(e.target.value)}
+              />
+            </div>
+          </>
+        )}
 
         {selectedTarget && (
           <div className="rounded-lg border bg-slate-50 p-3 lg:col-span-2 2xl:col-span-3">
@@ -622,6 +687,12 @@ export default function QuotationInfoCard({
                 );
 
                 onProjectChange(e.target.value);
+                if (selectedProject) {
+                  onPhaseChange(selectedProject.currentPhase);
+                } else {
+                  onPhaseChange("");
+                }
+                setIsEditingPhase(false);
                 onPreviewDetailsChange?.({
                   targetName: selectedCustomer?.name,
                   projectName: selectedProject?.projectName,
@@ -635,6 +706,65 @@ export default function QuotationInfoCard({
                 </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {quotationType === "CUSTOMER" && projectId && (
+          <div className="rounded-lg border bg-slate-50 p-3 lg:col-span-2 2xl:col-span-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">Project Phase</h3>
+                <p className="text-xs text-muted-foreground">
+                  The phase of the selected project for this quotation
+                </p>
+              </div>
+
+              {isEditingPhase ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setIsEditingPhase(false)}
+                >
+                  Save
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsEditingPhase(true)}
+                >
+                  <Pencil size={13} className="mr-1" />
+                  Edit
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+              <div className="md:col-span-1">
+                <label className="text-xs font-medium text-muted-foreground">Phase</label>
+                {isEditingPhase ? (
+                  <select
+                    value={phase ?? ""}
+                    className="mt-1 h-10 w-full rounded-lg border border-input bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-black"
+                    onChange={(e) => onPhaseChange(e.target.value)}
+                  >
+                    <option value="">Select Phase</option>
+                    <option value="PIPES">Pipes</option>
+                    <option value="WIRING">Wiring</option>
+                    <option value="SWITCHES">Switches</option>
+                    <option value="LIGHTS">Lights</option>
+                    <option value="FANS">Fans</option>
+                  </select>
+                ) : (
+                  <Input
+                    value={phase ? phase.charAt(0) + phase.slice(1).toLowerCase() : "Not Selected"}
+                    disabled
+                    className="mt-1 bg-white disabled:opacity-100 font-medium"
+                  />
+                )}
+              </div>
+            </div>
           </div>
         )}
 

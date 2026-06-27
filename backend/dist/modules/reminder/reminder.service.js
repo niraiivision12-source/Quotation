@@ -4,13 +4,44 @@ exports.ReminderService = void 0;
 const prisma_1 = require("@/config/prisma");
 const app_error_1 = require("@/utils/app-error");
 const client_1 = require("@prisma/client");
+async function updateLeadNextFollowUp(tx, leadId) {
+    const nextReminder = await tx.reminder.findFirst({
+        where: {
+            leadId,
+            status: client_1.ReminderStatus.PENDING,
+        },
+        orderBy: {
+            dueAt: "asc",
+        },
+    });
+    await tx.lead.update({
+        where: { id: leadId },
+        data: {
+            nextFollowUpAt: nextReminder ? nextReminder.dueAt : null,
+        },
+    });
+}
 class ReminderService {
     static async create(userId, data) {
-        return prisma_1.prisma.reminder.create({
-            data: {
-                ...data,
-                userId,
-            },
+        return prisma_1.prisma.$transaction(async (tx) => {
+            const reminder = await tx.reminder.create({
+                data: {
+                    ...data,
+                    userId,
+                },
+            });
+            if (data.leadId) {
+                await updateLeadNextFollowUp(tx, data.leadId);
+                await tx.leadActivity.create({
+                    data: {
+                        leadId: data.leadId,
+                        userId,
+                        type: "FOLLOW_UP_SET",
+                        message: `Reminder created: ${reminder.title}`,
+                    },
+                });
+            }
+            return reminder;
         });
     }
     static async getMyReminders(userId, page, limit) {
@@ -75,9 +106,15 @@ class ReminderService {
         if (!reminder) {
             throw new app_error_1.AppError("Reminder not found", 404);
         }
-        return prisma_1.prisma.reminder.update({
-            where: { id },
-            data,
+        return prisma_1.prisma.$transaction(async (tx) => {
+            const updatedReminder = await tx.reminder.update({
+                where: { id },
+                data,
+            });
+            if (reminder.leadId) {
+                await updateLeadNextFollowUp(tx, reminder.leadId);
+            }
+            return updatedReminder;
         });
     }
     static async complete(id, userId) {
@@ -90,12 +127,26 @@ class ReminderService {
         if (!reminder) {
             throw new app_error_1.AppError("Reminder not found", 404);
         }
-        return prisma_1.prisma.reminder.update({
-            where: { id },
-            data: {
-                status: client_1.ReminderStatus.COMPLETED,
-                completedAt: new Date(),
-            },
+        return prisma_1.prisma.$transaction(async (tx) => {
+            const updatedReminder = await tx.reminder.update({
+                where: { id },
+                data: {
+                    status: client_1.ReminderStatus.COMPLETED,
+                    completedAt: new Date(),
+                },
+            });
+            if (reminder.leadId) {
+                await updateLeadNextFollowUp(tx, reminder.leadId);
+                await tx.leadActivity.create({
+                    data: {
+                        leadId: reminder.leadId,
+                        userId,
+                        type: "FOLLOW_UP_COMPLETED",
+                        message: `Reminder completed: ${reminder.title}`,
+                    },
+                });
+            }
+            return updatedReminder;
         });
     }
     static async delete(id, userId) {
@@ -108,10 +159,15 @@ class ReminderService {
         if (!reminder) {
             throw new app_error_1.AppError("Reminder not found", 404);
         }
-        await prisma_1.prisma.reminder.delete({
-            where: { id },
+        return prisma_1.prisma.$transaction(async (tx) => {
+            await tx.reminder.delete({
+                where: { id },
+            });
+            if (reminder.leadId) {
+                await updateLeadNextFollowUp(tx, reminder.leadId);
+            }
+            return true;
         });
-        return true;
     }
 }
 exports.ReminderService = ReminderService;

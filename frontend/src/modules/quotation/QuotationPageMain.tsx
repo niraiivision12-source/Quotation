@@ -34,9 +34,9 @@ export default function QuotationPageMain() {
 
   const currentUser = useAuthStore((state) => state.user);
 
-  const [quotationType, setQuotationType] = useState<"LEAD" | "CUSTOMER">(
-    "LEAD",
-  );
+  const [quotationType, setQuotationType] = useState<
+    "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER"
+  >("LEAD");
 
   const [leadId, setLeadId] = useState("");
 
@@ -49,6 +49,11 @@ export default function QuotationPageMain() {
   const [validUntil, setValidUntil] = useState("");
 
   const [notes, setNotes] = useState("");
+
+  const [walkInName, setWalkInName] = useState("");
+  const [walkInMobile, setWalkInMobile] = useState("");
+  const [walkInEmail, setWalkInEmail] = useState("");
+  const [walkInAddress, setWalkInAddress] = useState("");
 
   const [discountAmount, setDiscountAmount] = useState(0);
 
@@ -166,14 +171,25 @@ export default function QuotationPageMain() {
     setIsPreviewOpen(false);
 
     setPreviewDetails({});
+
+    setWalkInName("");
+    setWalkInMobile("");
+    setWalkInEmail("");
+    setWalkInAddress("");
   }
 
-  function handleQuotationTypeChange(value: "LEAD" | "CUSTOMER") {
+  function handleQuotationTypeChange(
+    value: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER",
+  ) {
     setQuotationType(value);
     setLeadId("");
     setCustomerId("");
     setProjectId("");
     setPreviewDetails({});
+    setWalkInName("");
+    setWalkInMobile("");
+    setWalkInEmail("");
+    setWalkInAddress("");
   }
 
   function handleDiscountChange(value: string) {
@@ -190,7 +206,7 @@ export default function QuotationPageMain() {
   }
 
   function buildQuotationPayload() {
-    if (!phase) {
+    if (quotationType === "CUSTOMER" && !phase) {
       toast.error("Select quotation phase");
       return null;
     }
@@ -210,6 +226,17 @@ export default function QuotationPageMain() {
       return null;
     }
 
+    if (quotationType === "WALK_IN_CUSTOMER") {
+      if (!walkInName.trim()) {
+        toast.error("Customer name is required");
+        return null;
+      }
+      if (!walkInMobile.trim()) {
+        toast.error("Mobile number is required");
+        return null;
+      }
+    }
+
     const validItems = items.filter((item) => item.productId);
 
     if (validItems.length === 0) {
@@ -218,10 +245,15 @@ export default function QuotationPageMain() {
     }
 
     return {
+      type: quotationType,
       leadId: quotationType === "LEAD" ? leadId : undefined,
       customerId: quotationType === "CUSTOMER" ? customerId : undefined,
       projectId: quotationType === "CUSTOMER" ? projectId : undefined,
-      phase,
+      phase: quotationType === "CUSTOMER" ? phase : null,
+      walkInName: quotationType === "WALK_IN_CUSTOMER" ? walkInName : undefined,
+      walkInMobile: quotationType === "WALK_IN_CUSTOMER" ? walkInMobile : undefined,
+      walkInEmail: (quotationType === "WALK_IN_CUSTOMER" && walkInEmail) ? walkInEmail : undefined,
+      walkInAddress: (quotationType === "WALK_IN_CUSTOMER" && walkInAddress) ? walkInAddress : undefined,
       notes,
       validUntil: validUntil || undefined,
       createdById: billingUserId,
@@ -283,12 +315,20 @@ export default function QuotationPageMain() {
             phase={phase}
             validUntil={validUntil}
             notes={notes}
+            walkInName={walkInName}
+            walkInMobile={walkInMobile}
+            walkInEmail={walkInEmail}
+            walkInAddress={walkInAddress}
             onLeadChange={setLeadId}
             onCustomerChange={setCustomerId}
             onProjectChange={setProjectId}
             onPhaseChange={(value) => setPhase(value as ProjectPhase)}
             onValidUntilChange={setValidUntil}
             onNotesChange={setNotes}
+            onWalkInNameChange={setWalkInName}
+            onWalkInMobileChange={setWalkInMobile}
+            onWalkInEmailChange={setWalkInEmail}
+            onWalkInAddressChange={setWalkInAddress}
             onPreviewDetailsChange={handlePreviewDetailsChange}
           />
         </div>

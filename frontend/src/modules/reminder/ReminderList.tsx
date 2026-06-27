@@ -33,6 +33,7 @@ function toLeadShape(r: ReminderLead): Lead {
     ...r,
 
     assignedToId: r.assignedToId ?? undefined,
+    assignedTo: r.assignedTo ?? undefined,
 
     status: r.status as Lead["status"],
     email: r.email ?? undefined,
