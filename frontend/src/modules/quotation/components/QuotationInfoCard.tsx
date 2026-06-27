@@ -11,6 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   createCustomer,
@@ -407,8 +414,8 @@ export default function QuotationInfoCard({
   }
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm">
-      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="rounded-xl border bg-white p-5">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-base font-semibold">Quotation Information</h2>
           <p className="text-sm text-muted-foreground">
@@ -419,42 +426,42 @@ export default function QuotationInfoCard({
         <Button
           type="button"
           variant="outline"
+          size="sm"
           onClick={() => setIsCreateOpen(true)}
         >
-          <Plus />
+          <Plus size={14} className="mr-1" />
           Add {quotationType === "LEAD" ? "Lead" : "Customer"}
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         <div>
           <label className="text-sm font-medium">Quotation Type</label>
-          <select
-            value={quotationType}
-            className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-            onChange={(e) =>
-              handleTypeChange(e.target.value as "LEAD" | "CUSTOMER")
-            }
-          >
-            <option value="LEAD">Lead Quotation</option>
-            <option value="CUSTOMER">Customer Quotation</option>
-          </select>
+          <Select value={quotationType} onValueChange={(v) => handleTypeChange(v as "LEAD" | "CUSTOMER")}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="LEAD">Lead Quotation</SelectItem>
+              <SelectItem value="CUSTOMER">Customer Quotation</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
           <label className="text-sm font-medium">Phase</label>
-          <select
-            value={phase ?? ""}
-            className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-            onChange={(e) => onPhaseChange(e.target.value)}
-          >
-            <option value="">Select Phase</option>
-            <option value="PIPES">Pipes</option>
-            <option value="WIRING">Wiring</option>
-            <option value="SWITCHES">Switches</option>
-            <option value="LIGHTS">Lights</option>
-            <option value="FANS">Fans</option>
-          </select>
+          <Select value={phase ?? ""} onValueChange={(v) => onPhaseChange(v)}>
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Select Phase" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PIPES">Pipes</SelectItem>
+              <SelectItem value="WIRING">Wiring</SelectItem>
+              <SelectItem value="SWITCHES">Switches</SelectItem>
+              <SelectItem value="LIGHTS">Lights</SelectItem>
+              <SelectItem value="FANS">Fans</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div
@@ -509,7 +516,7 @@ export default function QuotationInfoCard({
         </div>
 
         {selectedTarget && (
-          <div className="rounded-lg border bg-slate-50 p-3 lg:col-span-2 2xl:col-span-3">
+          <div className="rounded-xl border bg-slate-50 p-4 lg:col-span-2 2xl:col-span-3">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold">
@@ -613,28 +620,28 @@ export default function QuotationInfoCard({
         {quotationType === "CUSTOMER" && (
           <div>
             <label className="text-sm font-medium">Project</label>
-            <select
+            <Select
               value={projectId ?? ""}
-              className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-              onChange={(e) => {
-                const selectedProject = projects.find(
-                  (project) => project.id === e.target.value,
-                );
-
-                onProjectChange(e.target.value);
+              onValueChange={(v) => {
+                const selectedProject = projects.find((p) => p.id === v);
+                onProjectChange(v);
                 onPreviewDetailsChange?.({
                   targetName: selectedCustomer?.name,
                   projectName: selectedProject?.projectName,
                 });
               }}
             >
-              <option value="">Select Project</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.projectName}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select Project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.projectName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
