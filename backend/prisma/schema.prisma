@@ -37,7 +37,7 @@ enum LifecycleStatus {
 enum LeadStatus {
   NEW
   CONTACTED
-  FOLLOW_UP
+  NOT_RESPONDING
   QUOTATION_SENT
   NEGOTIATION
   WON

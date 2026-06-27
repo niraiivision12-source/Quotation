@@ -1,11 +1,31 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
 import {
+  Prisma,
   ReminderPriority,
   ReminderRepeatType,
   ReminderStatus,
   ReminderType,
 } from "@prisma/client";
+
+async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: string) {
+  const nextReminder = await tx.reminder.findFirst({
+    where: {
+      leadId,
+      status: ReminderStatus.PENDING,
+    },
+    orderBy: {
+      dueAt: "asc",
+    },
+  });
+
+  await tx.lead.update({
+    where: { id: leadId },
+    data: {
+      nextFollowUpAt: nextReminder ? nextReminder.dueAt : null,
+    },
+  });
+}
 
 export class ReminderService {
   static async create(
@@ -21,11 +41,28 @@ export class ReminderService {
       projectId?: string;
     },
   ) {
-    return prisma.reminder.create({
-      data: {
-        ...data,
-        userId,
-      },
+    return prisma.$transaction(async (tx) => {
+      const reminder = await tx.reminder.create({
+        data: {
+          ...data,
+          userId,
+        },
+      });
+
+      if (data.leadId) {
+        await updateLeadNextFollowUp(tx, data.leadId);
+
+        await tx.leadActivity.create({
+          data: {
+            leadId: data.leadId,
+            userId,
+            type: "FOLLOW_UP_SET",
+            message: `Reminder created: ${reminder.title}`,
+          },
+        });
+      }
+
+      return reminder;
     });
   }
 
@@ -110,9 +147,17 @@ export class ReminderService {
       throw new AppError("Reminder not found", 404);
     }
 
-    return prisma.reminder.update({
-      where: { id },
-      data,
+    return prisma.$transaction(async (tx) => {
+      const updatedReminder = await tx.reminder.update({
+        where: { id },
+        data,
+      });
+
+      if (reminder.leadId) {
+        await updateLeadNextFollowUp(tx, reminder.leadId);
+      }
+
+      return updatedReminder;
     });
   }
 
@@ -128,12 +173,29 @@ export class ReminderService {
       throw new AppError("Reminder not found", 404);
     }
 
-    return prisma.reminder.update({
-      where: { id },
-      data: {
-        status: ReminderStatus.COMPLETED,
-        completedAt: new Date(),
-      },
+    return prisma.$transaction(async (tx) => {
+      const updatedReminder = await tx.reminder.update({
+        where: { id },
+        data: {
+          status: ReminderStatus.COMPLETED,
+          completedAt: new Date(),
+        },
+      });
+
+      if (reminder.leadId) {
+        await updateLeadNextFollowUp(tx, reminder.leadId);
+
+        await tx.leadActivity.create({
+          data: {
+            leadId: reminder.leadId,
+            userId,
+            type: "FOLLOW_UP_COMPLETED",
+            message: `Reminder completed: ${reminder.title}`,
+          },
+        });
+      }
+
+      return updatedReminder;
     });
   }
 
@@ -149,10 +211,16 @@ export class ReminderService {
       throw new AppError("Reminder not found", 404);
     }
 
-    await prisma.reminder.delete({
-      where: { id },
-    });
+    return prisma.$transaction(async (tx) => {
+      await tx.reminder.delete({
+        where: { id },
+      });
 
-    return true;
+      if (reminder.leadId) {
+        await updateLeadNextFollowUp(tx, reminder.leadId);
+      }
+
+      return true;
+    });
   }
 }

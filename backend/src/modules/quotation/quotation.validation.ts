@@ -5,6 +5,13 @@ import {
 } from "@prisma/client";
 import { z } from "zod";
 
+const followUpSchema = z.object({
+  title: z.string().min(2).optional(),
+  description: z.string().optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
+  dueAt: z.coerce.date(),
+}).optional();
+
 export const createQuotationSchema = z.object({
   createdById: z.uuid().optional(),
 
@@ -29,10 +36,13 @@ export const createQuotationSchema = z.object({
       marginPercent: z.number().min(0),
     }),
   ),
+
+  followUp: followUpSchema,
 });
 
 export const updateQuotationStatusSchema = z.object({
   status: z.enum(QuotationStatus),
+  followUp: followUpSchema,
 });
 
 export const createRevisionSchema = z.object({

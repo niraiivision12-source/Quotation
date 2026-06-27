@@ -73,7 +73,11 @@ export class LeadController {
   static async update(req: Request, res: Response) {
     const data = updateLeadSchema.parse(req.body);
 
-    const lead = await LeadService.update(req.params.id as string, data);
+    const lead = await LeadService.update(
+      req.params.id as string,
+      req.user!.id,
+      data,
+    );
 
     return res.status(200).json({
       success: true,

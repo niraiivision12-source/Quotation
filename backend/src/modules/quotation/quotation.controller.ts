@@ -72,6 +72,8 @@ export class QuotationController {
     const result = await QuotationService.updateStatus(
       req.params.id as string,
       data.status,
+      req.user!.id,
+      data.followUp,
     );
 
     return res.status(200).json({

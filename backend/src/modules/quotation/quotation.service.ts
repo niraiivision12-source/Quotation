@@ -5,6 +5,7 @@ import {
   ProjectPhase,
   QuotationRevisionReason,
   QuotationStatus,
+  ReminderPriority,
 } from "@prisma/client";
 
 type CreateQuotationInput = {
@@ -20,12 +21,43 @@ type CreateQuotationInput = {
     quantity: number;
     marginPercent: number;
   }[];
+  followUp?: {
+    title?: string;
+    description?: string;
+    priority?: ReminderPriority;
+    dueAt: Date;
+  };
 };
+
+async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: string) {
+  const nextReminder = await tx.reminder.findFirst({
+    where: {
+      leadId,
+      status: "PENDING",
+    },
+    orderBy: {
+      dueAt: "asc",
+    },
+  });
+
+  await tx.lead.update({
+    where: { id: leadId },
+    data: {
+      nextFollowUpAt: nextReminder ? nextReminder.dueAt : null,
+    },
+  });
+}
 
 export class QuotationService {
   static async create(userId: string, data: CreateQuotationInput) {
     if (!data.leadId && !data.customerId) {
       throw new AppError("Quotation must belong to a lead or customer", 400);
+    }
+
+    if (data.followUp) {
+      if (data.validUntil && new Date(data.followUp.dueAt) >= new Date(data.validUntil)) {
+        throw new AppError("Follow-up reminder due date must be before quotation expiry (validUntil)", 400);
+      }
     }
 
     if (data.leadId) {
@@ -172,6 +204,35 @@ export class QuotationService {
         });
       }
 
+      if (data.followUp) {
+        const reminder = await tx.reminder.create({
+          data: {
+            title: data.followUp.title ?? `Follow up on Quotation ${quotation.quotationNumber}`,
+            description: data.followUp.description,
+            type: "LEAD",
+            priority: data.followUp.priority ?? "MEDIUM",
+            dueAt: new Date(data.followUp.dueAt),
+            userId,
+            leadId: quotation.leadId,
+            customerId: quotation.customerId,
+            projectId: quotation.projectId,
+          },
+        });
+
+        if (quotation.leadId) {
+          await updateLeadNextFollowUp(tx, quotation.leadId);
+
+          await tx.leadActivity.create({
+            data: {
+              leadId: quotation.leadId,
+              userId,
+              type: "FOLLOW_UP_SET",
+              message: `Reminder created: ${reminder.title}`,
+            },
+          });
+        }
+      }
+
       return quotation;
     });
   }
@@ -294,7 +355,17 @@ export class QuotationService {
     });
   }
 
-  static async updateStatus(id: string, status: QuotationStatus) {
+  static async updateStatus(
+    id: string,
+    status: QuotationStatus,
+    userId: string,
+    followUp?: {
+      title?: string;
+      description?: string;
+      priority?: ReminderPriority;
+      dueAt: Date;
+    },
+  ) {
     const quotation = await prisma.quotation.findUnique({
       where: {
         id,
@@ -303,6 +374,12 @@ export class QuotationService {
 
     if (!quotation) {
       throw new AppError("Quotation not found", 404);
+    }
+
+    if (followUp) {
+      if (quotation.validUntil && new Date(followUp.dueAt) >= new Date(quotation.validUntil)) {
+        throw new AppError("Follow-up reminder due date must be before quotation expiry (validUntil)", 400);
+      }
     }
 
     const transitions: Record<QuotationStatus, QuotationStatus[]> = {
@@ -385,6 +462,35 @@ export class QuotationService {
               leadId: quotation.leadId,
               type: activityType,
               message: `Quotation ${updatedQuotation.quotationNumber} ${status.toLowerCase()}`,
+            },
+          });
+        }
+      }
+
+      if (followUp) {
+        const reminder = await tx.reminder.create({
+          data: {
+            title: followUp.title ?? `Follow up on Quotation ${quotation.quotationNumber}`,
+            description: followUp.description,
+            type: "LEAD",
+            priority: followUp.priority ?? "MEDIUM",
+            dueAt: new Date(followUp.dueAt),
+            userId,
+            leadId: quotation.leadId,
+            customerId: quotation.customerId,
+            projectId: quotation.projectId,
+          },
+        });
+
+        if (quotation.leadId) {
+          await updateLeadNextFollowUp(tx, quotation.leadId);
+
+          await tx.leadActivity.create({
+            data: {
+              leadId: quotation.leadId,
+              userId,
+              type: "FOLLOW_UP_SET",
+              message: `Reminder created: ${reminder.title}`,
             },
           });
         }

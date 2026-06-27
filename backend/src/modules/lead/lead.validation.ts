@@ -34,5 +34,16 @@ export const updateLeadSchema = z.object({
 
   city: z.string().optional().nullable(),
 
-  status: z.enum(LeadStatus).optional(),
+  status: z.nativeEnum(LeadStatus).optional(),
+
+  reason: z.string().optional(),
+
+  followUp: z.object({
+    title: z.string().min(2).optional(),
+    description: z.string().optional(),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
+    dueAt: z.coerce.date(),
+  }).optional(),
+
+  followUpDate: z.coerce.date().optional(),
 });
