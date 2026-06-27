@@ -7,6 +7,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaFacebook,
   FaInstagram,
@@ -51,7 +52,6 @@ import { useAuthStore } from "@/store/auth.store";
 
 import { CopyPhone } from "@/components/ui/CopyPhone";
 import { useUsers } from "../user/user.query";
-import LeadDetailDrawer from "./LeadDetailDrawer";
 import LeadForm from "./LeadForm";
 import { getLeads } from "./lead.api";
 import {
@@ -445,6 +445,7 @@ function MobileLeadCard({
 
 export default function LeadList() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
 
   const [page, _setPage] = useState(1);
 
@@ -456,7 +457,6 @@ export default function LeadList() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [datePreset, setDatePreset] = useState<string>("all");
   const [myLeads, setMyLeads] = useState(false);
   const [activeStatCard, setActiveStatCard] = useState<StatCardKey | null>(
@@ -922,7 +922,7 @@ export default function LeadList() {
             lead={lead}
             selected={selectedIds.has(lead.id)}
             onSelect={toggleSelect}
-            onOpen={setSelectedLead}
+            onOpen={(l) => navigate(`/leads/${l.id}`)}
             onStatusChange={(id, status) =>
               updateMutation.mutate({ id, data: { status } })
             }
@@ -999,7 +999,7 @@ export default function LeadList() {
                 <TableRow
                   key={lead.id}
                   className={`cursor-pointer hover:bg-muted/50 group ${isOverdue ? "border-l-2 border-l-red-400" : ""} ${selectedIds.has(lead.id) ? "bg-violet-50" : ""}`}
-                  onClick={() => setSelectedLead(lead)}
+                  onClick={() => navigate(`/leads/${lead.id}`)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
@@ -1184,11 +1184,6 @@ export default function LeadList() {
         </div>
       </div>
 
-      <LeadDetailDrawer
-        lead={selectedLead}
-        open={!!selectedLead}
-        onClose={() => setSelectedLead(null)}
-      />
     </div>
   );
 }

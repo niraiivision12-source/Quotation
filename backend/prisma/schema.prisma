@@ -17,9 +17,7 @@ model User {
   createdAt                              DateTime               @default(now())
   updatedAt                              DateTime               @updatedAt
   assignedCustomers                      Customer[]
-  Customer_Customer_contactOwnerIdToUser Customer[]             @relation("Customer_contactOwnerIdToUser")
   leads                                  Lead[]
-  Lead_Lead_contactOwnerIdToUser         Lead[]                 @relation("Lead_contactOwnerIdToUser")
   leadActivities                         LeadActivity[]
   leadNotes                              LeadNote[]
   assignedProjects                       Project[]
@@ -99,12 +97,9 @@ model Lead {
   isActive                       Boolean        @default(true)
   city                           String?
   referralDate                   DateTime?
-  contactOwnerId                 String?
-  stage                          ProjectPhase?
   reopenedCount                  Int            @default(0)
   customer                       Customer?
   assignedTo                     User?          @relation(fields: [assignedToId], references: [id])
-  User_Lead_contactOwnerIdToUser User?          @relation("Lead_contactOwnerIdToUser", fields: [contactOwnerId], references: [id])
   activities                     LeadActivity[]
   notesHistory                   LeadNote[]
   quotations                     Quotation[]
@@ -143,13 +138,11 @@ model Customer {
   updatedAt                          DateTime           @updatedAt
   assignedToId                       String?
   city                               String?
-  contactOwnerId                     String?
   notes                              String?
   referralDate                       DateTime?
   source                             String?
   leadId                             String?            @unique
   assignedTo                         User?              @relation(fields: [assignedToId], references: [id])
-  User_Customer_contactOwnerIdToUser User?              @relation("Customer_contactOwnerIdToUser", fields: [contactOwnerId], references: [id])
   lead                               Lead?              @relation(fields: [leadId], references: [id])
   activities                         CustomerActivity[]
   projects                           Project[]
