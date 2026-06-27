@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { toast } from "sonner";
 
@@ -31,14 +32,14 @@ interface User {
 
 export default function QuotationPageMain() {
   const createMutation = useCreateQuotation();
-
   const currentUser = useAuthStore((state) => state.user);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [quotationType, setQuotationType] = useState<"LEAD" | "CUSTOMER">(
     "LEAD",
   );
 
-  const [leadId, setLeadId] = useState("");
+  const [leadId, setLeadId] = useState(() => searchParams.get("leadId") ?? "");
 
   const [customerId, setCustomerId] = useState("");
 
@@ -73,6 +74,12 @@ export default function QuotationPageMain() {
     targetName?: string;
     projectName?: string;
   }>({});
+
+  useEffect(() => {
+    if (searchParams.get("leadId")) {
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   useEffect(() => {
     async function loadUsers() {

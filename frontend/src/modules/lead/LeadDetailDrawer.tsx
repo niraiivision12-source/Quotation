@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Check, MapPin, Pencil } from "lucide-react";
+import { Calendar, Check, FileText, MapPin, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -450,6 +451,7 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
   const { data: leadDetails } = useLead(lead?.id ?? null);
   const [editOpen, setEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DrawerTab>("timeline");
+  const navigate = useNavigate();
 
   const fullLead = leadDetails ?? lead;
   const activities = fullLead?.activities ?? [];
@@ -513,15 +515,26 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
                 </div>
               )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0"
-              onClick={() => setEditOpen(true)}
-            >
-              <Pencil size={13} className="mr-1" />
-              Edit
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil size={13} className="mr-1" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  onClose();
+                  navigate(`/quotations?leadId=${fullLead.id}`);
+                }}
+              >
+                <FileText size={13} className="mr-1" />
+                Quotation
+              </Button>
+            </div>
           </div>
 
           <div className="flex-1 px-4 py-4 space-y-5">
