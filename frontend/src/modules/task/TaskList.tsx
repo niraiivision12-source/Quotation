@@ -4,6 +4,7 @@ import {
   Clock,
   ListTodo,
   MoreVertical,
+  Pencil,
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
@@ -41,6 +42,7 @@ import {
 
 import { useUsers } from "../user/user.query";
 import TaskForm from "./TaskForm";
+import EditTaskForm from "./EditTaskForm";
 import type { Task } from "./task.types";
 import {
   useCancelTask,
@@ -80,10 +82,11 @@ function LinkedTo({ task }: { task: Task }) {
   return <span className="text-xs text-muted-foreground">—</span>;
 }
 
-function MobileTaskCard({ task, onComplete, onCancel }: {
+function MobileTaskCard({ task, onComplete, onCancel, onEdit }: {
   task: Task;
   onComplete: (id: string) => void;
   onCancel: (id: string) => void;
+  onEdit: (task: Task) => void;
 }) {
   const overdue = isOverdue(task);
   return (
@@ -97,7 +100,7 @@ function MobileTaskCard({ task, onComplete, onCancel }: {
             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{task.description}</p>
           )}
         </div>
-        <TaskActions task={task} onComplete={onComplete} onCancel={onCancel} />
+        <TaskActions task={task} onComplete={onComplete} onCancel={onCancel} onEdit={onEdit} />
       </div>
 
       <div className="flex flex-wrap gap-1.5">
@@ -122,13 +125,13 @@ function MobileTaskCard({ task, onComplete, onCancel }: {
   );
 }
 
-function TaskActions({ task, onComplete, onCancel }: {
+function TaskActions({ task, onComplete, onCancel, onEdit }: {
   task: Task;
   onComplete: (id: string) => void;
   onCancel: (id: string) => void;
+  onEdit: (task: Task) => void;
 }) {
   const done = task.status === "COMPLETED" || task.status === "CANCELLED";
-  if (done) return null;
 
   return (
     <DropdownMenu>
@@ -138,12 +141,19 @@ function TaskActions({ task, onComplete, onCancel }: {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onComplete(task.id)} className="text-green-600">
-          <CheckCircle size={14} className="mr-2" /> Mark Complete
+        <DropdownMenuItem onClick={() => onEdit(task)}>
+          <Pencil size={14} className="mr-2" /> Edit
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onCancel(task.id)} className="text-red-500">
-          <XCircle size={14} className="mr-2" /> Cancel Task
-        </DropdownMenuItem>
+        {!done && (
+          <>
+            <DropdownMenuItem onClick={() => onComplete(task.id)} className="text-green-600">
+              <CheckCircle size={14} className="mr-2" /> Mark Complete
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onCancel(task.id)} className="text-red-500">
+              <XCircle size={14} className="mr-2" /> Cancel Task
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -152,6 +162,7 @@ function TaskActions({ task, onComplete, onCancel }: {
 export default function TaskList() {
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTask, setEditTask] = useState<Task | null>(null);
   const [filters, setFilters] = useState<{
     status?: string;
     priority?: string;
@@ -255,6 +266,16 @@ export default function TaskList() {
         </div>
       </div>
 
+      {/* Edit dialog */}
+      <Dialog open={!!editTask} onOpenChange={(o) => { if (!o) setEditTask(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Task</DialogTitle></DialogHeader>
+          {editTask && (
+            <EditTaskForm task={editTask} onSuccess={() => setEditTask(null)} />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {isLoading ? (
@@ -271,6 +292,7 @@ export default function TaskList() {
               task={task}
               onComplete={(id) => completeMutation.mutate(id)}
               onCancel={(id) => cancelMutation.mutate(id)}
+              onEdit={setEditTask}
             />
           ))
         )}
@@ -361,6 +383,7 @@ export default function TaskList() {
                         task={task}
                         onComplete={(id) => completeMutation.mutate(id)}
                         onCancel={(id) => cancelMutation.mutate(id)}
+                        onEdit={setEditTask}
                       />
                     </TableCell>
                   </TableRow>

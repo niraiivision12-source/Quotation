@@ -18,10 +18,12 @@ export const useTasks = (
     assignedToId?: string;
   },
   limit = 20,
+  enabled = true,
 ) => {
   return useQuery({
     queryKey: ["tasks", page, filters, limit],
     queryFn: () => getTasks(page, limit, filters),
+    enabled,
   });
 };
 
