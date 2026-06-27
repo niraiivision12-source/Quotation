@@ -345,22 +345,34 @@ function StatusSection({ lead }: { lead: Lead }) {
     <>
       <div className="flex flex-col gap-0.5">
         <span className="text-xs text-muted-foreground">Status</span>
-        <Select
-          defaultValue={lead.status}
-          onValueChange={onChange}
-          disabled={lead.status === "WON"}
-        >
-          <SelectTrigger className="h-8 text-sm w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LEAD_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s.replace(/_/g, " ")}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select
+            defaultValue={lead.status}
+            onValueChange={onChange}
+            disabled={lead.status === "WON"}
+          >
+            <SelectTrigger className="h-8 text-sm w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LEAD_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s.replace(/_/g, " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {lead.status === "WON" && !lead.customer && (
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white h-8"
+              onClick={() => setConvertOpen(true)}
+            >
+              Convert to Customer
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Follow-up dialog */}
