@@ -6,6 +6,7 @@ import {
   deleteReminder,
   getMyReminders,
   getOverdueReminders,
+  updateReminder,
 } from "./reminder.api";
 import type { CreateReminderInput } from "./reminder.types";
 
@@ -49,6 +50,17 @@ export const useCompleteReminder = () => {
 export const useDeleteReminder = () => {
   return useMutation({
     mutationFn: (id: string) => deleteReminder(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
+      queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });
+    },
+  });
+};
+
+export const useUpdateReminder = () => {
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<import("./reminder.types").CreateReminderInput> }) =>
+      updateReminder(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
       queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });

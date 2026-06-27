@@ -1,223 +1,537 @@
+import {
+  Bell,
+  Check,
+  CheckCircle,
+  Clock,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+import PageHeader from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
-import LeadDetailDrawer from "@/modules/lead/LeadDetailDrawer";
-import type { Lead } from "@/modules/lead/lead.types";
-import { Bell, Check, Trash2, User } from "lucide-react";
-import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 import {
   useCompleteReminder,
+  useCreateReminder,
   useDeleteReminder,
   useMyReminders,
+  useUpdateReminder,
 } from "./reminder.query";
-import type {
-  Reminder,
-  ReminderLead,
-  ReminderPriority,
-  ReminderStatus,
-} from "./reminder.types";
+import type { Reminder, ReminderPriority, ReminderStatus, ReminderType } from "./reminder.types";
 
-const PRIORITY_COLORS: Record<ReminderPriority, string> = {
+const PRIORITY_STYLES: Record<ReminderPriority, string> = {
   LOW: "bg-gray-100 text-gray-600",
-  MEDIUM: "bg-blue-100 text-blue-600",
-  HIGH: "bg-orange-100 text-orange-600",
-  CRITICAL: "bg-red-100 text-red-600",
+  MEDIUM: "bg-blue-100 text-blue-700",
+  HIGH: "bg-orange-100 text-orange-700",
+  CRITICAL: "bg-red-100 text-red-700",
 };
 
-const STATUS_COLORS: Record<ReminderStatus, string> = {
+const STATUS_STYLES: Record<ReminderStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-700",
   COMPLETED: "bg-green-100 text-green-700",
-  MISSED: "bg-red-100 text-red-700",
+  MISSED: "bg-red-100 text-red-600",
 };
 
-function toLeadShape(r: ReminderLead): Lead {
-  return {
-    ...r,
+const TYPE_STYLES: Record<ReminderType, string> = {
+  LEAD: "bg-violet-100 text-violet-700",
+  PROJECT: "bg-blue-100 text-blue-700",
+  CUSTOMER: "bg-green-100 text-green-700",
+  QUOTATION: "bg-orange-100 text-orange-700",
+  TASK: "bg-gray-100 text-gray-600",
+};
 
-    assignedToId: r.assignedToId ?? undefined,
+const TYPES: ReminderType[] = ["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK"];
+const PRIORITIES: ReminderPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+const STATUSES: ReminderStatus[] = ["PENDING", "COMPLETED", "MISSED"];
 
-    status: r.status as Lead["status"],
-    email: r.email ?? undefined,
-    source: r.source ?? undefined,
-    notes: r.notes ?? undefined,
-    nextFollowUpAt: r.nextFollowUpAt ?? undefined,
+function isOverdue(r: Reminder) {
+  return r.status === "PENDING" && new Date(r.dueAt) < new Date();
+}
+
+function formatDue(dueAt: string) {
+  const d = new Date(dueAt);
+  const now = new Date();
+  const diffMs = d.getTime() - now.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const dateStr = d.toLocaleDateString([], { day: "numeric", month: "short" });
+
+  if (diffMs < 0) {
+    const d2 = Math.floor(-diffMs / (1000 * 60 * 60 * 24));
+    return { label: d2 === 0 ? "Overdue today" : `Overdue ${d2}d`, sub: dateStr + " " + timeStr, urgent: true };
+  }
+  if (diffDays === 0) return { label: "Today", sub: timeStr, urgent: true };
+  if (diffDays === 1) return { label: "Tomorrow", sub: dateStr + " " + timeStr, urgent: false };
+  return { label: `In ${diffDays}d`, sub: dateStr + " " + timeStr, urgent: false };
+}
+
+// ─── Schema shared by create & edit ──────────────────────────────────────────
+const reminderSchema = z.object({
+  title: z.string().min(2, "Title required"),
+  description: z.string().optional(),
+  type: z.enum(["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK"]),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+  dueAt: z.string().min(1, "Due date required"),
+});
+type ReminderFormData = z.infer<typeof reminderSchema>;
+
+// ─── Create form ─────────────────────────────────────────────────────────────
+function CreateReminderForm({ onSuccess }: { onSuccess: () => void }) {
+  const mutation = useCreateReminder();
+  const form = useForm<ReminderFormData>({
+    resolver: zodResolver(reminderSchema),
+    defaultValues: { type: "TASK", priority: "MEDIUM" },
+  });
+
+  const submit = async (data: ReminderFormData) => {
+    await mutation.mutateAsync({ ...data, dueAt: new Date(data.dueAt).toISOString() });
+    form.reset({ type: "TASK", priority: "MEDIUM" });
+    onSuccess();
   };
+
+  return <ReminderFormFields form={form} onSubmit={submit} isPending={mutation.isPending} label="Create Reminder" />;
 }
 
-interface ReminderCardProps {
+// ─── Edit form ────────────────────────────────────────────────────────────────
+function EditReminderForm({ reminder, onSuccess }: { reminder: Reminder; onSuccess: () => void }) {
+  const mutation = useUpdateReminder();
+  const form = useForm<ReminderFormData>({
+    resolver: zodResolver(reminderSchema),
+    defaultValues: {
+      title: reminder.title,
+      description: reminder.description ?? "",
+      type: reminder.type,
+      priority: reminder.priority,
+      dueAt: new Date(reminder.dueAt).toISOString().slice(0, 16),
+    },
+  });
+
+  useEffect(() => {
+    form.reset({
+      title: reminder.title,
+      description: reminder.description ?? "",
+      type: reminder.type,
+      priority: reminder.priority,
+      dueAt: new Date(reminder.dueAt).toISOString().slice(0, 16),
+    });
+  }, [reminder.id]);
+
+  const submit = async (data: ReminderFormData) => {
+    await mutation.mutateAsync({ id: reminder.id, data: { ...data, dueAt: new Date(data.dueAt).toISOString() } });
+    onSuccess();
+  };
+
+  return <ReminderFormFields form={form} onSubmit={submit} isPending={mutation.isPending} label="Save Changes" />;
+}
+
+// ─── Shared form fields ───────────────────────────────────────────────────────
+function ReminderFormFields({
+  form,
+  onSubmit,
+  isPending,
+  label,
+}: {
+  form: ReturnType<typeof useForm<ReminderFormData>>;
+  onSubmit: (data: ReminderFormData) => void;
+  isPending: boolean;
+  label: string;
+}) {
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <div>
+        <Input placeholder="Title *" {...form.register("title")} />
+        {form.formState.errors.title && (
+          <p className="text-xs text-red-500 mt-1">{form.formState.errors.title.message}</p>
+        )}
+      </div>
+
+      <Input placeholder="Description (optional)" {...form.register("description")} />
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Type</label>
+          <Select
+            defaultValue={form.getValues("type")}
+            onValueChange={(v) => form.setValue("type", v as ReminderFormData["type"])}
+          >
+            <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Priority</label>
+          <Select
+            defaultValue={form.getValues("priority")}
+            onValueChange={(v) => form.setValue("priority", v as ReminderFormData["priority"])}
+          >
+            <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs font-medium text-muted-foreground">Due Date & Time *</label>
+        <Input type="datetime-local" className="mt-1" {...form.register("dueAt")} />
+        {form.formState.errors.dueAt && (
+          <p className="text-xs text-red-500 mt-1">{form.formState.errors.dueAt.message}</p>
+        )}
+      </div>
+
+      <Button type="submit" disabled={isPending} className="w-full">
+        {isPending ? "Saving..." : label}
+      </Button>
+    </form>
+  );
+}
+
+// ─── Actions menu ─────────────────────────────────────────────────────────────
+function ReminderActions({
+  reminder,
+  onEdit,
+  onComplete,
+  onDelete,
+}: {
   reminder: Reminder;
-  onLeadClick: (lead: Lead) => void;
+  onEdit: (r: Reminder) => void;
+  onComplete: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="p-1 rounded hover:bg-muted">
+          <MoreVertical size={15} className="text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onEdit(reminder)}>
+          <Pencil size={13} className="mr-2" /> Edit
+        </DropdownMenuItem>
+        {reminder.status === "PENDING" && (
+          <DropdownMenuItem onClick={() => onComplete(reminder.id)} className="text-green-600">
+            <Check size={13} className="mr-2" /> Mark Complete
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => onDelete(reminder.id)} className="text-red-500">
+          <Trash2 size={13} className="mr-2" /> Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
-function ReminderCard({ reminder, onLeadClick }: ReminderCardProps) {
+// ─── Mobile card ──────────────────────────────────────────────────────────────
+function MobileReminderCard({
+  reminder,
+  onEdit,
+  onComplete,
+  onDelete,
+}: {
+  reminder: Reminder;
+  onEdit: (r: Reminder) => void;
+  onComplete: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const overdue = isOverdue(reminder);
+  const due = formatDue(reminder.dueAt);
+
+  return (
+    <div className={`bg-white rounded-xl border p-4 space-y-3 ${overdue ? "border-l-4 border-l-red-400" : ""}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className={`font-semibold text-sm ${reminder.status === "COMPLETED" ? "line-through text-muted-foreground" : ""}`}>
+            {reminder.title}
+          </p>
+          {reminder.description && (
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{reminder.description}</p>
+          )}
+        </div>
+        <ReminderActions reminder={reminder} onEdit={onEdit} onComplete={onComplete} onDelete={onDelete} />
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_STYLES[reminder.type]}`}>
+          {reminder.type}
+        </span>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PRIORITY_STYLES[reminder.priority]}`}>
+          {reminder.priority}
+        </span>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLES[reminder.status]}`}>
+          {reminder.status}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between text-xs">
+        {reminder.lead && (
+          <span className="text-muted-foreground truncate">Lead: {reminder.lead.name}</span>
+        )}
+        <span className={`ml-auto font-medium ${due.urgent ? "text-red-500" : "text-muted-foreground"}`}>
+          {due.label} · {due.sub}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+export default function ReminderList() {
+  const [page, setPage] = useState(1);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editReminder, setEditReminder] = useState<Reminder | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+
+  const { data, isLoading } = useMyReminders(page, 50);
   const completeMutation = useCompleteReminder();
   const deleteMutation = useDeleteReminder();
 
-  const dueDate = new Date(reminder.dueAt);
-  const isOverdue = reminder.status === "PENDING" && dueDate < new Date();
-
-  return (
-    <div
-      className={`flex items-start gap-3 p-4 rounded-lg border ${isOverdue ? "border-red-200 bg-red-50/40" : "bg-card"}`}
-    >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          <span className="text-sm font-medium truncate">{reminder.title}</span>
-          <span
-            className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${PRIORITY_COLORS[reminder.priority]}`}
-          >
-            {reminder.priority}
-          </span>
-          <span
-            className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLORS[reminder.status]}`}
-          >
-            {reminder.status}
-          </span>
-        </div>
-
-        {reminder.description && (
-          <p className="text-xs text-muted-foreground mb-1">
-            {reminder.description}
-          </p>
-        )}
-
-        {reminder.lead && (
-          <button
-            onClick={() => onLeadClick(toLeadShape(reminder.lead!))}
-            className="inline-flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 hover:underline mb-1"
-          >
-            <User size={11} />
-            {reminder.lead.name} · {reminder.lead.mobile}
-          </button>
-        )}
-
-        <p
-          className={`text-xs ${isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}
-        >
-          {isOverdue ? "Overdue · " : "Due · "}
-          {dueDate.toLocaleString([], {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
-        </p>
-      </div>
-
-      <div className="flex gap-1 shrink-0">
-        {reminder.status === "PENDING" && (
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            className="text-green-600 hover:text-green-700"
-            disabled={completeMutation.isPending}
-            onClick={() => completeMutation.mutate(reminder.id)}
-            title="Mark complete"
-          >
-            <Check size={15} />
-          </Button>
-        )}
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          className="text-red-400 hover:text-red-600"
-          disabled={deleteMutation.isPending}
-          onClick={() => deleteMutation.mutate(reminder.id)}
-          title="Delete"
-        >
-          <Trash2 size={15} />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function Section({
-  title,
-  items,
-  onLeadClick,
-}: {
-  title: string;
-  items: Reminder[];
-  onLeadClick: (lead: Lead) => void;
-}) {
-  if (items.length === 0) return null;
-  return (
-    <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-        {title} ({items.length})
-      </h3>
-      {items.map((r) => (
-        <ReminderCard key={r.id} reminder={r} onLeadClick={onLeadClick} />
-      ))}
-    </div>
-  );
-}
-
-export default function ReminderList() {
-  const { data, isLoading } = useMyReminders(1, 50);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-
-  if (isLoading)
-    return (
-      <p className="text-sm text-muted-foreground">Loading reminders...</p>
-    );
-
   const all = data?.items ?? [];
 
+  // Client-side filter (all reminders are fetched at once)
+  const reminders = all.filter((r) => {
+    if (statusFilter !== "all" && r.status !== statusFilter) return false;
+    if (priorityFilter !== "all" && r.priority !== priorityFilter) return false;
+    if (typeFilter !== "all" && r.type !== typeFilter) return false;
+    return true;
+  });
+
   const now = new Date();
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
 
-  const overdue = all.filter(
-    (r) => r.status === "PENDING" && new Date(r.dueAt) < now,
-  );
-  const today = all.filter(
-    (r) =>
-      r.status === "PENDING" &&
-      new Date(r.dueAt) >= now &&
-      new Date(r.dueAt) <= todayEnd,
-  );
-  const upcoming = all.filter(
-    (r) => r.status === "PENDING" && new Date(r.dueAt) > todayEnd,
-  );
-  const completed = all.filter((r) => r.status === "COMPLETED");
-  const missed = all.filter(
-    (r) => r.status === "PENDING" && new Date(r.dueAt) < now,
-  );
-
-  if (all.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-2 py-16 text-muted-foreground">
-        <Bell size={32} className="opacity-30" />
-        <p className="text-sm">No reminders yet</p>
-      </div>
-    );
-  }
+  const statOverdue = all.filter((r) => r.status === "PENDING" && new Date(r.dueAt) < now).length;
+  const statToday = all.filter((r) => r.status === "PENDING" && new Date(r.dueAt) >= now && new Date(r.dueAt) <= todayEnd).length;
+  const statPending = all.filter((r) => r.status === "PENDING").length;
+  const statCompleted = all.filter((r) => r.status === "COMPLETED").length;
 
   return (
-    <>
-      <div className="space-y-6">
-        <Section
-          title="Overdue"
-          items={overdue}
-          onLeadClick={setSelectedLead}
-        />
-        <Section title="Today" items={today} onLeadClick={setSelectedLead} />
-        <Section
-          title="Upcoming"
-          items={upcoming}
-          onLeadClick={setSelectedLead}
-        />
-        <Section title="Missed" items={missed} onLeadClick={setSelectedLead} />
-        <Section
-          title="Completed"
-          items={completed}
-          onLeadClick={setSelectedLead}
-        />
+    <div>
+      <PageHeader title="Reminders" />
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: "Total", value: all.length, icon: <Bell size={20} className="text-blue-500" />, bg: "bg-blue-50" },
+          { label: "Overdue", value: statOverdue, icon: <XCircle size={20} className="text-red-500" />, bg: "bg-red-50" },
+          { label: "Due Today", value: statToday, icon: <Clock size={20} className="text-orange-500" />, bg: "bg-orange-50" },
+          { label: "Completed", value: statCompleted, icon: <CheckCircle size={20} className="text-green-500" />, bg: "bg-green-50" },
+        ].map((c) => (
+          <div key={c.label} className={`rounded-xl border p-3 flex items-center gap-3 ${c.bg}`}>
+            <div className="shrink-0">{c.icon}</div>
+            <div>
+              <p className="text-xs text-muted-foreground">{c.label}</p>
+              <p className="text-xl font-bold">{c.value}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <LeadDetailDrawer
-        lead={selectedLead}
-        open={!!selectedLead}
-        onClose={() => setSelectedLead(null)}
-      />
-    </>
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-32 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <SelectTrigger className="w-28 text-xs"><SelectValue placeholder="Priority" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Priority</SelectItem>
+            {PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-28 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <div className="ml-auto">
+          <Button size="sm" onClick={() => setCreateOpen(true)}>+ Create Reminder</Button>
+        </div>
+      </div>
+
+      {/* Create dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>New Reminder</DialogTitle></DialogHeader>
+          <CreateReminderForm onSuccess={() => setCreateOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editReminder} onOpenChange={(o) => { if (!o) setEditReminder(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Reminder</DialogTitle></DialogHeader>
+          {editReminder && (
+            <EditReminderForm reminder={editReminder} onSuccess={() => setEditReminder(null)} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Loading...</p>
+        ) : reminders.length === 0 ? (
+          <div className="text-center py-12">
+            <Bell size={36} className="mx-auto text-muted-foreground opacity-30 mb-3" />
+            <p className="text-muted-foreground text-sm">No reminders found</p>
+          </div>
+        ) : (
+          reminders.map((r) => (
+            <MobileReminderCard
+              key={r.id}
+              reminder={r}
+              onEdit={setEditReminder}
+              onComplete={(id) => completeMutation.mutate(id)}
+              onDelete={(id) => deleteMutation.mutate(id)}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Due</TableHead>
+              <TableHead>Linked To</TableHead>
+              <TableHead className="w-12" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">Loading...</TableCell>
+              </TableRow>
+            ) : reminders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-12">
+                  <Bell size={36} className="mx-auto text-muted-foreground opacity-30 mb-2" />
+                  <p className="text-muted-foreground text-sm">No reminders found</p>
+                </TableCell>
+              </TableRow>
+            ) : (
+              reminders.map((r) => {
+                const overdue = isOverdue(r);
+                const due = formatDue(r.dueAt);
+                return (
+                  <TableRow key={r.id} className={overdue ? "bg-red-50/40" : ""}>
+                    <TableCell className="py-3 max-w-xs">
+                      <p className={`font-medium text-sm ${r.status === "COMPLETED" ? "line-through text-muted-foreground" : ""}`}>
+                        {r.title}
+                      </p>
+                      {r.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{r.description}</p>
+                      )}
+                    </TableCell>
+
+                    <TableCell className="py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TYPE_STYLES[r.type]}`}>
+                        {r.type}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className="py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${PRIORITY_STYLES[r.priority]}`}>
+                        {r.priority}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className="py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[r.status]}`}>
+                        {r.status}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className="py-3">
+                      <p className={`text-sm font-medium ${due.urgent ? "text-red-500" : "text-foreground"}`}>
+                        {due.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{due.sub}</p>
+                    </TableCell>
+
+                    <TableCell className="py-3">
+                      {r.lead ? (
+                        <span className="text-xs text-muted-foreground">Lead: {r.lead.name}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+
+                    <TableCell className="py-3">
+                      <ReminderActions
+                        reminder={r}
+                        onEdit={setEditReminder}
+                        onComplete={(id) => completeMutation.mutate(id)}
+                        onDelete={(id) => deleteMutation.mutate(id)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {statPending > 0 && (
+        <p className="text-xs text-muted-foreground mt-3 text-right">
+          {statPending} pending reminder{statPending !== 1 ? "s" : ""}
+        </p>
+      )}
+    </div>
   );
 }
