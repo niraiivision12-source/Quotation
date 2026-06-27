@@ -413,6 +413,15 @@ function MobileLeadCard({
           {lead.city && (
             <p className="text-sm text-foreground/60">{lead.city}</p>
           )}
+          {lead.quotations && lead.quotations.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {[...new Set(lead.quotations.map((q: { phase: string }) => q.phase))].map((phase) => (
+                <span key={phase} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 leading-tight">
+                  {phase.charAt(0) + phase.slice(1).toLowerCase()}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -471,6 +480,7 @@ export default function LeadList() {
     city?: string;
     dateFrom?: string;
     dateTo?: string;
+    phase?: string;
   }>({});
 
   useEffect(() => {
@@ -729,6 +739,18 @@ export default function LeadList() {
           className="w-24 text-xs"
           onChange={(e) => setFilter("city", e.target.value || undefined)}
         />
+
+        <Select value={filters.phase ?? "all"} onValueChange={(v) => setFilter("phase", v === "all" ? undefined : v)}>
+          <SelectTrigger className="w-28 text-xs"><SelectValue placeholder="Phase" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Phases</SelectItem>
+            <SelectItem value="PIPES">Pipes</SelectItem>
+            <SelectItem value="WIRING">Wiring</SelectItem>
+            <SelectItem value="SWITCHES">Switches</SelectItem>
+            <SelectItem value="LIGHTS">Lights</SelectItem>
+            <SelectItem value="FANS">Fans</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Filter bar — row 3: date filters */}
@@ -840,6 +862,14 @@ export default function LeadList() {
             <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
               City: {filters.city}
               <button onClick={() => setFilter("city", undefined)}>
+                <X size={10} />
+              </button>
+            </span>
+          )}
+          {filters.phase && (
+            <span className="inline-flex items-center gap-1 text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
+              Phase: {filters.phase.charAt(0) + filters.phase.slice(1).toLowerCase()}
+              <button onClick={() => setFilter("phase", undefined)}>
                 <X size={10} />
               </button>
             </span>
@@ -1026,6 +1056,15 @@ export default function LeadList() {
                           <p className="text-xs text-foreground/60 truncate">
                             {lead.city}
                           </p>
+                        )}
+                        {lead.quotations && lead.quotations.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {[...new Set(lead.quotations.map((q: { phase: string }) => q.phase))].map((phase) => (
+                              <span key={phase} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 leading-tight">
+                                {phase.charAt(0) + phase.slice(1).toLowerCase()}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
