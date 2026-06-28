@@ -345,14 +345,16 @@ export class LeadService {
       throw new AppError("Lead not found", 404);
     }
 
-    if (lead.status === LeadStatus.WON) {
+    const existingCustomerForLead = await prisma.customer.findFirst({
+      where: { leadId: lead.id },
+    });
+
+    if (existingCustomerForLead) {
       throw new AppError("Lead already converted", 409);
     }
 
     const existingCustomer = await prisma.customer.findUnique({
-      where: {
-        mobile: lead.mobile,
-      },
+      where: { mobile: lead.mobile },
     });
 
     if (existingCustomer) {
