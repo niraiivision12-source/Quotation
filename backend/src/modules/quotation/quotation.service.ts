@@ -307,7 +307,7 @@ export class QuotationService {
           data: {
             leadId: quotation.leadId,
             userId,
-            type: "NOTE_ADDED",
+            type: "UPDATED",
             message: "Note added from quotation creation",
           },
         });

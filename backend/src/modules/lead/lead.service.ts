@@ -532,7 +532,7 @@ export class LeadService {
             data: {
               leadId: lead.id,
               userId,
-              type: "NOTE_ADDED",
+              type: "UPDATED",
               message: "Note added",
             },
           });
@@ -595,7 +595,7 @@ export class LeadService {
               data: {
                 leadId: lead.id,
                 userId,
-                type: "NOTE_ADDED",
+                type: "UPDATED",
                 message: "Note added",
               },
             });
@@ -665,7 +665,7 @@ export class LeadService {
             data: {
               leadId: lead.id,
               userId,
-              type: "NOTE_ADDED",
+              type: "UPDATED",
               message: "Note added",
             },
           });
@@ -737,7 +737,7 @@ export class LeadService {
             data: {
               leadId: lead.id,
               userId,
-              type: "NOTE_ADDED",
+              type: "UPDATED",
               message: "Note added",
             },
           });
@@ -793,7 +793,7 @@ export class LeadService {
             data: {
               leadId: lead.id,
               userId,
-              type: "NOTE_ADDED",
+              type: "UPDATED",
               message: "Note added",
             },
           });
@@ -814,7 +814,7 @@ export class LeadService {
             data: {
               leadId: lead.id,
               userId,
-              type: "NOTE_ADDED",
+              type: "UPDATED",
               message: "Note added",
             },
           });
