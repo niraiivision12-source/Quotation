@@ -96,34 +96,44 @@ function InfoCard({
 
 // ─── Activity timeline ─────────────────────────────────────────────────────────
 const ACTIVITY_ICON: Record<LeadActivityType, React.ReactNode> = {
-  CREATED: <span className="text-xs">✦</span>,
+  CREATED: <span className="text-[10px] font-bold">NEW</span>,
   STATUS_CHANGED: <span className="text-xs">⇄</span>,
-  FOLLOW_UP_SET: <Calendar size={12} />,
-  FOLLOW_UP_COMPLETED: <Check size={12} />,
-  CONVERTED: <span className="text-xs">🎉</span>,
+  FOLLOW_UP_SET: <Calendar size={11} />,
+  FOLLOW_UP_COMPLETED: <Check size={11} />,
+  CONVERTED: <Check size={11} />,
   REOPENED: <span className="text-xs">↩</span>,
-  NOTE_ADDED: <span className="text-xs">📝</span>,
-  LOST: <span className="text-xs">❌</span>,
-  QUOTATION_CREATED: <span className="text-xs">📄</span>,
-  QUOTATION_SENT: <span className="text-xs">📤</span>,
-  QUOTATION_APPROVED: <span className="text-xs">✅</span>,
-  QUOTATION_REJECTED: <span className="text-xs">🚫</span>,
+  NOTE_ADDED: <FileText size={11} />,
+  LOST: <span className="text-xs">✕</span>,
+  QUOTATION_CREATED: <FileText size={11} />,
+  QUOTATION_SENT: <FileText size={11} />,
+  QUOTATION_APPROVED: <Check size={11} />,
+  QUOTATION_REJECTED: <span className="text-xs">✕</span>,
 };
 
-const ACTIVITY_BG: Record<LeadActivityType, string> = {
-  CREATED: "bg-blue-500",
-  STATUS_CHANGED: "bg-orange-400",
-  FOLLOW_UP_SET: "bg-violet-500",
-  FOLLOW_UP_COMPLETED: "bg-green-500",
-  CONVERTED: "bg-green-600",
-  REOPENED: "bg-yellow-500",
-  NOTE_ADDED: "bg-gray-400",
-  LOST: "bg-red-500",
-  QUOTATION_CREATED: "bg-sky-500",
-  QUOTATION_SENT: "bg-indigo-500",
-  QUOTATION_APPROVED: "bg-green-500",
-  QUOTATION_REJECTED: "bg-red-600",
+const ACTIVITY_COLOR: Record<LeadActivityType, string> = {
+  CREATED: "bg-blue-100 text-blue-600 border-blue-200",
+  STATUS_CHANGED: "bg-orange-100 text-orange-600 border-orange-200",
+  FOLLOW_UP_SET: "bg-violet-100 text-violet-600 border-violet-200",
+  FOLLOW_UP_COMPLETED: "bg-green-100 text-green-600 border-green-200",
+  CONVERTED: "bg-green-100 text-green-600 border-green-200",
+  REOPENED: "bg-yellow-100 text-yellow-600 border-yellow-200",
+  NOTE_ADDED: "bg-gray-100 text-gray-500 border-gray-200",
+  LOST: "bg-red-100 text-red-500 border-red-200",
+  QUOTATION_CREATED: "bg-sky-100 text-sky-600 border-sky-200",
+  QUOTATION_SENT: "bg-indigo-100 text-indigo-600 border-indigo-200",
+  QUOTATION_APPROVED: "bg-green-100 text-green-600 border-green-200",
+  QUOTATION_REJECTED: "bg-red-100 text-red-500 border-red-200",
 };
+
+function getDateLabel(date: Date): string {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return "TODAY";
+  if (date.toDateString() === yesterday.toDateString()) return "YESTERDAY";
+  return date.toLocaleDateString([], { day: "numeric", month: "long", year: "numeric" }).toUpperCase();
+}
 
 function Timeline({ activities }: { activities: LeadActivity[] }) {
   if (activities.length === 0) {
@@ -131,29 +141,66 @@ function Timeline({ activities }: { activities: LeadActivity[] }) {
       <p className="text-sm text-muted-foreground py-6">No activity yet.</p>
     );
   }
+
+  // Group by date
+  const groups: { label: string; items: LeadActivity[] }[] = [];
+  for (const a of activities) {
+    const label = getDateLabel(new Date(a.createdAt));
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) {
+      last.items.push(a);
+    } else {
+      groups.push({ label, items: [a] });
+    }
+  }
+
   return (
-    <div>
-      {activities.map((a, index) => (
-        <div key={a.id} className="flex gap-3">
-          <div className="flex flex-col items-center shrink-0">
-            <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-white ${ACTIVITY_BG[a.type]}`}
-            >
-              {ACTIVITY_ICON[a.type]}
-            </div>
-            {index < activities.length - 1 && (
-              <div className="w-px flex-1 bg-border mt-1" />
-            )}
+    <div className="space-y-6">
+      {groups.map((group) => (
+        <div key={group.label}>
+          {/* Date header */}
+          <div className="flex items-center gap-2 mb-4 ml-16">
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" />
+            <span className="text-xs font-semibold text-muted-foreground tracking-widest">
+              {group.label}
+            </span>
           </div>
-          <div className="pb-5 flex-1 min-w-0">
-            <p className="text-sm font-medium leading-snug">{a.message}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {new Date(a.createdAt).toLocaleString([], {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}{" "}
-              · {a.user?.name ?? "System"}
-            </p>
+
+          {/* Activities */}
+          <div>
+            {group.items.map((a, index) => (
+              <div key={a.id} className="flex items-start gap-0">
+                {/* Time */}
+                <div className="w-16 shrink-0 text-right pr-3 pt-0.5">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {new Date(a.createdAt).toLocaleTimeString([], { timeStyle: "short" })}
+                  </span>
+                </div>
+
+                {/* Line + dot */}
+                <div className="flex flex-col items-center shrink-0 w-8">
+                  <div className="w-3 h-3 rounded-full border-2 border-gray-300 bg-white shrink-0 mt-0.5" />
+                  {index < group.items.length - 1 && (
+                    <div className="w-px flex-1 bg-gray-200 mt-0.5" style={{ minHeight: "32px" }} />
+                  )}
+                </div>
+
+                {/* Icon + content */}
+                <div className="flex items-start gap-2.5 pb-5 flex-1 min-w-0">
+                  <div
+                    className={`w-7 h-7 rounded-md border flex items-center justify-center shrink-0 ${ACTIVITY_COLOR[a.type]}`}
+                  >
+                    {ACTIVITY_ICON[a.type]}
+                  </div>
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-sm text-gray-800 leading-snug">{a.message}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {a.user?.name ?? "System"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ))}
@@ -487,7 +534,7 @@ export default function LeadDetailPage() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="w-full">
       {/* Back button */}
       <button
         onClick={() => navigate("/leads")}
@@ -538,15 +585,17 @@ export default function LeadDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left column: Info + Status */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Info grid */}
-          <div className="bg-white border rounded-xl p-4">
+      {/* Single card: Lead Info (left) + Tabs (right) */}
+      <div className="bg-white border rounded-xl overflow-hidden flex flex-col lg:flex-row">
+
+        {/* Left: Lead Info */}
+        <div className="lg:w-80 shrink-0 border-b lg:border-b-0 lg:border-r p-5 space-y-5">
+          {/* Info fields */}
+          <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
               Lead Info
             </h2>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="space-y-3">
               <InfoCard label="Source" value={lead.source} />
               <InfoCard
                 label="Lead Created On"
@@ -556,13 +605,15 @@ export default function LeadDetailPage() {
                   year: "numeric",
                 })}
               />
-              <InfoCard label="Contact Owner" value={lead.assignedTo?.name} />
+              <InfoCard label="Assigned To" value={lead.assignedTo?.name} />
               <InfoCard label="Email" value={lead.email} />
             </div>
           </div>
 
+          <div className="border-t" />
+
           {/* Status */}
-          <div className="bg-white border rounded-xl p-4">
+          <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
               Status
             </h2>
@@ -571,17 +622,21 @@ export default function LeadDetailPage() {
 
           {/* Notes */}
           {lead.notes && (
-            <div className="bg-white border rounded-xl p-4">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Notes
-              </h2>
-              <p className="text-sm whitespace-pre-wrap">{lead.notes}</p>
-            </div>
+            <>
+              <div className="border-t" />
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Notes
+                </h2>
+                <p className="text-sm whitespace-pre-wrap">{lead.notes}</p>
+              </div>
+            </>
           )}
 
           {/* Follow-up */}
           {lead.nextFollowUpAt && (
-            <div className="bg-white border rounded-xl p-4">
+            <>
+              <div className="border-t" />
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-violet-100">
                   <Calendar size={16} className="text-violet-600" />
@@ -602,24 +657,27 @@ export default function LeadDetailPage() {
                   </p>
                 </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Converted customer */}
           {lead.customer && (
-            <div className="bg-white border rounded-xl p-4">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Converted Customer
-              </h2>
-              <p className="text-sm font-medium">{lead.customer.name}</p>
-            </div>
+            <>
+              <div className="border-t" />
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Converted Customer
+                </h2>
+                <p className="text-sm font-medium">{lead.customer.name}</p>
+              </div>
+            </>
           )}
         </div>
 
-        {/* Right column: Tabs */}
-        <div className="lg:col-span-2 bg-white border rounded-xl overflow-hidden">
+        {/* Right: Tabs */}
+        <div className="flex-1 flex flex-col min-h-[500px]">
           {/* Tab bar */}
-          <div className="flex border-b px-4">
+          <div className="flex border-b px-4 shrink-0">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
@@ -638,7 +696,7 @@ export default function LeadDetailPage() {
             ))}
           </div>
 
-          <div className="p-5">
+          <div className="p-5 overflow-y-auto">
             {activeTab === "timeline" && (
               <Timeline activities={activities} />
             )}
