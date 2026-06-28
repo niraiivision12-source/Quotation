@@ -178,6 +178,7 @@ export class LeadService {
       city?: string;
       dateFrom?: string;
       dateTo?: string;
+      phase?: string;
     },
   ) {
     const skip = (page - 1) * limit;
@@ -194,6 +195,11 @@ export class LeadService {
         createdAt: {
           ...(filters.dateFrom && { gte: new Date(filters.dateFrom) }),
           ...(filters.dateTo && { lte: new Date(filters.dateTo) }),
+        },
+      }),
+      ...(filters?.phase && {
+        quotations: {
+          some: { phase: filters.phase as ProjectPhase },
         },
       }),
       ...(search && {
@@ -217,6 +223,11 @@ export class LeadService {
             select: {
               id: true,
               name: true,
+            },
+          },
+          quotations: {
+            select: {
+              phase: true,
             },
           },
         },

@@ -13,6 +13,7 @@ export const getLeads = async (
     city?: string;
     dateFrom?: string;
     dateTo?: string;
+    phase?: string;
   },
 ): Promise<LeadListResponse> => {
   const response = await api.get("/leads", {

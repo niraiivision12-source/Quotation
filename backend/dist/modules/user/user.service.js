@@ -39,9 +39,6 @@ class UserService {
         const skip = (page - 1) * limit;
         const [users, total] = await Promise.all([
             prisma_1.prisma.user.findMany({
-                where: {
-                    isActive: true,
-                },
                 skip,
                 take: limit,
                 select: {
@@ -56,11 +53,7 @@ class UserService {
                     createdAt: "desc",
                 },
             }),
-            prisma_1.prisma.user.count({
-                where: {
-                    isActive: true,
-                },
-            }),
+            prisma_1.prisma.user.count(),
         ]);
         return {
             items: users,

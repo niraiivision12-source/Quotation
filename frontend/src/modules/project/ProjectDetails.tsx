@@ -85,7 +85,7 @@ export default function ProjectDetails() {
       )}
       {activeTab === "quotations" && <ProjectQuotations />}
       {activeTab === "reminders" && <ProjectReminders />}
-      {activeTab === "tasks" && <ProjectTasks />}
+      {activeTab === "tasks" && <ProjectTasks projectId={id || ""} />}
     </div>
   );
 }

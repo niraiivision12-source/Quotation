@@ -7,6 +7,7 @@ import AppLayout from "@/layouts/AppLayout";
 import CustomerDetailsPage from "@/pages/CustomerDetailsPage";
 import CustomerPage from "@/pages/CustomerPage";
 import DashboardPage from "@/pages/DashboardPage";
+import LeadDetailPage from "@/pages/LeadDetailPage";
 import LeadPage from "@/pages/LeadPage";
 import LoginPage from "@/pages/LoginPage";
 import ProjectDetailsPage from "@/pages/ProjectDetailsPage";
@@ -41,6 +42,8 @@ export default function AppRouter() {
           <Route path="/projects/:id" element={<ProjectDetailsPage />} />
 
           <Route path="/leads" element={<LeadPage />} />
+
+          <Route path="/leads/:id" element={<LeadDetailPage />} />
 
           <Route path="/reminders" element={<ReminderPage />} />
 

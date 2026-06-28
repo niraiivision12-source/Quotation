@@ -162,6 +162,11 @@ class LeadService {
                     ...(filters.dateTo && { lte: new Date(filters.dateTo) }),
                 },
             }),
+            ...(filters?.phase && {
+                quotations: {
+                    some: { phase: filters.phase },
+                },
+            }),
             ...(search && {
                 OR: [
                     { name: { contains: search, mode: "insensitive" } },
@@ -182,6 +187,11 @@ class LeadService {
                         select: {
                             id: true,
                             name: true,
+                        },
+                    },
+                    quotations: {
+                        select: {
+                            phase: true,
                         },
                     },
                 },

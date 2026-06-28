@@ -47,9 +47,6 @@ export class UserService {
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
-        where: {
-          isActive: true,
-        },
         skip,
         take: limit,
         select: {
@@ -65,11 +62,7 @@ export class UserService {
         },
       }),
 
-      prisma.user.count({
-        where: {
-          isActive: true,
-        },
-      }),
+      prisma.user.count(),
     ]);
 
     return {

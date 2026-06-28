@@ -1,3 +1,5 @@
+import TaskList from "@/modules/task/TaskList";
+
 export default function TaskPage() {
-  return <div>Tasks</div>;
+  return <TaskList />;
 }

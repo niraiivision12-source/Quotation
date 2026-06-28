@@ -7,6 +7,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaFacebook,
   FaInstagram,
@@ -51,7 +52,6 @@ import { useAuthStore } from "@/store/auth.store";
 
 import { CopyPhone } from "@/components/ui/CopyPhone";
 import { useUsers } from "../user/user.query";
-import LeadDetailDrawer from "./LeadDetailDrawer";
 import LeadForm from "./LeadForm";
 import { getLeads } from "./lead.api";
 import {
@@ -445,6 +445,7 @@ function MobileLeadCard({
 
 export default function LeadList() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
 
   const [page, _setPage] = useState(1);
 
@@ -456,7 +457,6 @@ export default function LeadList() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [datePreset, setDatePreset] = useState<string>("all");
   const [myLeads, setMyLeads] = useState(false);
   const [activeStatCard, setActiveStatCard] = useState<StatCardKey | null>(
@@ -464,6 +464,7 @@ export default function LeadList() {
   );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAssignUserId, setBulkAssignUserId] = useState<string>("");
+  const [pendingStatus, setPendingStatus] = useState<{ leadId: string; leadName: string; from: string; to: string } | null>(null);
   const [filters, setFilters] = useState<{
     source?: string;
     status?: string;
@@ -729,6 +730,7 @@ export default function LeadList() {
           className="w-24 text-xs"
           onChange={(e) => setFilter("city", e.target.value || undefined)}
         />
+
       </div>
 
       {/* Filter bar — row 3: date filters */}
@@ -921,10 +923,11 @@ export default function LeadList() {
             lead={lead}
             selected={selectedIds.has(lead.id)}
             onSelect={toggleSelect}
-            onOpen={setSelectedLead}
-            onStatusChange={(id, status) =>
-              updateMutation.mutate({ id, data: { status } })
-            }
+            onOpen={(l) => navigate(`/leads/${l.id}`, { state: { ids: data?.items.map((i) => i.id) ?? [] } })}
+            onStatusChange={(id, status) => {
+              const l = data?.items.find((i) => i.id === id);
+              if (l) setPendingStatus({ leadId: id, leadName: l.name, from: l.status, to: status });
+            }}
           />
         ))}
       </div>
@@ -998,7 +1001,7 @@ export default function LeadList() {
                 <TableRow
                   key={lead.id}
                   className={`cursor-pointer hover:bg-muted/50 group ${isOverdue ? "border-l-2 border-l-red-400" : ""} ${selectedIds.has(lead.id) ? "bg-violet-50" : ""}`}
-                  onClick={() => setSelectedLead(lead)}
+                  onClick={() => navigate(`/leads/${lead.id}`, { state: { ids: data?.items.map((i) => i.id) ?? [] } })}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
@@ -1060,10 +1063,7 @@ export default function LeadList() {
                     <Select
                       value={lead.status}
                       onValueChange={(val) =>
-                        updateMutation.mutate({
-                          id: lead.id,
-                          data: { status: val },
-                        })
+                        setPendingStatus({ leadId: lead.id, leadName: lead.name, from: lead.status, to: val })
                       }
                     >
                       <SelectTrigger
@@ -1183,11 +1183,37 @@ export default function LeadList() {
         </div>
       </div>
 
-      <LeadDetailDrawer
-        lead={selectedLead}
-        open={!!selectedLead}
-        onClose={() => setSelectedLead(null)}
-      />
+      {/* Status change confirmation */}
+      <Dialog open={!!pendingStatus} onOpenChange={(o) => { if (!o) setPendingStatus(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change Status?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Change <span className="font-semibold text-foreground">{pendingStatus?.leadName}</span>'s status from{" "}
+            <span className="font-semibold text-foreground">{pendingStatus?.from.replace(/_/g, " ")}</span> to{" "}
+            <span className="font-semibold text-foreground">{pendingStatus?.to.replace(/_/g, " ")}</span>?
+          </p>
+          <div className="flex gap-2 mt-2">
+            <Button
+              size="sm"
+              disabled={updateMutation.isPending}
+              onClick={() => {
+                if (!pendingStatus) return;
+                updateMutation.mutate(
+                  { id: pendingStatus.leadId, data: { status: pendingStatus.to } },
+                  { onSettled: () => setPendingStatus(null) }
+                );
+              }}
+            >
+              {updateMutation.isPending ? "Saving..." : "Confirm"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setPendingStatus(null)}>
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

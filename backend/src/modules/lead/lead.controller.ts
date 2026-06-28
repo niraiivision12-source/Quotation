@@ -37,6 +37,7 @@ export class LeadController {
       city: req.query.city?.toString(),
       dateFrom: req.query.dateFrom?.toString(),
       dateTo: req.query.dateTo?.toString(),
+      phase: req.query.phase?.toString(),
     };
 
     const leads = await LeadService.getAll(page, limit, search, filters);

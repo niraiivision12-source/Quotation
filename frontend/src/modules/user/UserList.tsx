@@ -195,7 +195,7 @@ export default function UserList() {
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const { data, isLoading } = useUsers(page);
+  const { data, isLoading, isError, error } = useUsers(page);
 
   return (
     <div>
@@ -239,7 +239,20 @@ export default function UserList() {
               </TableRow>
             )}
 
-            {!isLoading && data?.items.length === 0 && (
+            {isError && (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="text-center py-10 text-red-500"
+                >
+                  {(error as { response?: { status?: number } })?.response?.status === 403
+                    ? "You don't have permission to view users."
+                    : "Failed to load users. Please try again."}
+                </TableCell>
+              </TableRow>
+            )}
+
+            {!isLoading && !isError && data?.items.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={5}

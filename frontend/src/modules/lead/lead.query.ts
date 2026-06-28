@@ -22,6 +22,7 @@ export const useLeads = (
     city?: string;
     dateFrom?: string;
     dateTo?: string;
+    phase?: string;
   },
   limit = 20,
 ) => {
