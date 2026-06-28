@@ -1,4 +1,4 @@
-export type ReminderStatus = "PENDING" | "COMPLETED" | "MISSED";
+export type ReminderStatus = "PENDING" | "COMPLETED" | "MISSED" | "CANCELLED";
 export type ReminderType =
   | "LEAD"
   | "PROJECT"

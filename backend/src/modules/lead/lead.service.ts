@@ -1,12 +1,12 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
-import { LeadStatus, LifecycleStatus, ProjectPhase, Prisma, ReminderPriority } from "@prisma/client";
+import { LeadStatus, LifecycleStatus, ProjectPhase, Prisma, ReminderPriority, ReminderStatus } from "@prisma/client";
 
 async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: string) {
   const nextReminder = await tx.reminder.findFirst({
     where: {
       leadId,
-      status: "PENDING",
+      status: ReminderStatus.PENDING,
     },
     orderBy: {
       dueAt: "asc",
@@ -19,6 +19,51 @@ async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: stri
       nextFollowUpAt: nextReminder ? nextReminder.dueAt : null,
     },
   });
+}
+
+async function createNewReminder(tx: Prisma.TransactionClient, leadId: string, userId: string, data: { title: string, description?: string, dueAt: Date, priority: ReminderPriority }) {
+  const currentPending = await tx.reminder.findFirst({
+    where: { leadId, status: ReminderStatus.PENDING },
+  });
+
+  if (currentPending) {
+    await tx.reminder.update({
+      where: { id: currentPending.id },
+      data: { status: ReminderStatus.CANCELLED },
+    });
+
+    await tx.leadActivity.create({
+      data: {
+        leadId,
+        userId,
+        type: "UPDATED",
+        message: `Cancelled previous pending reminder: ${currentPending.title}`,
+      },
+    });
+  }
+
+  const reminder = await tx.reminder.create({
+    data: {
+      title: data.title,
+      description: data.description,
+      type: "LEAD",
+      priority: data.priority,
+      dueAt: data.dueAt,
+      userId,
+      leadId,
+    },
+  });
+
+  await tx.leadActivity.create({
+    data: {
+      leadId,
+      userId,
+      type: "REMINDER_CREATED",
+      message: `Reminder created: ${reminder.title}`,
+    },
+  });
+
+  return reminder;
 }
 
 export class LeadService {
@@ -496,6 +541,20 @@ export class LeadService {
 
     return prisma.$transaction(async (tx) => {
       if (isStatusChanged) {
+        const allowedTransitions: Record<LeadStatus, LeadStatus[]> = {
+          NEW: ["CONTACTED", "NOT_RESPONDING"],
+          CONTACTED: ["NOT_RESPONDING", "QUOTATION_SENT"],
+          NOT_RESPONDING: ["CONTACTED", "QUOTATION_SENT", "LOST"],
+          QUOTATION_SENT: ["NEGOTIATION", "LOST"],
+          NEGOTIATION: ["WON", "LOST"],
+          WON: [],
+          LOST: ["NOT_RESPONDING"]
+        };
+
+        if (!allowedTransitions[lead.status].includes(targetStatus!)) {
+          throw new AppError(`Cannot change lead status from ${lead.status} to ${targetStatus}`, 400);
+        }
+
         updateData.status = targetStatus;
 
         if (targetStatus === "CONTACTED") {
@@ -537,28 +596,14 @@ export class LeadService {
             },
           });
 
-          const reminder = await tx.reminder.create({
-            data: {
-              title: data.followUp?.title ?? `Follow up with ${lead.name}`,
-              description: data.followUp?.description,
-              type: "LEAD",
-              priority: data.followUp?.priority ?? "MEDIUM",
-              dueAt,
-              userId,
-              leadId: lead.id,
-            },
+          const reminder = await createNewReminder(tx, lead.id, userId, {
+            title: data.followUp?.title ?? `Follow up with ${lead.name}`,
+            description: data.followUp?.description,
+            priority: data.followUp?.priority ?? "MEDIUM",
+            dueAt,
           });
 
           updateData.nextFollowUpAt = reminder.dueAt;
-
-          await tx.leadActivity.create({
-            data: {
-              leadId: lead.id,
-              userId,
-              type: "REMINDER_CREATED",
-              message: `Reminder created: ${reminder.title}`,
-            },
-          });
         }
 
         else if (targetStatus === "NOT_RESPONDING") {
@@ -568,16 +613,11 @@ export class LeadService {
           }
           const dueAt = new Date(rawDueAt);
 
-          const reminder = await tx.reminder.create({
-            data: {
-              title: data.followUp?.title ?? `Follow up with ${lead.name} (Not Responding)`,
-              description: data.followUp?.description,
-              type: "LEAD",
-              priority: data.followUp?.priority ?? "MEDIUM",
-              dueAt,
-              userId,
-              leadId: lead.id,
-            },
+          const reminder = await createNewReminder(tx, lead.id, userId, {
+            title: data.followUp?.title ?? `Follow up with ${lead.name} (Not Responding)`,
+            description: data.followUp?.description,
+            priority: data.followUp?.priority ?? "MEDIUM",
+            dueAt,
           });
 
           updateData.nextFollowUpAt = reminder.dueAt;
@@ -610,19 +650,48 @@ export class LeadService {
               metadata: { oldStatus: lead.status, newStatus: "NOT_RESPONDING" },
             },
           });
+        }
 
+        else if (targetStatus === "QUOTATION_SENT") {
+          // It's allowed for post-quotation-creation popup.
+          if (!data.notes || data.notes.trim() === "") {
+            throw new AppError("Notes are required when status is QUOTATION_SENT", 400);
+          }
+          await tx.leadNote.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              note: data.notes,
+            },
+          });
           await tx.leadActivity.create({
             data: {
               leadId: lead.id,
               userId,
-              type: "REMINDER_CREATED",
-              message: `Reminder created: ${reminder.title}`,
+              type: "STATUS_CHANGED",
+              message: `Status changed from ${lead.status} to QUOTATION_SENT`,
+              metadata: { oldStatus: lead.status, newStatus: "QUOTATION_SENT" },
             },
           });
-        }
+          await tx.leadActivity.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              type: "UPDATED",
+              message: "Note added after quotation creation",
+            },
+          });
 
-        else if (targetStatus === "QUOTATION_SENT") {
-          throw new AppError("Cannot change status to QUOTATION_SENT directly. Please create a quotation instead.", 400);
+          if (data.followUpDate || data.followUp?.dueAt) {
+            const dueAt = new Date((data.followUpDate || data.followUp?.dueAt) as any);
+            const reminder = await createNewReminder(tx, lead.id, userId, {
+              title: data.followUp?.title ?? `Follow up with ${lead.name} (Quotation Sent)`,
+              description: data.followUp?.description,
+              priority: data.followUp?.priority ?? "MEDIUM",
+              dueAt,
+            });
+            updateData.nextFollowUpAt = reminder.dueAt;
+          }
         }
 
         else if (targetStatus === "NEGOTIATION") {
@@ -670,39 +739,20 @@ export class LeadService {
             },
           });
 
-          const reminder = await tx.reminder.create({
-            data: {
-              title: data.followUp?.title ?? `Follow up with ${lead.name} (Negotiation)`,
-              description: data.followUp?.description,
-              type: "LEAD",
-              priority: data.followUp?.priority ?? "MEDIUM",
-              dueAt,
-              userId,
-              leadId: lead.id,
-            },
+          const reminder = await createNewReminder(tx, lead.id, userId, {
+            title: data.followUp?.title ?? `Follow up with ${lead.name} (Negotiation)`,
+            description: data.followUp?.description,
+            priority: data.followUp?.priority ?? "MEDIUM",
+            dueAt,
           });
 
           updateData.nextFollowUpAt = reminder.dueAt;
-
-          await tx.leadActivity.create({
-            data: {
-              leadId: lead.id,
-              userId,
-              type: "REMINDER_CREATED",
-              message: `Reminder created: ${reminder.title}`,
-            },
-          });
         }
 
         else if (targetStatus === "LOST") {
           if (!data.notes || data.notes.trim() === "") {
             throw new AppError("Notes are required when status is LOST", 400);
           }
-          const rawDueAt = data.followUpDate || data.followUp?.dueAt;
-          if (!rawDueAt) {
-            throw new AppError("Follow-up date & time are required when status is LOST", 400);
-          }
-          const dueAt = new Date(rawDueAt);
 
           const allowedLostReasons = ["price", "competitor", "cancelled", "budget", "no response", "other"];
           if (!data.reason || !allowedLostReasons.includes(data.reason.toLowerCase())) {
@@ -742,28 +792,17 @@ export class LeadService {
             },
           });
 
-          const reminder = await tx.reminder.create({
-            data: {
+          const rawDueAt = data.followUpDate || data.followUp?.dueAt;
+          if (rawDueAt) {
+            const dueAt = new Date(rawDueAt);
+            const reminder = await createNewReminder(tx, lead.id, userId, {
               title: data.followUp?.title ?? `Follow up with ${lead.name} (Lost)`,
               description: data.followUp?.description,
-              type: "LEAD",
               priority: data.followUp?.priority ?? "MEDIUM",
               dueAt,
-              userId,
-              leadId: lead.id,
-            },
-          });
-
-          updateData.nextFollowUpAt = reminder.dueAt;
-
-          await tx.leadActivity.create({
-            data: {
-              leadId: lead.id,
-              userId,
-              type: "REMINDER_CREATED",
-              message: `Reminder created: ${reminder.title}`,
-            },
-          });
+            });
+            updateData.nextFollowUpAt = reminder.dueAt;
+          }
         }
 
         else if (targetStatus === "WON") {
@@ -821,27 +860,14 @@ export class LeadService {
         }
 
         if (data.followUp) {
-          const reminder = await tx.reminder.create({
-            data: {
-              title: data.followUp.title ?? `Follow up with ${lead.name}`,
-              description: data.followUp.description,
-              type: "LEAD",
-              priority: data.followUp.priority ?? "MEDIUM",
-              dueAt: new Date(data.followUp.dueAt),
-              userId,
-              leadId: lead.id,
-            },
+          const reminder = await createNewReminder(tx, lead.id, userId, {
+            title: data.followUp.title ?? `Follow up with ${lead.name}`,
+            description: data.followUp.description,
+            priority: data.followUp.priority ?? "MEDIUM",
+            dueAt: new Date(data.followUp.dueAt),
           });
-          await updateLeadNextFollowUp(tx, lead.id);
 
-          await tx.leadActivity.create({
-            data: {
-              leadId: lead.id,
-              userId,
-              type: "REMINDER_CREATED",
-              message: `Reminder created: ${reminder.title}`,
-            },
-          });
+          await updateLeadNextFollowUp(tx, lead.id);
         }
       }
 

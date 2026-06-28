@@ -336,12 +336,17 @@ const convertSchema = z.object({
 type ConvertForm = z.infer<typeof convertSchema>;
 
 function StatusSection({ lead }: { lead: Lead }) {
+  const navigate = useNavigate();
   const [convertOpen, setConvertOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<LeadStatus | null>(null);
   const convertMutation = useConvertLead();
   const form = useForm<ConvertForm>({ resolver: zodResolver(convertSchema) });
 
   const onChange = (status: string) => {
+    if (status === "QUOTATION_SENT") {
+      navigate(`/quotations?leadId=${lead.id}`);
+      return;
+    }
     setTargetStatus(status as LeadStatus);
   };
 
@@ -362,9 +367,21 @@ function StatusSection({ lead }: { lead: Lead }) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {LEAD_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>
-            ))}
+            {LEAD_STATUSES.map((s) => {
+              const allowedTransitions: Record<LeadStatus, LeadStatus[]> = {
+                NEW: ["NEW", "CONTACTED", "NOT_RESPONDING"],
+                CONTACTED: ["CONTACTED", "NOT_RESPONDING", "QUOTATION_SENT"],
+                NOT_RESPONDING: ["NOT_RESPONDING", "CONTACTED", "QUOTATION_SENT", "LOST"],
+                QUOTATION_SENT: ["QUOTATION_SENT", "NEGOTIATION", "LOST"],
+                NEGOTIATION: ["NEGOTIATION", "WON", "LOST"],
+                WON: ["WON"],
+                LOST: ["LOST", "NOT_RESPONDING"]
+              };
+              const allowed = allowedTransitions[lead.status] || [];
+              if (!allowed.includes(s)) return null;
+
+              return <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>;
+            })}
           </SelectContent>
         </Select>
         {lead.status === "WON" && !lead.customer && (
@@ -723,6 +740,7 @@ export default function LeadDetailPage() {
                                     <span className={`inline-flex px-2 py-0.5 rounded-full font-semibold ${
                                       reminder.status === "COMPLETED" ? "bg-green-100 text-green-700" :
                                       reminder.status === "MISSED" ? "bg-red-100 text-red-700" :
+                                      reminder.status === "CANCELLED" ? "bg-gray-100 text-gray-500" :
                                       "bg-yellow-100 text-yellow-700"
                                     }`}>
                                       {reminder.status}

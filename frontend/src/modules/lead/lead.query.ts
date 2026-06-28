@@ -88,6 +88,7 @@ export const useUpdateLead = () => {
     }) => updateLead(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead"] });
       queryClient.invalidateQueries({ queryKey: ["lead-stats"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
     },

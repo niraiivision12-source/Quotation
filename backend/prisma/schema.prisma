@@ -444,6 +444,7 @@ enum ReminderStatus {
   PENDING
   COMPLETED
   MISSED
+  CANCELLED
 }
 
 enum ReminderType {

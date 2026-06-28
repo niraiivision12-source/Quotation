@@ -64,6 +64,7 @@ const STATUS_STYLES: Record<ReminderStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-700",
   COMPLETED: "bg-green-100 text-green-700",
   MISSED: "bg-red-100 text-red-600",
+  CANCELLED: "bg-gray-100 text-gray-500",
 };
 
 const TYPE_STYLES: Record<ReminderType, string> = {
@@ -76,7 +77,7 @@ const TYPE_STYLES: Record<ReminderType, string> = {
 
 const TYPES: ReminderType[] = ["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK"];
 const PRIORITIES: ReminderPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
-const STATUSES: ReminderStatus[] = ["PENDING", "COMPLETED", "MISSED"];
+const STATUSES: ReminderStatus[] = ["PENDING", "COMPLETED", "MISSED", "CANCELLED"];
 
 function isOverdue(r: Reminder) {
   return r.status === "PENDING" && new Date(r.dueAt) < new Date();

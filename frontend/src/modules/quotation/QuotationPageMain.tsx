@@ -19,6 +19,7 @@ import { useAuthStore } from "@/store/auth.store";
 import QuotationInfoCard from "./components/QuotationInfoCard";
 import QuotationItemsTable from "./components/QuotationItemsTable";
 import QuotationPreviewDialog from "./components/QuotationPreviewDialog";
+import QuotationSentPopup from "./components/QuotationSentPopup";
 import { useCreateQuotation } from "./quotation.query";
 import { downloadQuotationPDF } from "./quotation.pdf";
 import { createEmptyQuotationRow } from "./quotation.utils";
@@ -40,7 +41,6 @@ export default function QuotationPageMain() {
   const [phase, setPhase] = useState<ProjectPhase | undefined>();
   const [validUntil, setValidUntil] = useState("");
   const [notes, setNotes] = useState("");
-  const [followUpDate, setFollowUpDate] = useState("");
   const [walkInName, setWalkInName] = useState("");
   const [walkInMobile, setWalkInMobile] = useState("");
   const [walkInEmail, setWalkInEmail] = useState("");
@@ -54,6 +54,8 @@ export default function QuotationPageMain() {
   const [previewPayload, setPreviewPayload] = useState<CreateQuotationDTO | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewDetails, setPreviewDetails] = useState<{ targetName?: string; projectName?: string }>({});
+  const [showSentPopup, setShowSentPopup] = useState(false);
+  const [createdLeadId, setCreatedLeadId] = useState("");
 
   useEffect(() => {
     if (searchParams.get("leadId")) setSearchParams({}, { replace: true });
@@ -96,7 +98,6 @@ export default function QuotationPageMain() {
     setQuotationType("LEAD");
     setLeadId(""); setCustomerId(""); setProjectId("");
     setPhase(undefined); setValidUntil(""); setNotes("");
-    setFollowUpDate("");
     setDiscountAmount(0); setDiscountInput("0");
     setBillingUserId(currentUser?.id ?? "");
     setItems([createEmptyQuotationRow()]);
@@ -115,7 +116,6 @@ export default function QuotationPageMain() {
     setQuotationType(value);
     setLeadId(""); setCustomerId(""); setProjectId("");
     setPreviewDetails({});
-    setFollowUpDate("");
     setWalkInName("");
     setWalkInMobile("");
     setWalkInEmail("");
@@ -144,14 +144,6 @@ export default function QuotationPageMain() {
     if (quotationType === "LEAD") {
       if (!leadId) {
         toast.error("Select a lead");
-        return null;
-      }
-      if (!notes.trim()) {
-        toast.error("Notes are required for lead quotation");
-        return null;
-      }
-      if (!followUpDate) {
-        toast.error("Follow-up date & time are required for lead quotation");
         return null;
       }
     }
@@ -190,9 +182,6 @@ export default function QuotationPageMain() {
         quantity: item.quantity,
         marginPercent: item.marginPercent,
       })),
-      followUp: (quotationType === "LEAD" && followUpDate) ? {
-        dueAt: new Date(followUpDate),
-      } : undefined,
     } satisfies CreateQuotationDTO;
   }
 
@@ -236,7 +225,13 @@ export default function QuotationPageMain() {
         } : undefined,
       });
       toast.success("Quotation created");
-      handleReset();
+      
+      if (quotationType === "LEAD") {
+        setCreatedLeadId(previewPayload.leadId!);
+        setShowSentPopup(true);
+      } else {
+        handleReset();
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to create quotation");
@@ -259,8 +254,6 @@ export default function QuotationPageMain() {
             phase={phase}
             validUntil={validUntil}
             notes={notes}
-            followUpDate={followUpDate}
-            onFollowUpDateChange={setFollowUpDate}
             walkInName={walkInName}
             walkInMobile={walkInMobile}
             walkInEmail={walkInEmail}
@@ -366,6 +359,20 @@ export default function QuotationPageMain() {
         onOpenChange={setIsPreviewOpen}
         onConfirm={handleConfirmCreate}
       />
+      {showSentPopup && createdLeadId && (
+        <QuotationSentPopup
+          leadId={createdLeadId}
+          isOpen={showSentPopup}
+          onClose={() => {
+            setShowSentPopup(false);
+            handleReset();
+          }}
+          onSuccess={() => {
+            setShowSentPopup(false);
+            handleReset();
+          }}
+        />
+      )}
     </div>
   );
 }

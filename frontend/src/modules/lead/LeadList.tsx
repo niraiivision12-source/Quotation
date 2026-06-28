@@ -61,7 +61,7 @@ import {
   useLeads,
   useUpdateLead,
 } from "./lead.query";
-import type { Lead } from "./lead.types";
+import type { Lead, LeadStatus } from "./lead.types";
 import LeadStatusChangeModal from "./LeadStatusChangeModal";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -443,11 +443,24 @@ function MobileLeadCard({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATUSES.map((s) => (
-                    <SelectItem key={s} value={s} className="text-sm">
-                      {s.replace(/_/g, " ")}
-                    </SelectItem>
-                  ))}
+                  {STATUSES.map((s) => {
+                    const allowedTransitions: Record<LeadStatus, LeadStatus[]> = {
+                      NEW: ["NEW", "CONTACTED", "NOT_RESPONDING"],
+                      CONTACTED: ["CONTACTED", "NOT_RESPONDING", "QUOTATION_SENT"],
+                      NOT_RESPONDING: ["NOT_RESPONDING", "CONTACTED", "QUOTATION_SENT", "LOST"],
+                      QUOTATION_SENT: ["QUOTATION_SENT", "NEGOTIATION", "LOST"],
+                      NEGOTIATION: ["NEGOTIATION", "WON", "LOST"],
+                      WON: ["WON"],
+                      LOST: ["LOST", "NOT_RESPONDING"]
+                    };
+                    const allowed = allowedTransitions[lead.status as LeadStatus] || [];
+                    if (!allowed.includes(s as LeadStatus)) return null;
+                    return (
+                      <SelectItem key={s} value={s} className="text-sm">
+                        {s.replace(/_/g, " ")}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -971,6 +984,10 @@ export default function LeadList() {
             onSelect={toggleSelect}
             onOpen={(l) => navigate(`/leads/${l.id}`, { state: { ids: data?.items.map((i) => i.id) ?? [] } })}
             onStatusChange={(id, status) => {
+              if (status === "QUOTATION_SENT") {
+                navigate(`/quotations?leadId=${id}`);
+                return;
+              }
               const l = data?.items.find((i) => i.id === id);
               if (l) setPendingStatus({ leadId: id, leadName: l.name, from: l.status, to: status });
             }}
@@ -1108,9 +1125,13 @@ export default function LeadList() {
                   >
                     <Select
                       value={lead.status}
-                      onValueChange={(val) =>
+                      onValueChange={(val) => {
+                        if (val === "QUOTATION_SENT") {
+                          navigate(`/quotations?leadId=${lead.id}`);
+                          return;
+                        }
                         setPendingStatus({ leadId: lead.id, leadName: lead.name, from: lead.status, to: val })
-                      }
+                      }}
                     >
                       <SelectTrigger
                         className={`text-xs font-semibold border-0 shadow-none px-2 py-1 h-auto rounded-full w-auto ${STATUS_COLORS[lead.status]}`}
@@ -1118,11 +1139,24 @@ export default function LeadList() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {STATUSES.map((s) => (
-                          <SelectItem key={s} value={s} className="text-sm">
-                            {s.replace(/_/g, " ")}
-                          </SelectItem>
-                        ))}
+                        {STATUSES.map((s) => {
+                          const allowedTransitions: Record<LeadStatus, LeadStatus[]> = {
+                            NEW: ["NEW", "CONTACTED", "NOT_RESPONDING"],
+                            CONTACTED: ["CONTACTED", "NOT_RESPONDING", "QUOTATION_SENT"],
+                            NOT_RESPONDING: ["NOT_RESPONDING", "CONTACTED", "QUOTATION_SENT", "LOST"],
+                            QUOTATION_SENT: ["QUOTATION_SENT", "NEGOTIATION", "LOST"],
+                            NEGOTIATION: ["NEGOTIATION", "WON", "LOST"],
+                            WON: ["WON"],
+                            LOST: ["LOST", "NOT_RESPONDING"]
+                          };
+                          const allowed = allowedTransitions[lead.status as LeadStatus] || [];
+                          if (!allowed.includes(s as LeadStatus)) return null;
+                          return (
+                            <SelectItem key={s} value={s} className="text-sm">
+                              {s.replace(/_/g, " ")}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </TableCell>
@@ -1168,6 +1202,10 @@ export default function LeadList() {
                     <LeadActions
                       lead={lead}
                       onStatusChange={(id, status) => {
+                        if (status === "QUOTATION_SENT") {
+                          navigate(`/quotations?leadId=${id}`);
+                          return;
+                        }
                         const l = data?.items.find((i) => i.id === id);
                         if (l) setPendingStatus({ leadId: id, leadName: l.name, from: l.status, to: status });
                       }}
