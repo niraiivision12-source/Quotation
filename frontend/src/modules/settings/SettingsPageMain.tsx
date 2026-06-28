@@ -953,7 +953,7 @@ export default function SettingsPageMain() {
                   >
                     <option value="dashboard">Analytical Overview</option>
                     <option value="leads">Leads Pipeline</option>
-                    <option value="projects">Projects List</option>
+                    <option value="projects">Pipelines List</option>
                   </select>
                 </div>
               </div>
@@ -984,7 +984,7 @@ export default function SettingsPageMain() {
                       { id: "deleteQuotations", label: "Delete Quotations" },
                       { id: "approveQuotations", label: "Approve Quotations" },
                       { id: "createLeads", label: "Create Leads" },
-                      { id: "editProjects", label: "Edit Projects" },
+                      { id: "editProjects", label: "Edit Pipelines" },
                       { id: "manageProducts", label: "Manage Products" },
                       { id: "accessReports", label: "Access Reports" },
                       { id: "accessSettings", label: "Access Settings" },
