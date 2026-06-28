@@ -3,8 +3,9 @@ import jwt from "jsonwebtoken";
 
 import { env } from "@/config/env";
 import { UserRole } from "@prisma/client";
+import { prisma } from "@/config/prisma";
 
-export const authenticate = (
+export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -26,9 +27,20 @@ export const authenticate = (
       role: string;
     };
 
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+    });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - User not found or inactive",
+      });
+    }
+
     req.user = {
-      id: decoded.id,
-      role: decoded.role as UserRole,
+      id: user.id,
+      role: user.role,
     };
 
     next();
