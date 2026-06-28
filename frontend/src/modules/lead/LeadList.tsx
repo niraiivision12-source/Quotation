@@ -922,7 +922,7 @@ export default function LeadList() {
             lead={lead}
             selected={selectedIds.has(lead.id)}
             onSelect={toggleSelect}
-            onOpen={(l) => navigate(`/leads/${l.id}`)}
+            onOpen={(l) => navigate(`/leads/${l.id}`, { state: { ids: data?.items.map((i) => i.id) ?? [] } })}
             onStatusChange={(id, status) =>
               updateMutation.mutate({ id, data: { status } })
             }
@@ -999,7 +999,7 @@ export default function LeadList() {
                 <TableRow
                   key={lead.id}
                   className={`cursor-pointer hover:bg-muted/50 group ${isOverdue ? "border-l-2 border-l-red-400" : ""} ${selectedIds.has(lead.id) ? "bg-violet-50" : ""}`}
-                  onClick={() => navigate(`/leads/${lead.id}`)}
+                  onClick={() => navigate(`/leads/${lead.id}`, { state: { ids: data?.items.map((i) => i.id) ?? [] } })}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
