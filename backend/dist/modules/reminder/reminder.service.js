@@ -36,7 +36,7 @@ class ReminderService {
                     data: {
                         leadId: data.leadId,
                         userId,
-                        type: "FOLLOW_UP_SET",
+                        type: "REMINDER_CREATED",
                         message: `Reminder created: ${reminder.title}`,
                     },
                 });
@@ -141,7 +141,7 @@ class ReminderService {
                     data: {
                         leadId: reminder.leadId,
                         userId,
-                        type: "FOLLOW_UP_COMPLETED",
+                        type: "REMINDER_COMPLETED",
                         message: `Reminder completed: ${reminder.title}`,
                     },
                 });

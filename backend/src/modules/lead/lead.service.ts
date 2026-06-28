@@ -230,6 +230,19 @@ export class LeadService {
               phase: true,
             },
           },
+          notesHistory: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+          },
         },
       }),
       prisma.lead.count({
@@ -289,6 +302,19 @@ export class LeadService {
           },
           orderBy: {
             createdAt: "desc",
+          },
+        },
+        reminders: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            dueAt: "desc",
           },
         },
       },
@@ -456,7 +482,7 @@ export class LeadService {
       }
     }
 
-    const updateData: any = {
+    const updateData: Prisma.LeadUncheckedUpdateInput = {
       name: data.name,
       mobile: data.mobile,
       email: data.email,
@@ -476,6 +502,11 @@ export class LeadService {
           if (!data.notes || data.notes.trim() === "") {
             throw new AppError("Notes are required when status is CONTACTED", 400);
           }
+          const rawDueAt = data.followUpDate || data.followUp?.dueAt;
+          if (!rawDueAt) {
+            throw new AppError("Follow-up date & time are required when status is CONTACTED", 400);
+          }
+          const dueAt = new Date(rawDueAt);
 
           await tx.leadNote.create({
             data: {
@@ -506,35 +537,34 @@ export class LeadService {
             },
           });
 
-          if (data.followUp) {
-            const reminder = await tx.reminder.create({
-              data: {
-                title: data.followUp.title ?? `Follow up with ${lead.name}`,
-                description: data.followUp.description,
-                type: "LEAD",
-                priority: data.followUp.priority ?? "MEDIUM",
-                dueAt: new Date(data.followUp.dueAt),
-                userId,
-                leadId: lead.id,
-              },
-            });
-            await updateLeadNextFollowUp(tx, lead.id);
+          const reminder = await tx.reminder.create({
+            data: {
+              title: data.followUp?.title ?? `Follow up with ${lead.name}`,
+              description: data.followUp?.description,
+              type: "LEAD",
+              priority: data.followUp?.priority ?? "MEDIUM",
+              dueAt,
+              userId,
+              leadId: lead.id,
+            },
+          });
 
-            await tx.leadActivity.create({
-              data: {
-                leadId: lead.id,
-                userId,
-                type: "FOLLOW_UP_SET",
-                message: `Reminder created: ${reminder.title}`,
-              },
-            });
-          }
+          updateData.nextFollowUpAt = reminder.dueAt;
+
+          await tx.leadActivity.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              type: "REMINDER_CREATED",
+              message: `Reminder created: ${reminder.title}`,
+            },
+          });
         }
 
         else if (targetStatus === "NOT_RESPONDING") {
           const rawDueAt = data.followUpDate || data.followUp?.dueAt;
           if (!rawDueAt) {
-            throw new AppError("Follow-up date is required when status is NOT_RESPONDING", 400);
+            throw new AppError("Follow-up date & time are required when status is NOT_RESPONDING", 400);
           }
           const dueAt = new Date(rawDueAt);
 
@@ -549,7 +579,8 @@ export class LeadService {
               leadId: lead.id,
             },
           });
-          await updateLeadNextFollowUp(tx, lead.id);
+
+          updateData.nextFollowUpAt = reminder.dueAt;
 
           if (data.notes && data.notes.trim() !== "") {
             await tx.leadNote.create({
@@ -584,7 +615,7 @@ export class LeadService {
             data: {
               leadId: lead.id,
               userId,
-              type: "FOLLOW_UP_SET",
+              type: "REMINDER_CREATED",
               message: `Reminder created: ${reminder.title}`,
             },
           });
@@ -595,9 +626,26 @@ export class LeadService {
         }
 
         else if (targetStatus === "NEGOTIATION") {
-          if (!data.reason || data.reason.trim() === "") {
-            throw new AppError("Reason is required when status is NEGOTIATION", 400);
+          if (!data.notes || data.notes.trim() === "") {
+            throw new AppError("Notes are required when status is NEGOTIATION", 400);
           }
+          const rawDueAt = data.followUpDate || data.followUp?.dueAt;
+          if (!rawDueAt) {
+            throw new AppError("Follow-up date & time are required when status is NEGOTIATION", 400);
+          }
+          const dueAt = new Date(rawDueAt);
+
+          if (!data.reason || data.reason.trim() === "") {
+            throw new AppError("Negotiation reason is required when status is NEGOTIATION", 400);
+          }
+
+          await tx.leadNote.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              note: data.notes,
+            },
+          });
 
           await tx.leadActivity.create({
             data: {
@@ -613,62 +661,69 @@ export class LeadService {
             },
           });
 
-          if (data.notes && data.notes.trim() !== "") {
-            await tx.leadNote.create({
-              data: {
-                leadId: lead.id,
-                userId,
-                note: data.notes,
-              },
-            });
+          await tx.leadActivity.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              type: "NOTE_ADDED",
+              message: "Note added",
+            },
+          });
 
-            await tx.leadActivity.create({
-              data: {
-                leadId: lead.id,
-                userId,
-                type: "NOTE_ADDED",
-                message: "Note added",
-              },
-            });
-          }
+          const reminder = await tx.reminder.create({
+            data: {
+              title: data.followUp?.title ?? `Follow up with ${lead.name} (Negotiation)`,
+              description: data.followUp?.description,
+              type: "LEAD",
+              priority: data.followUp?.priority ?? "MEDIUM",
+              dueAt,
+              userId,
+              leadId: lead.id,
+            },
+          });
 
-          if (data.followUp) {
-            const reminder = await tx.reminder.create({
-              data: {
-                title: data.followUp.title ?? `Follow up with ${lead.name}`,
-                description: data.followUp.description,
-                type: "LEAD",
-                priority: data.followUp.priority ?? "MEDIUM",
-                dueAt: new Date(data.followUp.dueAt),
-                userId,
-                leadId: lead.id,
-              },
-            });
-            await updateLeadNextFollowUp(tx, lead.id);
-
-            await tx.leadActivity.create({
-              data: {
-                leadId: lead.id,
-                userId,
-                type: "FOLLOW_UP_SET",
-                message: `Reminder created: ${reminder.title}`,
-              },
-            });
-          }
-        }
-
-        else if (targetStatus === "LOST") {
-          if (!data.reason || data.reason.trim() === "") {
-            throw new AppError("Reason is required when status is LOST", 400);
-          }
-
-          updateData.lostReason = data.reason;
+          updateData.nextFollowUpAt = reminder.dueAt;
 
           await tx.leadActivity.create({
             data: {
               leadId: lead.id,
               userId,
-              type: "LOST",
+              type: "REMINDER_CREATED",
+              message: `Reminder created: ${reminder.title}`,
+            },
+          });
+        }
+
+        else if (targetStatus === "LOST") {
+          if (!data.notes || data.notes.trim() === "") {
+            throw new AppError("Notes are required when status is LOST", 400);
+          }
+          const rawDueAt = data.followUpDate || data.followUp?.dueAt;
+          if (!rawDueAt) {
+            throw new AppError("Follow-up date & time are required when status is LOST", 400);
+          }
+          const dueAt = new Date(rawDueAt);
+
+          const allowedLostReasons = ["price", "competitor", "cancelled", "budget", "no response", "other"];
+          if (!data.reason || !allowedLostReasons.includes(data.reason.toLowerCase())) {
+            throw new AppError("Invalid lost reason. Allowed values are: Price, Competitor, Cancelled, Budget, No Response, Other", 400);
+          }
+
+          updateData.lostReason = data.reason;
+
+          await tx.leadNote.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              note: data.notes,
+            },
+          });
+
+          await tx.leadActivity.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              type: "STATUS_CHANGED",
               message: `Lead marked as lost. Reason: ${data.reason}`,
               metadata: {
                 oldStatus: lead.status,
@@ -678,27 +733,52 @@ export class LeadService {
             },
           });
 
-          if (data.notes && data.notes.trim() !== "") {
-            await tx.leadNote.create({
-              data: {
-                leadId: lead.id,
-                userId,
-                note: data.notes,
-              },
-            });
+          await tx.leadActivity.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              type: "NOTE_ADDED",
+              message: "Note added",
+            },
+          });
 
-            await tx.leadActivity.create({
-              data: {
-                leadId: lead.id,
-                userId,
-                type: "NOTE_ADDED",
-                message: "Note added",
-              },
-            });
-          }
+          const reminder = await tx.reminder.create({
+            data: {
+              title: data.followUp?.title ?? `Follow up with ${lead.name} (Lost)`,
+              description: data.followUp?.description,
+              type: "LEAD",
+              priority: data.followUp?.priority ?? "MEDIUM",
+              dueAt,
+              userId,
+              leadId: lead.id,
+            },
+          });
+
+          updateData.nextFollowUpAt = reminder.dueAt;
+
+          await tx.leadActivity.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              type: "REMINDER_CREATED",
+              message: `Reminder created: ${reminder.title}`,
+            },
+          });
         }
 
         else if (targetStatus === "WON") {
+          if (!data.notes || data.notes.trim() === "") {
+            throw new AppError("Notes are required when status is WON", 400);
+          }
+
+          await tx.leadNote.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              note: data.notes,
+            },
+          });
+
           await tx.leadActivity.create({
             data: {
               leadId: lead.id,
@@ -706,6 +786,15 @@ export class LeadService {
               type: "STATUS_CHANGED",
               message: `Status changed from ${lead.status} to WON`,
               metadata: { oldStatus: lead.status, newStatus: "WON" },
+            },
+          });
+
+          await tx.leadActivity.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              type: "NOTE_ADDED",
+              message: "Note added",
             },
           });
         }
@@ -749,7 +838,7 @@ export class LeadService {
             data: {
               leadId: lead.id,
               userId,
-              type: "FOLLOW_UP_SET",
+              type: "REMINDER_CREATED",
               message: `Reminder created: ${reminder.title}`,
             },
           });

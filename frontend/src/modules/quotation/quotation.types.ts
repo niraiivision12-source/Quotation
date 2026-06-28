@@ -63,6 +63,10 @@ export interface CreateQuotationDTO {
     quantity: number;
     marginPercent: number;
   }[];
+
+  followUp?: {
+    dueAt: Date;
+  };
 }
 
 export interface Quotation {

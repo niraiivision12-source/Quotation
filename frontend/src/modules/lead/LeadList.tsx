@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -61,11 +62,12 @@ import {
   useUpdateLead,
 } from "./lead.query";
 import type { Lead } from "./lead.types";
+import LeadStatusChangeModal from "./LeadStatusChangeModal";
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-blue-100 text-blue-700",
   CONTACTED: "bg-yellow-100 text-yellow-700",
-  FOLLOW_UP: "bg-orange-100 text-orange-700",
+  NOT_RESPONDING: "bg-orange-100 text-orange-700",
   QUOTATION_SENT: "bg-purple-100 text-purple-700",
   NEGOTIATION: "bg-pink-100 text-pink-700",
   WON: "bg-green-100 text-green-700",
@@ -75,7 +77,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUSES = [
   "NEW",
   "CONTACTED",
-  "FOLLOW_UP",
+  "NOT_RESPONDING",
   "QUOTATION_SENT",
   "NEGOTIATION",
   "WON",
@@ -131,11 +133,11 @@ const STAT_CARDS: StatCardDef[] = [
   },
   {
     key: "followUp",
-    label: "Follow Up",
+    label: "Not Responding",
     icon: <Calendar size={20} className="text-orange-500" />,
     bg: "bg-orange-50",
     activeBg: "ring-2 ring-orange-400 bg-orange-100",
-    statusFilter: "FOLLOW_UP",
+    statusFilter: "NOT_RESPONDING",
   },
   {
     key: "todayFollowUp",
@@ -143,7 +145,7 @@ const STAT_CARDS: StatCardDef[] = [
     icon: <Calendar size={20} className="text-violet-500" />,
     bg: "bg-violet-50",
     activeBg: "ring-2 ring-violet-400 bg-violet-100",
-    statusFilter: "FOLLOW_UP",
+    statusFilter: "NOT_RESPONDING",
     applyToday: true,
   },
   {
@@ -276,14 +278,14 @@ function LeadAvatar({ name }: { name: string }) {
   );
 }
 
-function LeadActions({ lead }: { lead: Lead }) {
+function LeadActions({ lead, onStatusChange }: { lead: Lead; onStatusChange: (id: string, status: string) => void }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const deleteMutation = useDeleteLead();
-  const updateMutation = useUpdateLead();
 
   const reopen = (e: React.MouseEvent) => {
     e.stopPropagation();
-    updateMutation.mutate({ id: lead.id, data: { status: "FOLLOW_UP" } });
+    onStatusChange(lead.id, "NOT_RESPONDING");
   };
 
   const confirmDelete = async () => {
@@ -314,6 +316,14 @@ function LeadActions({ lead }: { lead: Lead }) {
             <DropdownMenuItem onClick={reopen}>Reopen</DropdownMenuItem>
           )}
           <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              setNotesOpen(true);
+            }}
+          >
+            View Notes
+          </DropdownMenuItem>
+          <DropdownMenuItem
             className="text-red-600"
             onClick={(e) => {
               e.stopPropagation();
@@ -330,11 +340,16 @@ function LeadActions({ lead }: { lead: Lead }) {
           <DialogHeader>
             <DialogTitle>Delete Lead</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete <strong>{lead.name}</strong>? This
-            action cannot be undone.
-          </p>
-          <div className="flex gap-2 mt-4">
+          <div className="py-4">
+            Are you sure you want to delete this lead?
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+            >
+              Cancel
+            </Button>
             <Button
               variant="destructive"
               onClick={confirmDelete}
@@ -342,12 +357,40 @@ function LeadActions({ lead }: { lead: Lead }) {
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {notesOpen && (
+        <Dialog open={notesOpen} onOpenChange={setNotesOpen}>
+          <DialogContent onClick={(e) => e.stopPropagation()} className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Notes History — {lead.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 py-2">
+              {lead.notesHistory && lead.notesHistory.length > 0 ? (
+                <div className="space-y-3">
+                  {lead.notesHistory.map((note) => (
+                    <div key={note.id} className="border border-gray-100 rounded-xl p-3 bg-gray-50 text-xs">
+                      <p className="text-sm text-gray-900 leading-relaxed font-medium">{note.note}</p>
+                      <p className="text-[10px] text-gray-500 mt-2">
+                        {note.user?.name ?? "System"} · {new Date(note.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-sm text-gray-500">
+                  No notes available.
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setNotesOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
@@ -436,7 +479,10 @@ function MobileLeadCard({
           </div>
         )}
         <div onClick={(e) => e.stopPropagation()}>
-          <LeadActions lead={lead} />
+          <LeadActions
+            lead={lead}
+            onStatusChange={onStatusChange}
+          />
         </div>
       </div>
     </div>
@@ -1119,7 +1165,13 @@ export default function LeadList() {
                   </TableCell>
 
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <LeadActions lead={lead} />
+                    <LeadActions
+                      lead={lead}
+                      onStatusChange={(id, status) => {
+                        const l = data?.items.find((i) => i.id === id);
+                        if (l) setPendingStatus({ leadId: id, leadName: l.name, from: l.status, to: status });
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               );
@@ -1184,36 +1236,14 @@ export default function LeadList() {
       </div>
 
       {/* Status change confirmation */}
-      <Dialog open={!!pendingStatus} onOpenChange={(o) => { if (!o) setPendingStatus(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Change Status?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Change <span className="font-semibold text-foreground">{pendingStatus?.leadName}</span>'s status from{" "}
-            <span className="font-semibold text-foreground">{pendingStatus?.from.replace(/_/g, " ")}</span> to{" "}
-            <span className="font-semibold text-foreground">{pendingStatus?.to.replace(/_/g, " ")}</span>?
-          </p>
-          <div className="flex gap-2 mt-2">
-            <Button
-              size="sm"
-              disabled={updateMutation.isPending}
-              onClick={() => {
-                if (!pendingStatus) return;
-                updateMutation.mutate(
-                  { id: pendingStatus.leadId, data: { status: pendingStatus.to } },
-                  { onSettled: () => setPendingStatus(null) }
-                );
-              }}
-            >
-              {updateMutation.isPending ? "Saving..." : "Confirm"}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setPendingStatus(null)}>
-              Cancel
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {pendingStatus && (
+        <LeadStatusChangeModal
+          lead={{ id: pendingStatus.leadId, name: pendingStatus.leadName, status: pendingStatus.from } as any}
+          targetStatus={pendingStatus.to as any}
+          onClose={() => setPendingStatus(null)}
+          onSuccess={() => setPendingStatus(null)}
+        />
+      )}
     </div>
   );
 }

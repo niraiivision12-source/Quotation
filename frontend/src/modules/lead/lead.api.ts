@@ -44,6 +44,8 @@ export const updateLead = async (
     assignedToId?: string | null;
     status?: string;
     nextFollowUpAt?: string | null;
+    followUpDate?: string | null;
+    reason?: string;
   },
 ) => {
   const response = await api.patch(`/leads/${id}`, data);

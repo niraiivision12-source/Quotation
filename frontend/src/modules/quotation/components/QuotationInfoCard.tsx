@@ -57,6 +57,8 @@ interface Props {
     targetName?: string;
     projectName?: string;
   }) => void;
+  followUpDate?: string;
+  onFollowUpDateChange?: (value: string) => void;
 }
 
 type LeadOption = {
@@ -129,6 +131,8 @@ export default function QuotationInfoCard({
   onWalkInEmailChange,
   onWalkInAddressChange,
   onPreviewDetailsChange,
+  followUpDate,
+  onFollowUpDateChange,
 }: Props) {
   const searchWrapRef = useRef<HTMLDivElement | null>(null);
 
@@ -801,13 +805,26 @@ export default function QuotationInfoCard({
         </div>
 
         <div>
-          <label className="text-sm font-medium">Quotation Notes</label>
+          <label className="text-sm font-medium">Quotation Notes {quotationType === "LEAD" && <span className="text-red-500">*</span>}</label>
           <Textarea
             value={notes ?? ""}
             className="mt-1 min-h-14"
             onChange={(e) => onNotesChange(e.target.value)}
           />
         </div>
+
+        {quotationType === "LEAD" && (
+          <div>
+            <label className="text-sm font-medium">Follow-Up Date & Time <span className="text-red-500">*</span></label>
+            <Input
+              type="datetime-local"
+              className="mt-1"
+              value={followUpDate ?? ""}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(e) => onFollowUpDateChange?.(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

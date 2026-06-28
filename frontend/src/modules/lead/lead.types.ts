@@ -1,7 +1,9 @@
+import type { Reminder } from "@/modules/reminder/reminder.types";
+
 export type LeadStatus =
   | "NEW"
   | "CONTACTED"
-  | "FOLLOW_UP"
+  | "NOT_RESPONDING"
   | "QUOTATION_SENT"
   | "NEGOTIATION"
   | "WON"
@@ -41,6 +43,8 @@ export interface Lead {
 
   quotations?: LeadQuotation[];
 
+  reminders?: Reminder[];
+
   customer?: {
     id: string;
     name: string;
@@ -63,6 +67,8 @@ export type LeadActivityType =
   | "STATUS_CHANGED"
   | "FOLLOW_UP_SET"
   | "FOLLOW_UP_COMPLETED"
+  | "REMINDER_CREATED"
+  | "REMINDER_COMPLETED"
   | "NOTE_ADDED"
   | "LOST"
   | "REOPENED"
@@ -145,6 +151,7 @@ export interface LeadActivity {
   type: LeadActivityType;
   message: string;
   createdAt: string;
+  metadata?: any;
   user?: { id: string; name: string };
 }
 

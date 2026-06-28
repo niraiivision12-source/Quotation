@@ -103,6 +103,14 @@ export class QuotationService {
       if (!lead) {
         throw new AppError("Lead not found", 404);
       }
+
+      if (!data.notes || !data.notes.trim()) {
+        throw new AppError("Notes are required for lead quotation", 400);
+      }
+
+      if (!data.followUp || !data.followUp.dueAt) {
+        throw new AppError("Follow-up date & time are required for lead quotation", 400);
+      }
     }
 
     if (type === QuotationType.CUSTOMER && data.customerId) {
@@ -278,13 +286,33 @@ export class QuotationService {
       });
 
       if (quotation.leadId) {
+        await tx.leadNote.create({
+          data: {
+            leadId: quotation.leadId,
+            userId,
+            note: data.notes!,
+          },
+        });
+
         await tx.leadActivity.create({
           data: {
             leadId: quotation.leadId,
+            userId,
             type: "QUOTATION_CREATED",
             message: `Quotation ${quotation.quotationNumber} created`,
           },
         });
+
+        await tx.leadActivity.create({
+          data: {
+            leadId: quotation.leadId,
+            userId,
+            type: "NOTE_ADDED",
+            message: "Note added from quotation creation",
+          },
+        });
+
+        const oldLead = await tx.lead.findUnique({ where: { id: quotation.leadId } });
 
         await tx.lead.update({
           where: {
@@ -292,6 +320,16 @@ export class QuotationService {
           },
           data: {
             status: "QUOTATION_SENT",
+          },
+        });
+
+        await tx.leadActivity.create({
+          data: {
+            leadId: quotation.leadId,
+            userId,
+            type: "STATUS_CHANGED",
+            message: `Status changed from ${oldLead?.status ?? "NEW"} to QUOTATION_SENT`,
+            metadata: { oldStatus: oldLead?.status ?? "NEW", newStatus: "QUOTATION_SENT" },
           },
         });
       }
@@ -318,7 +356,7 @@ export class QuotationService {
             data: {
               leadId: quotation.leadId,
               userId,
-              type: "FOLLOW_UP_SET",
+              type: "REMINDER_CREATED",
               message: `Reminder created: ${reminder.title}`,
             },
           });
@@ -492,7 +530,12 @@ export class QuotationService {
     }
 
     if (followUp) {
-      if (quotation.validUntil && new Date(followUp.dueAt) >= new Date(quotation.validUntil)) {
+      const hasSentAt = quotation.sentAt || status === QuotationStatus.SENT;
+      const hasValidUntil = quotation.validUntil;
+      if (!hasSentAt && !hasValidUntil) {
+        throw new AppError("Follow-up reminders can only be created if the quotation is sent or has an expiry date", 400);
+      }
+      if (hasValidUntil && new Date(followUp.dueAt) >= new Date(hasValidUntil)) {
         throw new AppError("Follow-up reminder due date must be before quotation expiry (validUntil)", 400);
       }
     }
@@ -604,7 +647,7 @@ export class QuotationService {
             data: {
               leadId: quotation.leadId,
               userId,
-              type: "FOLLOW_UP_SET",
+              type: "REMINDER_CREATED",
               message: `Reminder created: ${reminder.title}`,
             },
           });

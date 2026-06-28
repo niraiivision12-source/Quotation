@@ -18,7 +18,7 @@ const checkPermission = (action) => {
                 return next();
             }
             // Fetch current configuration
-            let settings = await prisma_1.prisma.systemSettings.findUnique({
+            const settings = await prisma_1.prisma.systemSettings.findUnique({
                 where: { id: "default" },
             });
             if (!settings) {

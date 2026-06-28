@@ -82,6 +82,8 @@ export const useUpdateLead = () => {
         assignedToId?: string | null;
         status?: string;
         nextFollowUpAt?: string | null;
+        followUpDate?: string | null;
+        reason?: string;
       };
     }) => updateLead(id, data),
     onSuccess: () => {

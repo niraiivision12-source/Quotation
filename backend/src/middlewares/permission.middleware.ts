@@ -20,7 +20,7 @@ export const checkPermission = (action: string) => {
       }
 
       // Fetch current configuration
-      let settings = await prisma.systemSettings.findUnique({
+      const settings = await prisma.systemSettings.findUnique({
         where: { id: "default" },
       });
 

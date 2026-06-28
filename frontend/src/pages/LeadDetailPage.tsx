@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
+import LeadStatusChangeModal from "@/modules/lead/LeadStatusChangeModal";
 
 import { CopyPhone } from "@/components/ui/CopyPhone";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateReminder } from "@/modules/reminder/reminder.query";
 import { useUsers } from "@/modules/user/user.query";
 import {
   useConvertLead,
@@ -49,7 +50,7 @@ import type {
 const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-blue-100 text-blue-700 ring-blue-200",
   CONTACTED: "bg-amber-100 text-amber-700 ring-amber-200",
-  FOLLOW_UP: "bg-orange-100 text-orange-700 ring-orange-200",
+  NOT_RESPONDING: "bg-orange-100 text-orange-700 ring-orange-200",
   QUOTATION_SENT: "bg-purple-100 text-purple-700 ring-purple-200",
   NEGOTIATION: "bg-pink-100 text-pink-700 ring-pink-200",
   WON: "bg-emerald-100 text-emerald-700 ring-emerald-200",
@@ -59,7 +60,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_DOT: Record<string, string> = {
   NEW: "bg-blue-500",
   CONTACTED: "bg-amber-500",
-  FOLLOW_UP: "bg-orange-500",
+  NOT_RESPONDING: "bg-orange-500",
   QUOTATION_SENT: "bg-purple-500",
   NEGOTIATION: "bg-pink-500",
   WON: "bg-emerald-500",
@@ -67,7 +68,7 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 const LEAD_STATUSES: LeadStatus[] = [
-  "NEW", "CONTACTED", "FOLLOW_UP", "QUOTATION_SENT", "NEGOTIATION", "WON", "LOST",
+  "NEW", "CONTACTED", "NOT_RESPONDING", "QUOTATION_SENT", "NEGOTIATION", "WON", "LOST",
 ];
 
 // ─── Avatar ─────────────────────────────────────────────────────────────────────
@@ -111,6 +112,8 @@ const ACTIVITY_ICON: Record<LeadActivityType, React.ReactNode> = {
   STATUS_CHANGED: <span className="text-xs font-bold">⇄</span>,
   FOLLOW_UP_SET: <Calendar size={11} />,
   FOLLOW_UP_COMPLETED: <Check size={11} />,
+  REMINDER_CREATED: <Calendar size={11} />,
+  REMINDER_COMPLETED: <Check size={11} />,
   CONVERTED: <Check size={11} />,
   REOPENED: <span className="text-xs">↩</span>,
   NOTE_ADDED: <FileText size={11} />,
@@ -126,6 +129,8 @@ const ACTIVITY_COLOR: Record<LeadActivityType, string> = {
   STATUS_CHANGED: "bg-orange-50 text-orange-500 border-orange-100",
   FOLLOW_UP_SET: "bg-violet-50 text-violet-600 border-violet-100",
   FOLLOW_UP_COMPLETED: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  REMINDER_CREATED: "bg-violet-50 text-violet-600 border-violet-100",
+  REMINDER_COMPLETED: "bg-emerald-50 text-emerald-600 border-emerald-100",
   CONVERTED: "bg-emerald-50 text-emerald-600 border-emerald-100",
   REOPENED: "bg-amber-50 text-amber-600 border-amber-100",
   NOTE_ADDED: "bg-gray-50 text-gray-900 border-gray-100",
@@ -205,7 +210,14 @@ function Timeline({ activities }: { activities: LeadActivity[] }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-gray-900 leading-snug">{a.message}</p>
-                    <p className="text-[11px] text-gray-900 mt-0.5">{a.user?.name ?? "System"}</p>
+                    {a.metadata && (a.metadata as any).reason && (
+                      <div className="mt-1">
+                        <span className="inline-flex text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-100 rounded-md px-1.5 py-0.5">
+                          Reason: {(a.metadata as any).reason}
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-gray-500 mt-0.5">{a.user?.name ?? "System"}</p>
                   </div>
                 </div>
               </div>
@@ -325,32 +337,12 @@ type ConvertForm = z.infer<typeof convertSchema>;
 
 function StatusSection({ lead }: { lead: Lead }) {
   const [convertOpen, setConvertOpen] = useState(false);
-  const [followUpOpen, setFollowUpOpen] = useState(false);
-  const [followUpDate, setFollowUpDate] = useState("");
-  const updateMutation = useUpdateLead();
+  const [targetStatus, setTargetStatus] = useState<LeadStatus | null>(null);
   const convertMutation = useConvertLead();
-  const createReminderMutation = useCreateReminder();
   const form = useForm<ConvertForm>({ resolver: zodResolver(convertSchema) });
 
   const onChange = (status: string) => {
-    if (status === "WON") setConvertOpen(true);
-    else if (status === "FOLLOW_UP") setFollowUpOpen(true);
-    else updateMutation.mutate({ id: lead.id, data: { status } });
-  };
-
-  const submitFollowUp = async () => {
-    await updateMutation.mutateAsync({ id: lead.id, data: { status: "FOLLOW_UP", nextFollowUpAt: followUpDate || null } });
-    if (followUpDate) {
-      await createReminderMutation.mutateAsync({
-        title: `Follow up with ${lead.name}`,
-        type: "LEAD",
-        priority: "MEDIUM",
-        dueAt: new Date(followUpDate).toISOString(),
-        leadId: lead.id,
-      });
-    }
-    setFollowUpDate("");
-    setFollowUpOpen(false);
+    setTargetStatus(status as LeadStatus);
   };
 
   const submitConvert = async (data: ConvertForm) => {
@@ -382,26 +374,22 @@ function StatusSection({ lead }: { lead: Lead }) {
         )}
       </div>
 
-      <Dialog open={followUpOpen} onOpenChange={(o) => { if (!o) setFollowUpOpen(false); }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Set Follow-Up — {lead.name}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-sm text-gray-600">Date & time</label>
-              <Input type="datetime-local" value={followUpDate} min={new Date().toISOString().slice(0, 16)} onChange={(e) => setFollowUpDate(e.target.value)} />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={submitFollowUp} disabled={updateMutation.isPending || !followUpDate}>
-                {updateMutation.isPending ? "Saving..." : "Set Follow-Up"}
-              </Button>
-              <Button variant="outline" onClick={() => setFollowUpOpen(false)}>Cancel</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {targetStatus && (
+        <LeadStatusChangeModal
+          lead={lead}
+          targetStatus={targetStatus}
+          onClose={() => setTargetStatus(null)}
+          onSuccess={() => {
+            setTargetStatus(null);
+            if (targetStatus === "WON") {
+              setConvertOpen(true);
+            }
+          }}
+        />
+      )}
 
       <Dialog open={convertOpen} onOpenChange={(o) => { if (!o) setConvertOpen(false); }}>
-        <DialogContent>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
           <DialogHeader><DialogTitle>Convert {lead.name} to Customer</DialogTitle></DialogHeader>
           <form onSubmit={form.handleSubmit(submitConvert)} className="space-y-4">
             <Input placeholder="Project Name *" {...form.register("projectName")} />
@@ -421,7 +409,7 @@ function StatusSection({ lead }: { lead: Lead }) {
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────────
-type PageTab = "timeline" | "quotations" | "notes";
+type PageTab = "timeline" | "quotations" | "notes" | "followups";
 
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -429,6 +417,7 @@ export default function LeadDetailPage() {
   const location = useLocation();
   const [editOpen, setEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PageTab>("timeline");
+  const [selectedReminder, setSelectedReminder] = useState<any>(null);
 
   const ids: string[] = (location.state as { ids?: string[] })?.ids ?? [];
   const currentIndex = ids.indexOf(id ?? "");
@@ -463,6 +452,7 @@ export default function LeadDetailPage() {
     { key: "timeline", label: "Timeline", count: activities.length },
     { key: "quotations", label: "Quotations", count: lead.quotations?.length },
     { key: "notes", label: "Notes", count: lead.notesHistory?.length },
+    { key: "followups", label: "Follow-ups", count: lead.reminders?.length },
   ];
 
   return (
@@ -688,7 +678,7 @@ export default function LeadDetailPage() {
                     {lead.notesHistory.map((note) => (
                       <div key={note.id} className="border border-gray-100 rounded-xl p-4">
                         <p className="text-sm text-gray-900 leading-relaxed">{note.note}</p>
-                        <p className="text-xs text-gray-900 mt-2">
+                        <p className="text-xs text-gray-500 mt-2">
                           {note.user?.name ?? "System"} · {new Date(note.createdAt).toLocaleString()}
                         </p>
                       </div>
@@ -704,12 +694,137 @@ export default function LeadDetailPage() {
                 )}
               </>
             )}
+
+            {activeTab === "followups" && (
+              <>
+                {lead.reminders?.length ? (
+                  <div className="space-y-4">
+                    <div className="border border-gray-150 rounded-xl overflow-hidden bg-white shadow-sm">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-100">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Due Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Completed Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned User</th>
+                              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 bg-white">
+                            {lead.reminders.map((reminder) => {
+                              const isCompleted = reminder.status === "COMPLETED";
+                              return (
+                                <tr key={reminder.id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap font-medium">
+                                    {new Date(reminder.dueAt).toLocaleString()}
+                                  </td>
+                                  <td className="px-4 py-3 text-xs whitespace-nowrap">
+                                    <span className={`inline-flex px-2 py-0.5 rounded-full font-semibold ${
+                                      reminder.status === "COMPLETED" ? "bg-green-100 text-green-700" :
+                                      reminder.status === "MISSED" ? "bg-red-100 text-red-700" :
+                                      "bg-yellow-100 text-yellow-700"
+                                    }`}>
+                                      {reminder.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                    {reminder.completedAt ? new Date(reminder.completedAt).toLocaleString() : "—"}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                                    {reminder.user?.name ?? "System"}
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-sm whitespace-nowrap">
+                                    {isCompleted ? (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => setSelectedReminder(reminder)}
+                                      >
+                                        View details
+                                      </Button>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground italic">Pending</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                      <Calendar size={20} className="text-gray-900" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-900">No reminders yet</p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {editOpen && (
         <EditLeadDialog lead={lead} open={editOpen} onClose={() => setEditOpen(false)} />
+      )}
+
+      {selectedReminder && (
+        <Dialog open={!!selectedReminder} onOpenChange={(o) => { if (!o) setSelectedReminder(null); }}>
+          <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+            <DialogHeader>
+              <DialogTitle>Completed Follow-Up Details</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2 text-sm text-gray-800">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</p>
+                <p className="mt-1 text-sm font-medium">{selectedReminder.title}</p>
+              </div>
+              {selectedReminder.description && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</p>
+                  <p className="mt-1 text-sm">{selectedReminder.description}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Due Date & Time</p>
+                  <p className="mt-1 text-sm">{new Date(selectedReminder.dueAt).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completed Date & Time</p>
+                  <p className="mt-1 text-sm">
+                    {selectedReminder.completedAt ? new Date(selectedReminder.completedAt).toLocaleString() : "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Priority</p>
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold mt-1 ${
+                    selectedReminder.priority === "CRITICAL" ? "bg-red-100 text-red-700" :
+                    selectedReminder.priority === "HIGH" ? "bg-orange-100 text-orange-700" :
+                    selectedReminder.priority === "MEDIUM" ? "bg-yellow-100 text-yellow-700" :
+                    "bg-blue-100 text-blue-700"
+                  }`}>
+                    {selectedReminder.priority}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned User</p>
+                  <p className="mt-1 text-sm font-medium">{selectedReminder.user?.name ?? "System"}</p>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setSelectedReminder(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

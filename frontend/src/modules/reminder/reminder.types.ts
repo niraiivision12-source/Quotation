@@ -44,6 +44,7 @@ export interface Reminder {
   customerId?: string | null;
   projectId?: string | null;
   lead?: ReminderLead | null;
+  user?: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -40,6 +40,7 @@ export default function QuotationPageMain() {
   const [phase, setPhase] = useState<ProjectPhase | undefined>();
   const [validUntil, setValidUntil] = useState("");
   const [notes, setNotes] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
   const [walkInName, setWalkInName] = useState("");
   const [walkInMobile, setWalkInMobile] = useState("");
   const [walkInEmail, setWalkInEmail] = useState("");
@@ -95,6 +96,7 @@ export default function QuotationPageMain() {
     setQuotationType("LEAD");
     setLeadId(""); setCustomerId(""); setProjectId("");
     setPhase(undefined); setValidUntil(""); setNotes("");
+    setFollowUpDate("");
     setDiscountAmount(0); setDiscountInput("0");
     setBillingUserId(currentUser?.id ?? "");
     setItems([createEmptyQuotationRow()]);
@@ -113,6 +115,7 @@ export default function QuotationPageMain() {
     setQuotationType(value);
     setLeadId(""); setCustomerId(""); setProjectId("");
     setPreviewDetails({});
+    setFollowUpDate("");
     setWalkInName("");
     setWalkInMobile("");
     setWalkInEmail("");
@@ -138,9 +141,19 @@ export default function QuotationPageMain() {
       toast.error("Select quotation owner");
       return null;
     }
-    if (quotationType === "LEAD" && !leadId) {
-      toast.error("Select a lead");
-      return null;
+    if (quotationType === "LEAD") {
+      if (!leadId) {
+        toast.error("Select a lead");
+        return null;
+      }
+      if (!notes.trim()) {
+        toast.error("Notes are required for lead quotation");
+        return null;
+      }
+      if (!followUpDate) {
+        toast.error("Follow-up date & time are required for lead quotation");
+        return null;
+      }
     }
     if (quotationType === "CUSTOMER" && !customerId) {
       toast.error("Select a customer");
@@ -177,6 +190,9 @@ export default function QuotationPageMain() {
         quantity: item.quantity,
         marginPercent: item.marginPercent,
       })),
+      followUp: (quotationType === "LEAD" && followUpDate) ? {
+        dueAt: new Date(followUpDate),
+      } : undefined,
     } satisfies CreateQuotationDTO;
   }
 
@@ -243,6 +259,8 @@ export default function QuotationPageMain() {
             phase={phase}
             validUntil={validUntil}
             notes={notes}
+            followUpDate={followUpDate}
+            onFollowUpDateChange={setFollowUpDate}
             walkInName={walkInName}
             walkInMobile={walkInMobile}
             walkInEmail={walkInEmail}
