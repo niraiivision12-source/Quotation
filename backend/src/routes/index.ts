@@ -11,6 +11,7 @@ import quotationRoutes from "@/modules/quotation/quotation.routes";
 import reminderRoutes from "@/modules/reminder/reminder.routes";
 import taskRoutes from "@/modules/task/task.routes";
 import userRoutes from "@/modules/user/user.routes";
+import settingsRoutes from "@/modules/settings/settings.routes";
 
 const router = Router();
 
@@ -32,5 +33,6 @@ router.use("/tasks", taskRoutes);
 router.use("/quotations", quotationRoutes);
 router.use("/lifecycle", lifecycleRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use("/settings", settingsRoutes);
 
 export default router;

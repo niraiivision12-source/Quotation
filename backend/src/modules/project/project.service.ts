@@ -21,47 +21,138 @@ export class ProjectService {
       throw new AppError("Customer not found", 404);
     }
 
-    const project = await prisma.project.create({
-      data: {
-        customerId: data.customerId,
-        projectName: data.projectName,
-        location: data.location,
-        assignedToId: data.assignedToId,
-        estimatedBudget: data.estimatedBudget,
-      },
-    });
+    return prisma.$transaction(async (tx) => {
+      // Fetch project assignment settings
+      let settings = await tx.systemSettings.findUnique({
+        where: { id: "default" },
+      });
 
-    await prisma.projectPhaseTracking.createMany({
-      data: [
-        {
-          projectId: project.id,
-          phase: ProjectPhase.PIPES,
-          status: LifecycleStatus.NOT_STARTED,
-        },
-        {
-          projectId: project.id,
-          phase: ProjectPhase.WIRING,
-          status: LifecycleStatus.NOT_STARTED,
-        },
-        {
-          projectId: project.id,
-          phase: ProjectPhase.SWITCHES,
-          status: LifecycleStatus.NOT_STARTED,
-        },
-        {
-          projectId: project.id,
-          phase: ProjectPhase.LIGHTS,
-          status: LifecycleStatus.NOT_STARTED,
-        },
-        {
-          projectId: project.id,
-          phase: ProjectPhase.FANS,
-          status: LifecycleStatus.NOT_STARTED,
-        },
-      ],
-    });
+      if (!settings) {
+        settings = await tx.systemSettings.create({
+          data: {
+            id: "default",
+            projectAssignmentMethod: "MANUAL",
+            companyName: "NKP Construction",
+            companyGst: "",
+            companyAddress: "",
+            companyPhone: "",
+            companyEmail: "",
+            companyWebsite: "",
+            bankName: "",
+            bankAccountNo: "",
+            bankIfsc: "",
+            bankBranch: "",
+            upiId: "",
+            termsAndConditions: "",
+            footerText: "",
+            rolePermissions: {},
+          },
+        });
+      }
 
-    return project;
+      let assignedToId: string | null = data.assignedToId || null;
+
+      if (settings.projectAssignmentMethod === "PERCENTAGE") {
+        const activeSalesmen = await tx.user.findMany({
+          where: { role: "SALESMAN", isActive: true },
+          orderBy: { id: "asc" },
+        });
+
+        if (activeSalesmen.length === 0) {
+          throw new AppError("No active salesmen available for automatic project assignment", 400);
+        }
+
+        const percentages = (settings.projectSalesmanPercentages as Record<string, number>) || {};
+        const activePercentages = activeSalesmen
+          .map((s) => ({
+            id: s.id,
+            weight: percentages[s.id] || 0,
+          }))
+          .filter((p) => p.weight > 0);
+
+        if (activePercentages.length === 0) {
+          throw new AppError("No active salesmen have a configured assignment percentage for projects", 400);
+        }
+
+        const totalWeight = activePercentages.reduce((sum, item) => sum + item.weight, 0);
+        const randomVal = Math.random() * totalWeight;
+
+        let cumulativeWeight = 0;
+        let selectedSalesmanId = activePercentages[0].id;
+        for (const item of activePercentages) {
+          cumulativeWeight += item.weight;
+          if (randomVal <= cumulativeWeight) {
+            selectedSalesmanId = item.id;
+            break;
+          }
+        }
+        assignedToId = selectedSalesmanId;
+      } else if (assignedToId) {
+        // Manual assignment validation
+        const salesman = await tx.user.findFirst({
+          where: { id: assignedToId, role: "SALESMAN", isActive: true },
+        });
+        if (!salesman) {
+          throw new AppError("The assigned project salesman is inactive or does not exist", 400);
+        }
+      }
+
+      const project = await tx.project.create({
+        data: {
+          customerId: data.customerId,
+          projectName: data.projectName,
+          location: data.location,
+          assignedToId,
+          estimatedBudget: data.estimatedBudget,
+        },
+      });
+
+      const phases = [
+        ProjectPhase.PIPES,
+        ProjectPhase.WIRING,
+        ProjectPhase.SWITCHES,
+        ProjectPhase.LIGHTS,
+        ProjectPhase.FANS,
+      ];
+
+      const phaseTrackings = [];
+
+      for (const phase of phases) {
+        let phaseAssignedToId: string | null = null;
+
+        if (settings.projectAssignmentMethod === "PHASE_BASED") {
+          const phaseAssignment = (settings.projectPhaseAssignment as Record<string, string>) || {};
+          const salesmanId = phaseAssignment[phase];
+
+          if (!salesmanId) {
+            throw new AppError(`No salesman is configured for the project phase: ${phase}`, 400);
+          }
+
+          const salesman = await tx.user.findFirst({
+            where: { id: salesmanId, role: "SALESMAN", isActive: true },
+          });
+
+          if (!salesman) {
+            throw new AppError(`The salesman configured for phase ${phase} is inactive or does not exist`, 400);
+          }
+
+          phaseAssignedToId = salesmanId;
+        }
+
+        phaseTrackings.push({
+          projectId: project.id,
+          phase,
+          status: LifecycleStatus.NOT_STARTED,
+          assignedToId: phaseAssignedToId,
+        });
+      }
+
+      await tx.projectPhaseTracking.createMany({
+        data: phaseTrackings,
+      });
+
+      return project;
+    });
   }
 
   static async getAll(

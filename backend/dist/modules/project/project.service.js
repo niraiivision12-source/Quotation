@@ -14,45 +14,119 @@ class ProjectService {
         if (!customer) {
             throw new app_error_1.AppError("Customer not found", 404);
         }
-        const project = await prisma_1.prisma.project.create({
-            data: {
-                customerId: data.customerId,
-                projectName: data.projectName,
-                location: data.location,
-                assignedToId: data.assignedToId,
-                estimatedBudget: data.estimatedBudget,
-            },
+        return prisma_1.prisma.$transaction(async (tx) => {
+            // Fetch project assignment settings
+            let settings = await tx.systemSettings.findUnique({
+                where: { id: "default" },
+            });
+            if (!settings) {
+                settings = await tx.systemSettings.create({
+                    data: {
+                        id: "default",
+                        projectAssignmentMethod: "MANUAL",
+                        companyName: "NKP Construction",
+                        companyGst: "",
+                        companyAddress: "",
+                        companyPhone: "",
+                        companyEmail: "",
+                        companyWebsite: "",
+                        bankName: "",
+                        bankAccountNo: "",
+                        bankIfsc: "",
+                        bankBranch: "",
+                        upiId: "",
+                        termsAndConditions: "",
+                        footerText: "",
+                        rolePermissions: {},
+                    },
+                });
+            }
+            let assignedToId = data.assignedToId || null;
+            if (settings.projectAssignmentMethod === "PERCENTAGE") {
+                const activeSalesmen = await tx.user.findMany({
+                    where: { role: "SALESMAN", isActive: true },
+                    orderBy: { id: "asc" },
+                });
+                if (activeSalesmen.length === 0) {
+                    throw new app_error_1.AppError("No active salesmen available for automatic project assignment", 400);
+                }
+                const percentages = settings.projectSalesmanPercentages || {};
+                const activePercentages = activeSalesmen
+                    .map((s) => ({
+                    id: s.id,
+                    weight: percentages[s.id] || 0,
+                }))
+                    .filter((p) => p.weight > 0);
+                if (activePercentages.length === 0) {
+                    throw new app_error_1.AppError("No active salesmen have a configured assignment percentage for projects", 400);
+                }
+                const totalWeight = activePercentages.reduce((sum, item) => sum + item.weight, 0);
+                const randomVal = Math.random() * totalWeight;
+                let cumulativeWeight = 0;
+                let selectedSalesmanId = activePercentages[0].id;
+                for (const item of activePercentages) {
+                    cumulativeWeight += item.weight;
+                    if (randomVal <= cumulativeWeight) {
+                        selectedSalesmanId = item.id;
+                        break;
+                    }
+                }
+                assignedToId = selectedSalesmanId;
+            }
+            else if (assignedToId) {
+                // Manual assignment validation
+                const salesman = await tx.user.findFirst({
+                    where: { id: assignedToId, role: "SALESMAN", isActive: true },
+                });
+                if (!salesman) {
+                    throw new app_error_1.AppError("The assigned project salesman is inactive or does not exist", 400);
+                }
+            }
+            const project = await tx.project.create({
+                data: {
+                    customerId: data.customerId,
+                    projectName: data.projectName,
+                    location: data.location,
+                    assignedToId,
+                    estimatedBudget: data.estimatedBudget,
+                },
+            });
+            const phases = [
+                client_1.ProjectPhase.PIPES,
+                client_1.ProjectPhase.WIRING,
+                client_1.ProjectPhase.SWITCHES,
+                client_1.ProjectPhase.LIGHTS,
+                client_1.ProjectPhase.FANS,
+            ];
+            const phaseTrackings = [];
+            for (const phase of phases) {
+                let phaseAssignedToId = null;
+                if (settings.projectAssignmentMethod === "PHASE_BASED") {
+                    const phaseAssignment = settings.projectPhaseAssignment || {};
+                    const salesmanId = phaseAssignment[phase];
+                    if (!salesmanId) {
+                        throw new app_error_1.AppError(`No salesman is configured for the project phase: ${phase}`, 400);
+                    }
+                    const salesman = await tx.user.findFirst({
+                        where: { id: salesmanId, role: "SALESMAN", isActive: true },
+                    });
+                    if (!salesman) {
+                        throw new app_error_1.AppError(`The salesman configured for phase ${phase} is inactive or does not exist`, 400);
+                    }
+                    phaseAssignedToId = salesmanId;
+                }
+                phaseTrackings.push({
+                    projectId: project.id,
+                    phase,
+                    status: client_1.LifecycleStatus.NOT_STARTED,
+                    assignedToId: phaseAssignedToId,
+                });
+            }
+            await tx.projectPhaseTracking.createMany({
+                data: phaseTrackings,
+            });
+            return project;
         });
-        await prisma_1.prisma.projectPhaseTracking.createMany({
-            data: [
-                {
-                    projectId: project.id,
-                    phase: client_1.ProjectPhase.PIPES,
-                    status: client_1.LifecycleStatus.NOT_STARTED,
-                },
-                {
-                    projectId: project.id,
-                    phase: client_1.ProjectPhase.WIRING,
-                    status: client_1.LifecycleStatus.NOT_STARTED,
-                },
-                {
-                    projectId: project.id,
-                    phase: client_1.ProjectPhase.SWITCHES,
-                    status: client_1.LifecycleStatus.NOT_STARTED,
-                },
-                {
-                    projectId: project.id,
-                    phase: client_1.ProjectPhase.LIGHTS,
-                    status: client_1.LifecycleStatus.NOT_STARTED,
-                },
-                {
-                    projectId: project.id,
-                    phase: client_1.ProjectPhase.FANS,
-                    status: client_1.LifecycleStatus.NOT_STARTED,
-                },
-            ],
-        });
-        return project;
     }
     static async getAll(page, limit, search, customerId) {
         const skip = (page - 1) * limit;

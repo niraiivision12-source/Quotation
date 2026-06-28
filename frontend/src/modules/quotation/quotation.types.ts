@@ -56,6 +56,8 @@ export interface CreateQuotationDTO {
 
   validUntil?: string;
 
+  discountAmount?: number;
+
   items: {
     productId: string;
     quantity: number;

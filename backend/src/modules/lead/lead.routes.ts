@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { authenticate } from "@/middlewares/auth.middleware";
+import { checkPermission } from "@/middlewares/permission.middleware";
 import { asyncHandler } from "@/utils/async-handler";
 
 import { LeadNoteController } from "@/modules/lead-notes/lead-note.controller";
@@ -10,7 +11,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.post("/", asyncHandler(LeadController.create));
+router.post("/", checkPermission("createLeads"), asyncHandler(LeadController.create));
 
 router.get("/", asyncHandler(LeadController.getAll));
 

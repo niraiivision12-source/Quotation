@@ -1,5 +1,6 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
+import { SettingsService } from "@/modules/settings/settings.service";
 import {
   Prisma,
   ProjectPhase,
@@ -22,6 +23,7 @@ type CreateQuotationInput = {
   walkInAddress?: string | null;
   notes?: string;
   validUntil?: Date;
+  discountAmount?: number;
   items: {
     productId: string;
     quantity: number;
@@ -70,8 +72,23 @@ export class QuotationService {
       throw new AppError("Walk-in customer name and mobile are required", 400);
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const settings = await SettingsService.getSettings();
+
+    let validUntil = data.validUntil;
+    if (!validUntil) {
+      const validityDays = settings.quoteValidityDays || 30;
+      validUntil = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000);
+    }
+
     if (data.followUp) {
-      if (data.validUntil && new Date(data.followUp.dueAt) >= new Date(data.validUntil)) {
+      if (validUntil && new Date(data.followUp.dueAt) >= new Date(validUntil)) {
         throw new AppError("Follow-up reminder due date must be before quotation expiry (validUntil)", 400);
       }
     }
@@ -118,14 +135,9 @@ export class QuotationService {
 
     const version = lastQuotation ? lastQuotation.version + 1 : 1;
 
-    const quotationNumber = `QT-${Date.now()}`;
-
     let subtotal = 0;
+    const itemData: Prisma.QuotationItemUncheckedCreateWithoutQuotationInput[] = [];
 
-    const itemData: Prisma.QuotationItemUncheckedCreateWithoutQuotationInput[] =
-      [];
-
-    // Validate quotation has at least one item
     if (data.items.length === 0) {
       throw new AppError("Quotation must contain at least one item", 400);
     }
@@ -149,10 +161,25 @@ export class QuotationService {
         throw new AppError("Product is inactive", 400);
       }
 
+      let marginPercent = item.marginPercent;
+      if (marginPercent === 0) {
+        marginPercent = Number(settings.pricingDefaultMargin);
+      }
+
+      if (user.role === "SALESMAN") {
+        if (!settings.pricingAllowMarginOverride) {
+          if (marginPercent !== Number(settings.pricingDefaultMargin)) {
+            throw new AppError(`Margin overrides are disabled. You must use the default margin of ${settings.pricingDefaultMargin}%`, 400);
+          }
+        } else {
+          if (marginPercent < Number(settings.pricingMinMargin)) {
+            throw new AppError(`Margin cannot be lower than the minimum allowed margin of ${settings.pricingMinMargin}%`, 400);
+          }
+        }
+      }
+
       const costPrice = Number(product.costPrice);
-
-      const sellingPrice = costPrice + (costPrice * item.marginPercent) / 100;
-
+      const sellingPrice = costPrice + (costPrice * marginPercent) / 100;
       const totalPrice = sellingPrice * item.quantity;
 
       subtotal += totalPrice;
@@ -161,45 +188,85 @@ export class QuotationService {
         productId: product.id,
         quantity: item.quantity,
         costPrice,
-        marginPercent: item.marginPercent,
+        marginPercent,
         sellingPrice,
         totalPrice,
       });
     }
 
+    const discountAmount = data.discountAmount || 0;
+    if (user.role === "SALESMAN") {
+      const maxDiscountPercent = Number(settings.pricingMaxDiscount);
+      const maxDiscountAllowed = (subtotal * maxDiscountPercent) / 100;
+      if (discountAmount > maxDiscountAllowed) {
+        throw new AppError(`Discount exceeds the maximum allowed discount of ${maxDiscountPercent}% (max allowed: ₹${maxDiscountAllowed.toFixed(2)})`, 400);
+      }
+    }
+
+    const totalAmount = Math.max(subtotal - discountAmount, 0);
+
     return prisma.$transaction(async (tx) => {
+      const totalQuotes = await tx.quotation.count();
+      const seq = totalQuotes + 1;
+
+      const now = new Date();
+      const yyyy = String(now.getFullYear());
+      const yy = yyyy.slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+
+      let quotationNumber = settings.quoteNumberFormat
+        .replace("{YYYY}", yyyy)
+        .replace("{YY}", yy)
+        .replace("{MM}", mm)
+        .replace("{DD}", dd);
+
+      quotationNumber = quotationNumber.replace("{NNNNN}", String(seq).padStart(5, "0"));
+      quotationNumber = quotationNumber.replace("{NNNN}", String(seq).padStart(4, "0"));
+      quotationNumber = quotationNumber.replace("{NNN}", String(seq).padStart(3, "0"));
+      quotationNumber = quotationNumber.replace("{NN}", String(seq).padStart(2, "0"));
+
+      const existingNo = await tx.quotation.findUnique({
+        where: { quotationNumber },
+      });
+      const finalQuotationNumber = existingNo ? `${quotationNumber}-${Date.now()}` : quotationNumber;
+
       const quotation = await tx.quotation.create({
         data: {
-          quotationNumber,
-
+          quotationNumber: finalQuotationNumber,
           type,
-
           leadId: type === QuotationType.LEAD ? data.leadId : null,
-
           customerId: type === QuotationType.CUSTOMER ? data.customerId : null,
-
           projectId: type === QuotationType.CUSTOMER ? data.projectId : null,
-
           phase: type === QuotationType.CUSTOMER ? data.phase : null,
-
           walkInName: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInName : null,
           walkInMobile: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInMobile : null,
           walkInEmail: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInEmail : null,
           walkInAddress: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInAddress : null,
-
           version,
-
           subtotal,
-
-          totalAmount: subtotal,
-
+          discountAmount,
+          totalAmount,
           notes: data.notes,
-
-          validUntil: data.validUntil,
-
+          validUntil,
           createdById: data.createdById ?? userId,
-
           parentQuotationId: lastQuotation?.id,
+
+          companyNameSnapshot: settings.companyName,
+          companyLogoSnapshot: settings.companyLogo,
+          companyGstSnapshot: settings.companyGst,
+          companyAddressSnapshot: settings.companyAddress,
+          companyPhoneSnapshot: settings.companyPhone,
+          companyEmailSnapshot: settings.companyEmail,
+          companyWebsiteSnapshot: settings.companyWebsite,
+          bankNameSnapshot: settings.bankName,
+          bankAccountNoSnapshot: settings.bankAccountNo,
+          bankIfscSnapshot: settings.bankIfsc,
+          bankBranchSnapshot: settings.bankBranch,
+          upiIdSnapshot: settings.upiId,
+          termsAndConditionsSnapshot: settings.termsAndConditions,
+          authorizedSignatureSnapshot: settings.authorizedSignature,
+          footerTextSnapshot: settings.footerText,
 
           items: {
             create: itemData,
@@ -396,6 +463,24 @@ export class QuotationService {
       dueAt: Date;
     },
   ) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const settings = await SettingsService.getSettings();
+
+    if (status === QuotationStatus.APPROVED) {
+      if (user.role !== "OWNER") {
+        const allowedRoles = (settings.rolePermissions as Record<string, string[]> | null)?.approveQuotations || [];
+        if (!allowedRoles.includes(user.role)) {
+          throw new AppError(`You do not have permission to approve quotations`, 403);
+        }
+      }
+    }
+
     const quotation = await prisma.quotation.findUnique({
       where: {
         id,
@@ -586,10 +671,37 @@ export class QuotationService {
 
     const version = latestVersion ? latestVersion.version + 1 : quotation.version + 1;
 
+    const settings = await SettingsService.getSettings();
+
     return prisma.$transaction(async (tx) => {
+      const totalQuotes = await tx.quotation.count();
+      const seq = totalQuotes + 1;
+
+      const now = new Date();
+      const yyyy = String(now.getFullYear());
+      const yy = yyyy.slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+
+      let quotationNumber = settings.quoteNumberFormat
+        .replace("{YYYY}", yyyy)
+        .replace("{YY}", yy)
+        .replace("{MM}", mm)
+        .replace("{DD}", dd);
+
+      quotationNumber = quotationNumber.replace("{NNNNN}", String(seq).padStart(5, "0"));
+      quotationNumber = quotationNumber.replace("{NNNN}", String(seq).padStart(4, "0"));
+      quotationNumber = quotationNumber.replace("{NNN}", String(seq).padStart(3, "0"));
+      quotationNumber = quotationNumber.replace("{NN}", String(seq).padStart(2, "0"));
+
+      const existingNo = await tx.quotation.findUnique({
+        where: { quotationNumber },
+      });
+      const finalQuotationNumber = existingNo ? `${quotationNumber}-${Date.now()}` : quotationNumber;
+
       const newQuotation = await tx.quotation.create({
         data: {
-          quotationNumber: `QT-${Date.now()}`,
+          quotationNumber: finalQuotationNumber,
 
           type: quotation.type,
 
@@ -625,6 +737,22 @@ export class QuotationService {
           revisionReason,
 
           createdById: userId,
+
+          companyNameSnapshot: settings.companyName,
+          companyLogoSnapshot: settings.companyLogo,
+          companyGstSnapshot: settings.companyGst,
+          companyAddressSnapshot: settings.companyAddress,
+          companyPhoneSnapshot: settings.companyPhone,
+          companyEmailSnapshot: settings.companyEmail,
+          companyWebsiteSnapshot: settings.companyWebsite,
+          bankNameSnapshot: settings.bankName,
+          bankAccountNoSnapshot: settings.bankAccountNo,
+          bankIfscSnapshot: settings.bankIfsc,
+          bankBranchSnapshot: settings.bankBranch,
+          upiIdSnapshot: settings.upiId,
+          termsAndConditionsSnapshot: settings.termsAndConditions,
+          authorizedSignatureSnapshot: settings.authorizedSignature,
+          footerTextSnapshot: settings.footerText,
         },
       });
 

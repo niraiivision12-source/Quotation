@@ -579,6 +579,22 @@ model Quotation {
 
   pdfUrl String?
 
+  companyNameSnapshot         String?
+  companyLogoSnapshot         String?
+  companyGstSnapshot          String?
+  companyAddressSnapshot      String?
+  companyPhoneSnapshot        String?
+  companyEmailSnapshot        String?
+  companyWebsiteSnapshot      String?
+  bankNameSnapshot            String?
+  bankAccountNoSnapshot       String?
+  bankIfscSnapshot            String?
+  bankBranchSnapshot          String?
+  upiIdSnapshot               String?
+  termsAndConditionsSnapshot  String?
+  authorizedSignatureSnapshot String?
+  footerTextSnapshot          String?
+
   sentAt DateTime?
 
   approvedAt DateTime?
@@ -634,4 +650,68 @@ model QuotationItem {
 
   @@index([quotationId])
   @@index([productId])
+}
+
+model SystemSettings {
+  id String @id @default("default")
+
+  // Company Settings
+  companyName             String  @default("")
+  companyLogo             String?
+  companyGst              String  @default("")
+  companyAddress          String  @default("")
+  companyPhone            String  @default("")
+  companyEmail            String  @default("")
+  companyWebsite          String  @default("")
+  bankName                String  @default("")
+  bankAccountNo           String  @default("")
+  bankIfsc                String  @default("")
+  bankBranch              String  @default("")
+  upiId                   String  @default("")
+  termsAndConditions      String  @default("")
+  authorizedSignature     String?
+  footerText              String  @default("")
+
+  // Lead Assignment
+  leadAssignmentMethod    String  @default("MANUAL") // MANUAL, PERCENTAGE, ROUND_ROBIN
+  leadSalesmanPercentages Json    @default("{}")
+  lastLeadAssignedUserId  String?
+
+  // Project Assignment
+  projectAssignmentMethod String  @default("MANUAL") // MANUAL, PERCENTAGE, PHASE_BASED
+  projectSalesmanPercentages Json @default("{}")
+  projectPhaseAssignment  Json    @default("{}")
+
+  // Quotation Settings
+  quoteValidityDays       Int     @default(30)
+  quoteDefaultNotes       String  @default("")
+  quoteDefaultDiscount    Decimal @default(0.00) @db.Decimal(5, 2)
+  quoteCurrencySymbol     String  @default("₹")
+  quoteNumberFormat       String  @default("QTN-{YYYY}-{NNN}")
+  quoteTaxDisplay         String  @default("GST_BREAKUP")
+  quotePdfHeaderFooter    Json    @default("{}")
+
+  // Notification Settings
+  notificationReminderTime     String  @default("09:00")
+  notificationReminderPriority String  @default("MEDIUM")
+  notificationBrowserEnabled   Boolean @default(true)
+  notificationEmailEnabled     Boolean @default(true)
+
+  // General Settings
+  generalTimezone          String  @default("Asia/Kolkata")
+  generalDateFormat        String  @default("DD/MM/YYYY")
+  generalTheme             String  @default("light")
+  generalDefaultDashboard  String  @default("dashboard")
+
+  // Role & Permission Settings
+  rolePermissions          Json    @default("{}")
+
+  // Product Pricing Settings
+  pricingDefaultMargin    Decimal @default(10.00) @db.Decimal(5, 2)
+  pricingAllowMarginOverride Boolean @default(true)
+  pricingMinMargin        Decimal @default(0.00) @db.Decimal(5, 2)
+  pricingMaxDiscount      Decimal @default(100.00) @db.Decimal(5, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

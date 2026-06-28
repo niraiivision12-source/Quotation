@@ -257,6 +257,7 @@ export default function QuotationPageMain() {
       notes,
       validUntil: validUntil || undefined,
       createdById: billingUserId,
+      discountAmount,
       items: validItems.map((item) => ({
         productId: item.productId!,
         quantity: item.quantity,
@@ -290,6 +291,23 @@ export default function QuotationPageMain() {
         subtotal,
         discountAmount,
         totalAmount,
+        companyDetails: quotation?.companyNameSnapshot ? {
+          companyName: quotation.companyNameSnapshot,
+          companyLogo: quotation.companyLogoSnapshot,
+          companyGst: quotation.companyGstSnapshot,
+          companyAddress: quotation.companyAddressSnapshot,
+          companyPhone: quotation.companyPhoneSnapshot,
+          companyEmail: quotation.companyEmailSnapshot,
+          companyWebsite: quotation.companyWebsiteSnapshot,
+          bankName: quotation.bankNameSnapshot,
+          bankAccountNo: quotation.bankAccountNoSnapshot,
+          bankIfsc: quotation.bankIfscSnapshot,
+          bankBranch: quotation.bankBranchSnapshot,
+          upiId: quotation.upiIdSnapshot,
+          termsAndConditions: quotation.termsAndConditionsSnapshot,
+          authorizedSignature: quotation.authorizedSignatureSnapshot,
+          footerText: quotation.footerTextSnapshot,
+        } : undefined,
       });
 
       toast.success("Quotation created");

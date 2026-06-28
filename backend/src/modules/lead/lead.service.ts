@@ -42,8 +42,117 @@ export class LeadService {
     }
 
     return prisma.$transaction(async (tx) => {
+      // Fetch assignment settings
+      let settings = await tx.systemSettings.findUnique({
+        where: { id: "default" },
+      });
+
+      if (!settings) {
+        // Fallback: seed default settings
+        settings = await tx.systemSettings.create({
+          data: {
+            id: "default",
+            leadAssignmentMethod: "MANUAL",
+            companyName: "NKP Construction",
+            companyGst: "",
+            companyAddress: "",
+            companyPhone: "",
+            companyEmail: "",
+            companyWebsite: "",
+            bankName: "",
+            bankAccountNo: "",
+            bankIfsc: "",
+            bankBranch: "",
+            upiId: "",
+            termsAndConditions: "",
+            footerText: "",
+            rolePermissions: {},
+          },
+        });
+      }
+
+      let assignedToId: string | null = data.assignedToId || null;
+
+      if (settings.leadAssignmentMethod !== "MANUAL") {
+        // Fetch active salesmen
+        const activeSalesmen = await tx.user.findMany({
+          where: {
+            role: "SALESMAN",
+            isActive: true,
+          },
+          orderBy: { id: "asc" },
+        });
+
+        if (activeSalesmen.length === 0) {
+          throw new AppError("No active salesmen available for automatic assignment", 400);
+        }
+
+        if (settings.leadAssignmentMethod === "PERCENTAGE") {
+          const percentages = (settings.leadSalesmanPercentages as Record<string, number>) || {};
+          const activePercentages = activeSalesmen
+            .map((s) => ({
+              id: s.id,
+              weight: percentages[s.id] || 0,
+            }))
+            .filter((p) => p.weight > 0);
+
+          if (activePercentages.length === 0) {
+            throw new AppError("No active salesmen have a configured assignment percentage", 400);
+          }
+
+          const totalWeight = activePercentages.reduce((sum, item) => sum + item.weight, 0);
+          const randomVal = Math.random() * totalWeight;
+
+          let cumulativeWeight = 0;
+          let selectedSalesmanId = activePercentages[0].id;
+          for (const item of activePercentages) {
+            cumulativeWeight += item.weight;
+            if (randomVal <= cumulativeWeight) {
+              selectedSalesmanId = item.id;
+              break;
+            }
+          }
+          assignedToId = selectedSalesmanId;
+        } else if (settings.leadAssignmentMethod === "ROUND_ROBIN") {
+          const lastAssignedId = settings.lastLeadAssignedUserId;
+          let nextIndex = 0;
+          if (lastAssignedId) {
+            const index = activeSalesmen.findIndex((s) => s.id === lastAssignedId);
+            if (index !== -1) {
+              nextIndex = (index + 1) % activeSalesmen.length;
+            }
+          }
+          const selectedSalesman = activeSalesmen[nextIndex];
+          assignedToId = selectedSalesman.id;
+
+          // Save last assigned user ID
+          await tx.systemSettings.update({
+            where: { id: "default" },
+            data: {
+              lastLeadAssignedUserId: assignedToId,
+            },
+          });
+        }
+      } else if (assignedToId) {
+        // Manual assignment validation
+        const salesman = await tx.user.findFirst({
+          where: { id: assignedToId, role: "SALESMAN", isActive: true },
+        });
+        if (!salesman) {
+          throw new AppError("The assigned salesman is inactive or does not exist", 400);
+        }
+      }
+
       const lead = await tx.lead.create({
-        data,
+        data: {
+          name: data.name,
+          mobile: data.mobile,
+          email: data.email,
+          city: data.city,
+          source: data.source,
+          notes: data.notes,
+          assignedToId,
+        },
       });
 
       await tx.leadActivity.create({

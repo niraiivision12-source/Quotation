@@ -38,6 +38,8 @@ export const createQuotationSchema = z.object({
 
   validUntil: z.coerce.date().optional(),
 
+  discountAmount: z.number().min(0).optional(),
+
   items: z.array(
     z.object({
       productId: z.uuid(),

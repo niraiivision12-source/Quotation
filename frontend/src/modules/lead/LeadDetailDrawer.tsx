@@ -1,6 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Check, MapPin, Pencil } from "lucide-react";
+import { Calendar, Check, MapPin, Pencil, Download } from "lucide-react";
 import { useEffect, useState } from "react";
+import { api } from "@/lib/axios";
+import { downloadQuotationPDF } from "../quotation/quotation.pdf";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -454,6 +457,74 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
   const fullLead = leadDetails ?? lead;
   const activities = fullLead?.activities ?? [];
 
+  const handleDownloadPDF = async (id: string) => {
+    try {
+      const response = await api.get(`/quotations/${id}`);
+      const q = response.data.data;
+
+      downloadQuotationPDF({
+        quotationNumber: q.quotationNumber,
+        quotationType: q.type,
+        targetName: q.lead?.name || q.customer?.name || q.walkInName || "",
+        projectName: q.project?.projectName || "",
+        payload: {
+          type: q.type,
+          leadId: q.leadId,
+          customerId: q.customerId,
+          projectId: q.projectId,
+          phase: q.phase,
+          walkInName: q.walkInName,
+          walkInMobile: q.walkInMobile,
+          walkInEmail: q.walkInEmail,
+          walkInAddress: q.walkInAddress,
+          notes: q.notes,
+          validUntil: q.validUntil,
+          items: q.items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            marginPercent: Number(item.marginPercent),
+          })),
+        },
+        items: q.items.map((item: any) => ({
+          id: item.id,
+          productId: item.productId,
+          productName: item.product?.name || "",
+          sku: item.product?.sku || "",
+          quantity: item.quantity,
+          costPrice: Number(item.costPrice),
+          marginPercent: Number(item.marginPercent),
+          sellingPrice: Number(item.sellingPrice),
+          totalPrice: Number(item.totalPrice),
+          search: item.product?.name || "",
+          showDropdown: false,
+        })),
+        subtotal: Number(q.subtotal),
+        discountAmount: Number(q.discountAmount || 0),
+        totalAmount: Number(q.totalAmount),
+        companyDetails: q.companyNameSnapshot ? {
+          companyName: q.companyNameSnapshot,
+          companyLogo: q.companyLogoSnapshot,
+          companyGst: q.companyGstSnapshot,
+          companyAddress: q.companyAddressSnapshot,
+          companyPhone: q.companyPhoneSnapshot,
+          companyEmail: q.companyEmailSnapshot,
+          companyWebsite: q.companyWebsiteSnapshot,
+          bankName: q.bankNameSnapshot,
+          bankAccountNo: q.bankAccountNoSnapshot,
+          bankIfsc: q.bankIfscSnapshot,
+          bankBranch: q.bankBranchSnapshot,
+          upiId: q.upiIdSnapshot,
+          termsAndConditions: q.termsAndConditionsSnapshot,
+          authorizedSignature: q.authorizedSignatureSnapshot,
+          footerText: q.footerTextSnapshot,
+        } : undefined,
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download quotation PDF");
+    }
+  };
+
   if (!fullLead) return null;
 
   const tabs: { key: DrawerTab; label: string; count?: number }[] = [
@@ -629,13 +700,23 @@ export default function LeadDetailDrawer({ lead, open, onClose }: Props) {
                       <div className="space-y-3">
                         {fullLead.quotations.map((q) => (
                           <div key={q.id} className="border rounded-md p-3">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                               <span className="font-medium text-sm">
                                 {q.quotationNumber}
                               </span>
-                              <span className="text-xs text-muted-foreground">
-                                {q.status}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground bg-zinc-50 border rounded px-1.5 py-0.5">
+                                  {q.status}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadPDF(q.id)}
+                                  className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-zinc-800 transition"
+                                  title="Download PDF"
+                                >
+                                  <Download size={14} />
+                                </button>
+                              </div>
                             </div>
                             <p className="text-sm mt-1">
                               ₹{Number(q.totalAmount).toLocaleString()}

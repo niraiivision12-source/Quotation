@@ -5,8 +5,12 @@ import {
   MapPin,
   Phone,
   FileText,
+  Download,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { api } from "@/lib/axios";
+import { downloadQuotationPDF } from "../../quotation/quotation.pdf";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +55,74 @@ export default function ProjectQuickDrawer({ projectId, onClose }: Props) {
   const latestQuotation = data?.quotations?.[0] ?? null;
   const nextReminder = data?.reminders?.[0] ?? null;
   const activities = data?.activities ?? [];
+
+  const handleDownloadPDF = async (id: string) => {
+    try {
+      const response = await api.get(`/quotations/${id}`);
+      const q = response.data.data;
+
+      downloadQuotationPDF({
+        quotationNumber: q.quotationNumber,
+        quotationType: q.type,
+        targetName: q.lead?.name || q.customer?.name || q.walkInName || "",
+        projectName: q.project?.projectName || "",
+        payload: {
+          type: q.type,
+          leadId: q.leadId,
+          customerId: q.customerId,
+          projectId: q.projectId,
+          phase: q.phase,
+          walkInName: q.walkInName,
+          walkInMobile: q.walkInMobile,
+          walkInEmail: q.walkInEmail,
+          walkInAddress: q.walkInAddress,
+          notes: q.notes,
+          validUntil: q.validUntil,
+          items: q.items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            marginPercent: Number(item.marginPercent),
+          })),
+        },
+        items: q.items.map((item: any) => ({
+          id: item.id,
+          productId: item.productId,
+          productName: item.product?.name || "",
+          sku: item.product?.sku || "",
+          quantity: item.quantity,
+          costPrice: Number(item.costPrice),
+          marginPercent: Number(item.marginPercent),
+          sellingPrice: Number(item.sellingPrice),
+          totalPrice: Number(item.totalPrice),
+          search: item.product?.name || "",
+          showDropdown: false,
+        })),
+        subtotal: Number(q.subtotal),
+        discountAmount: Number(q.discountAmount || 0),
+        totalAmount: Number(q.totalAmount),
+        companyDetails: q.companyNameSnapshot ? {
+          companyName: q.companyNameSnapshot,
+          companyLogo: q.companyLogoSnapshot,
+          companyGst: q.companyGstSnapshot,
+          companyAddress: q.companyAddressSnapshot,
+          companyPhone: q.companyPhoneSnapshot,
+          companyEmail: q.companyEmailSnapshot,
+          companyWebsite: q.companyWebsiteSnapshot,
+          bankName: q.bankNameSnapshot,
+          bankAccountNo: q.bankAccountNoSnapshot,
+          bankIfsc: q.bankIfscSnapshot,
+          bankBranch: q.bankBranchSnapshot,
+          upiId: q.upiIdSnapshot,
+          termsAndConditions: q.termsAndConditionsSnapshot,
+          authorizedSignature: q.authorizedSignatureSnapshot,
+          footerText: q.footerTextSnapshot,
+        } : undefined,
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download quotation PDF");
+    }
+  };
 
   return (
     <Sheet open={!!projectId} onOpenChange={(open) => !open && onClose()}>
@@ -125,9 +197,19 @@ export default function ProjectQuickDrawer({ projectId, onClose }: Props) {
                       <p className="text-sm font-medium">₹{Number(latestQuotation.totalAmount).toLocaleString()}</p>
                       <p className="text-xs text-muted-foreground">{latestQuotation.quotationNumber}</p>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${QUOTATION_STATUS_BADGE[latestQuotation.status] ?? "bg-gray-100 text-gray-600"}`}>
-                      {latestQuotation.status.charAt(0) + latestQuotation.status.slice(1).toLowerCase()}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${QUOTATION_STATUS_BADGE[latestQuotation.status] ?? "bg-gray-100 text-gray-600"}`}>
+                        {latestQuotation.status.charAt(0) + latestQuotation.status.slice(1).toLowerCase()}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadPDF(latestQuotation.id)}
+                        className="p-1.5 hover:bg-zinc-200 rounded text-zinc-500 hover:text-zinc-800 transition"
+                        title="Download PDF"
+                      >
+                        <Download size={14} />
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">No quotations yet</p>
