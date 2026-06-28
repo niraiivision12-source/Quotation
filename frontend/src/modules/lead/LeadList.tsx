@@ -464,6 +464,7 @@ export default function LeadList() {
   );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAssignUserId, setBulkAssignUserId] = useState<string>("");
+  const [pendingStatus, setPendingStatus] = useState<{ leadId: string; leadName: string; from: string; to: string } | null>(null);
   const [filters, setFilters] = useState<{
     source?: string;
     status?: string;
@@ -923,9 +924,10 @@ export default function LeadList() {
             selected={selectedIds.has(lead.id)}
             onSelect={toggleSelect}
             onOpen={(l) => navigate(`/leads/${l.id}`, { state: { ids: data?.items.map((i) => i.id) ?? [] } })}
-            onStatusChange={(id, status) =>
-              updateMutation.mutate({ id, data: { status } })
-            }
+            onStatusChange={(id, status) => {
+              const l = data?.items.find((i) => i.id === id);
+              if (l) setPendingStatus({ leadId: id, leadName: l.name, from: l.status, to: status });
+            }}
           />
         ))}
       </div>
@@ -1061,10 +1063,7 @@ export default function LeadList() {
                     <Select
                       value={lead.status}
                       onValueChange={(val) =>
-                        updateMutation.mutate({
-                          id: lead.id,
-                          data: { status: val },
-                        })
+                        setPendingStatus({ leadId: lead.id, leadName: lead.name, from: lead.status, to: val })
                       }
                     >
                       <SelectTrigger
@@ -1184,6 +1183,37 @@ export default function LeadList() {
         </div>
       </div>
 
+      {/* Status change confirmation */}
+      <Dialog open={!!pendingStatus} onOpenChange={(o) => { if (!o) setPendingStatus(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change Status?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Change <span className="font-semibold text-foreground">{pendingStatus?.leadName}</span>'s status from{" "}
+            <span className="font-semibold text-foreground">{pendingStatus?.from.replace(/_/g, " ")}</span> to{" "}
+            <span className="font-semibold text-foreground">{pendingStatus?.to.replace(/_/g, " ")}</span>?
+          </p>
+          <div className="flex gap-2 mt-2">
+            <Button
+              size="sm"
+              disabled={updateMutation.isPending}
+              onClick={() => {
+                if (!pendingStatus) return;
+                updateMutation.mutate(
+                  { id: pendingStatus.leadId, data: { status: pendingStatus.to } },
+                  { onSettled: () => setPendingStatus(null) }
+                );
+              }}
+            >
+              {updateMutation.isPending ? "Saving..." : "Confirm"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setPendingStatus(null)}>
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
