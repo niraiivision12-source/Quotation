@@ -7,7 +7,6 @@ import PageHeader from "@/components/ui/PageHeader";
 
 import { useLeads } from "../lead/lead.query";
 import type { Lead } from "../lead/lead.types";
-import ProjectQuickDrawer from "./components/ProjectQuickDrawer";
 import CreateProjectDialog from "./CreateProjectDialog";
 import { useProjects } from "./project.query";
 import type { Project } from "./project.types";
@@ -50,13 +49,13 @@ function LeadCard({ lead }: { lead: Lead }) {
   );
 }
 
-function KanbanCard({ project, onOpen }: { project: Project; onOpen: (id: string) => void }) {
+function KanbanCard({ project }: { project: Project }) {
   const initials = project.projectName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   const totalAmount = project.quotations?.reduce((sum, q) => sum + Number(q.totalAmount), 0) ?? 0;
 
   return (
+    <Link to={`/projects/${project.id}`}>
     <div
-      onClick={() => onOpen(project.id)}
       className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow space-y-2 cursor-pointer"
     >
       <div className="flex items-center gap-2">
@@ -77,10 +76,11 @@ function KanbanCard({ project, onOpen }: { project: Project; onOpen: (id: string
         </p>
       )}
     </div>
+    </Link>
   );
 }
 
-function ProjectKanban({ projects, newLeads, onOpen }: { projects: Project[]; newLeads: Lead[]; onOpen: (id: string) => void }) {
+function ProjectKanban({ projects, newLeads }: { projects: Project[]; newLeads: Lead[] }) {
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${KANBAN_COLUMNS.length}, minmax(0, 1fr))` }}>
       {KANBAN_COLUMNS.map(({ phase, label, headerClass, icon }) => {
@@ -117,7 +117,7 @@ function ProjectKanban({ projects, newLeads, onOpen }: { projects: Project[]; ne
               ) : (
                 projects
                   .filter((p) => p.currentPhase === phase)
-                  .map((p) => <KanbanCard key={p.id} project={p} onOpen={onOpen} />)
+                  .map((p) => <KanbanCard key={p.id} project={p} />)
               )}
             </div>
           </div>
@@ -129,7 +129,6 @@ function ProjectKanban({ projects, newLeads, onOpen }: { projects: Project[]; ne
 
 export default function ProjectList() {
   const [search, setSearch] = useState("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const { data: allData } = useProjects(1, search, 200);
   const { data: leadsData } = useLeads(1, search, { status: "NEW" });
@@ -151,12 +150,6 @@ export default function ProjectList() {
       <ProjectKanban
         projects={allData?.items ?? []}
         newLeads={leadsData?.items ?? []}
-        onOpen={setSelectedProjectId}
-      />
-
-      <ProjectQuickDrawer
-        projectId={selectedProjectId}
-        onClose={() => setSelectedProjectId(null)}
       />
     </div>
   );
