@@ -135,7 +135,7 @@ export default function ProjectList() {
 
   return (
     <div>
-      <PageHeader title="Projects" />
+      <PageHeader title="Pipelines" />
 
       <div className="flex items-center justify-between mb-4 gap-3">
         <Input

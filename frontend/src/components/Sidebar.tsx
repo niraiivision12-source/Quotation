@@ -17,7 +17,7 @@ const NAV_ITEMS = [
     icon: <LayoutDashboard size={18} />,
     exact: true,
   },
-  { to: "/projects", label: "Projects", icon: <Briefcase size={18} /> },
+  { to: "/projects", label: "Pipelines", icon: <Briefcase size={18} /> },
   { to: "/leads", label: "Leads", icon: <Users size={18} /> },
   { to: "/reminders", label: "Reminders", icon: <Bell size={18} /> },
   { to: "/quotations", label: "Quotations", icon: <ScrollText size={18} /> },
