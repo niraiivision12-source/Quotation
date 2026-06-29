@@ -22,7 +22,7 @@ class LeadNoteService {
             data: {
                 leadId,
                 userId,
-                type: "NOTE_ADDED",
+                type: "UPDATED",
                 message: "Note added",
             },
         });

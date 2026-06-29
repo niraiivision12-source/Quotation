@@ -448,7 +448,7 @@ function MobileLeadCard({
                       NEW: ["NEW", "CONTACTED", "NOT_RESPONDING"],
                       CONTACTED: ["CONTACTED", "NOT_RESPONDING", "QUOTATION_SENT"],
                       NOT_RESPONDING: ["NOT_RESPONDING", "CONTACTED", "QUOTATION_SENT", "LOST"],
-                      QUOTATION_SENT: ["QUOTATION_SENT", "NEGOTIATION", "LOST"],
+                      QUOTATION_SENT: ["QUOTATION_SENT", "NEGOTIATION", "WON", "LOST"],
                       NEGOTIATION: ["NEGOTIATION", "WON", "LOST"],
                       WON: ["WON"],
                       LOST: ["LOST", "NOT_RESPONDING"]
@@ -1144,7 +1144,7 @@ export default function LeadList() {
                             NEW: ["NEW", "CONTACTED", "NOT_RESPONDING"],
                             CONTACTED: ["CONTACTED", "NOT_RESPONDING", "QUOTATION_SENT"],
                             NOT_RESPONDING: ["NOT_RESPONDING", "CONTACTED", "QUOTATION_SENT", "LOST"],
-                            QUOTATION_SENT: ["QUOTATION_SENT", "NEGOTIATION", "LOST"],
+                            QUOTATION_SENT: ["QUOTATION_SENT", "NEGOTIATION", "WON", "LOST"],
                             NEGOTIATION: ["NEGOTIATION", "WON", "LOST"],
                             WON: ["WON"],
                             LOST: ["LOST", "NOT_RESPONDING"]

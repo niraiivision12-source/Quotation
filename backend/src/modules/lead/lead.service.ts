@@ -390,89 +390,118 @@ export class LeadService {
       throw new AppError("Lead not found", 404);
     }
 
-    if (lead.status === LeadStatus.WON) {
-      throw new AppError("Lead already converted", 409);
-    }
-
-    const existingCustomer = await prisma.customer.findUnique({
-      where: {
-        mobile: lead.mobile,
-      },
-    });
-
-    if (existingCustomer) {
-      throw new AppError(
-        "Customer already exists with this mobile number",
-        409,
-      );
-    }
-
     return prisma.$transaction(async (tx) => {
-      const customer = await tx.customer.create({
-        data: {
-          name: lead.name,
-          mobile: lead.mobile,
-          email: lead.email,
-          assignedToId: lead.assignedToId,
-          leadId: lead.id,
-        },
-      });
-
-      await tx.customerActivity.create({
-        data: {
-          customerId: customer.id,
-          type: "CREATED",
-          message: "Customer created from lead conversion",
-        },
-      });
-
-      const project = await tx.project.create({
-        data: {
-          customerId: customer.id,
-          projectName: data.projectName,
-          location: data.location,
-          estimatedBudget: data.estimatedBudget,
-          assignedToId: lead.assignedToId,
-        },
-      });
-
-      await tx.projectActivity.create({
-        data: {
-          projectId: project.id,
-          type: "CREATED",
-          message: "Project created from lead conversion",
-        },
-      });
-
-      await tx.projectPhaseTracking.createMany({
-        data: Object.values(ProjectPhase).map((phase) => ({
-          projectId: project.id,
-          phase,
-          status: LifecycleStatus.NOT_STARTED,
-        })),
-      });
-
-      await tx.lead.update({
+      // Find or create customer
+      let customer = await tx.customer.findUnique({
         where: {
-          id: lead.id,
-        },
-        data: {
-          status: LeadStatus.WON,
-          convertedAt: new Date(),
+          mobile: lead.mobile,
         },
       });
 
-      await tx.leadActivity.create({
-        data: {
-          leadId: lead.id,
-          type: "CONVERTED",
-          message: "Lead converted to customer",
-          metadata: {
-            customerId: customer.id,
-            projectId: project.id,
+      if (!customer) {
+        customer = await tx.customer.create({
+          data: {
+            name: lead.name,
+            mobile: lead.mobile,
+            email: lead.email,
+            assignedToId: lead.assignedToId,
+            leadId: lead.id,
           },
+        });
+
+        await tx.customerActivity.create({
+          data: {
+            customerId: customer.id,
+            type: "CREATED",
+            message: "Customer created from lead conversion",
+          },
+        });
+      } else if (!customer.leadId) {
+        customer = await tx.customer.update({
+          where: { id: customer.id },
+          data: { leadId: lead.id },
+        });
+      }
+
+      // Find or create project
+      let project = await tx.project.findFirst({
+        where: {
+          customerId: customer.id,
         },
       });
+
+      if (project) {
+        // Update existing project details
+        project = await tx.project.update({
+          where: { id: project.id },
+          data: {
+            projectName: data.projectName,
+            location: data.location ?? project.location,
+            estimatedBudget: data.estimatedBudget ?? project.estimatedBudget,
+          },
+        });
+
+        await tx.projectActivity.create({
+          data: {
+            projectId: project.id,
+            type: "UPDATED",
+            message: "Project details updated from lead conversion",
+          },
+        });
+      } else {
+        const newProject = await tx.project.create({
+          data: {
+            customerId: customer.id,
+            projectName: data.projectName,
+            location: data.location,
+            estimatedBudget: data.estimatedBudget,
+            assignedToId: lead.assignedToId,
+          },
+        });
+
+        await tx.projectActivity.create({
+          data: {
+            projectId: newProject.id,
+            type: "CREATED",
+            message: "Project created from lead conversion",
+          },
+        });
+
+        await tx.projectPhaseTracking.createMany({
+          data: Object.values(ProjectPhase).map((phase) => ({
+            projectId: newProject.id,
+            phase,
+            status: LifecycleStatus.NOT_STARTED,
+          })),
+        });
+
+        project = newProject;
+      }
+
+      // Update lead status to WON if it's not already
+      if (lead.status !== LeadStatus.WON) {
+        await tx.lead.update({
+          where: {
+            id: lead.id,
+          },
+          data: {
+            status: LeadStatus.WON,
+            convertedAt: new Date(),
+          },
+        });
+
+        await tx.leadActivity.create({
+          data: {
+            leadId: lead.id,
+            type: "CONVERTED",
+            message: "Lead converted to customer",
+            metadata: {
+              customerId: customer.id,
+              projectId: project.id,
+            },
+          },
+        });
+      }
 
       return {
         customer,
@@ -545,7 +574,7 @@ export class LeadService {
           NEW: ["CONTACTED", "NOT_RESPONDING"],
           CONTACTED: ["NOT_RESPONDING", "QUOTATION_SENT"],
           NOT_RESPONDING: ["CONTACTED", "QUOTATION_SENT", "LOST"],
-          QUOTATION_SENT: ["NEGOTIATION", "LOST"],
+          QUOTATION_SENT: ["NEGOTIATION", "WON", "LOST"],
           NEGOTIATION: ["WON", "LOST"],
           WON: [],
           LOST: ["NOT_RESPONDING"]
@@ -834,6 +863,103 @@ export class LeadService {
               userId,
               type: "UPDATED",
               message: "Note added",
+            },
+          });
+
+          // 1. Create or find customer
+          let customer = await tx.customer.findUnique({
+            where: {
+              mobile: lead.mobile,
+            },
+          });
+
+          if (!customer) {
+            customer = await tx.customer.create({
+              data: {
+                name: lead.name,
+                mobile: lead.mobile,
+                email: lead.email,
+                assignedToId: lead.assignedToId,
+                leadId: lead.id,
+              },
+            });
+
+            await tx.customerActivity.create({
+              data: {
+                customerId: customer.id,
+                type: "CREATED",
+                message: "Customer created from lead conversion",
+              },
+            });
+          } else if (!customer.leadId) {
+            // Link existing customer to lead
+            customer = await tx.customer.update({
+              where: { id: customer.id },
+              data: { leadId: lead.id },
+            });
+          }
+
+          // 2. Create project if not exists
+          let project = await tx.project.findFirst({
+            where: {
+              customerId: customer.id,
+            },
+          });
+
+          if (!project) {
+            // Find latest quotation to use its total amount as estimated budget
+            const latestQuotation = await tx.quotation.findFirst({
+              where: { leadId: lead.id },
+              orderBy: { createdAt: "desc" },
+            });
+
+            const estimatedBudget = latestQuotation 
+              ? latestQuotation.totalAmount 
+              : lead.estimatedValue;
+
+            const newProject = await tx.project.create({
+              data: {
+                customerId: customer.id,
+                projectName: `${lead.name} Project`,
+                location: lead.city,
+                estimatedBudget,
+                assignedToId: lead.assignedToId,
+              },
+            });
+
+            await tx.projectActivity.create({
+              data: {
+                projectId: newProject.id,
+                type: "CREATED",
+                message: "Project created from lead conversion",
+              },
+            });
+
+            await tx.projectPhaseTracking.createMany({
+              data: Object.values(ProjectPhase).map((phase) => ({
+                projectId: newProject.id,
+                phase,
+                status: LifecycleStatus.NOT_STARTED,
+              })),
+            });
+
+            project = newProject;
+          }
+
+          // Set convertedAt on lead
+          updateData.convertedAt = new Date();
+
+          // Create lead activity for CONVERTED
+          await tx.leadActivity.create({
+            data: {
+              leadId: lead.id,
+              userId,
+              type: "CONVERTED",
+              message: "Lead converted to customer",
+              metadata: {
+                customerId: customer.id,
+                projectId: project.id,
+              },
             },
           });
         }

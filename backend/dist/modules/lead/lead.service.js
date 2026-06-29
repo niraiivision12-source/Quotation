@@ -8,7 +8,7 @@ async function updateLeadNextFollowUp(tx, leadId) {
     const nextReminder = await tx.reminder.findFirst({
         where: {
             leadId,
-            status: "PENDING",
+            status: client_1.ReminderStatus.PENDING,
         },
         orderBy: {
             dueAt: "asc",
@@ -20,6 +20,45 @@ async function updateLeadNextFollowUp(tx, leadId) {
             nextFollowUpAt: nextReminder ? nextReminder.dueAt : null,
         },
     });
+}
+async function createNewReminder(tx, leadId, userId, data) {
+    const currentPending = await tx.reminder.findFirst({
+        where: { leadId, status: client_1.ReminderStatus.PENDING },
+    });
+    if (currentPending) {
+        await tx.reminder.update({
+            where: { id: currentPending.id },
+            data: { status: client_1.ReminderStatus.CANCELLED },
+        });
+        await tx.leadActivity.create({
+            data: {
+                leadId,
+                userId,
+                type: "UPDATED",
+                message: `Cancelled previous pending reminder: ${currentPending.title}`,
+            },
+        });
+    }
+    const reminder = await tx.reminder.create({
+        data: {
+            title: data.title,
+            description: data.description,
+            type: "LEAD",
+            priority: data.priority,
+            dueAt: data.dueAt,
+            userId,
+            leadId,
+        },
+    });
+    await tx.leadActivity.create({
+        data: {
+            leadId,
+            userId,
+            type: "REMINDER_CREATED",
+            message: `Reminder created: ${reminder.title}`,
+        },
+    });
+    return reminder;
 }
 class LeadService {
     static async create(data) {
@@ -293,77 +332,110 @@ class LeadService {
         if (!lead) {
             throw new app_error_1.AppError("Lead not found", 404);
         }
-        if (lead.status === client_1.LeadStatus.WON) {
-            throw new app_error_1.AppError("Lead already converted", 409);
-        }
-        const existingCustomer = await prisma_1.prisma.customer.findUnique({
-            where: {
-                mobile: lead.mobile,
-            },
-        });
-        if (existingCustomer) {
-            throw new app_error_1.AppError("Customer already exists with this mobile number", 409);
-        }
         return prisma_1.prisma.$transaction(async (tx) => {
-            const customer = await tx.customer.create({
-                data: {
-                    name: lead.name,
-                    mobile: lead.mobile,
-                    email: lead.email,
-                    assignedToId: lead.assignedToId,
-                    leadId: lead.id,
-                },
-            });
-            await tx.customerActivity.create({
-                data: {
-                    customerId: customer.id,
-                    type: "CREATED",
-                    message: "Customer created from lead conversion",
-                },
-            });
-            const project = await tx.project.create({
-                data: {
-                    customerId: customer.id,
-                    projectName: data.projectName,
-                    location: data.location,
-                    estimatedBudget: data.estimatedBudget,
-                    assignedToId: lead.assignedToId,
-                },
-            });
-            await tx.projectActivity.create({
-                data: {
-                    projectId: project.id,
-                    type: "CREATED",
-                    message: "Project created from lead conversion",
-                },
-            });
-            await tx.projectPhaseTracking.createMany({
-                data: Object.values(client_1.ProjectPhase).map((phase) => ({
-                    projectId: project.id,
-                    phase,
-                    status: client_1.LifecycleStatus.NOT_STARTED,
-                })),
-            });
-            await tx.lead.update({
+            // Find or create customer
+            let customer = await tx.customer.findUnique({
                 where: {
-                    id: lead.id,
-                },
-                data: {
-                    status: client_1.LeadStatus.WON,
-                    convertedAt: new Date(),
+                    mobile: lead.mobile,
                 },
             });
-            await tx.leadActivity.create({
-                data: {
-                    leadId: lead.id,
-                    type: "CONVERTED",
-                    message: "Lead converted to customer",
-                    metadata: {
-                        customerId: customer.id,
-                        projectId: project.id,
+            if (!customer) {
+                customer = await tx.customer.create({
+                    data: {
+                        name: lead.name,
+                        mobile: lead.mobile,
+                        email: lead.email,
+                        assignedToId: lead.assignedToId,
+                        leadId: lead.id,
                     },
+                });
+                await tx.customerActivity.create({
+                    data: {
+                        customerId: customer.id,
+                        type: "CREATED",
+                        message: "Customer created from lead conversion",
+                    },
+                });
+            }
+            else if (!customer.leadId) {
+                customer = await tx.customer.update({
+                    where: { id: customer.id },
+                    data: { leadId: lead.id },
+                });
+            }
+            // Find or create project
+            let project = await tx.project.findFirst({
+                where: {
+                    customerId: customer.id,
                 },
             });
+            if (project) {
+                // Update existing project details
+                project = await tx.project.update({
+                    where: { id: project.id },
+                    data: {
+                        projectName: data.projectName,
+                        location: data.location ?? project.location,
+                        estimatedBudget: data.estimatedBudget ?? project.estimatedBudget,
+                    },
+                });
+                await tx.projectActivity.create({
+                    data: {
+                        projectId: project.id,
+                        type: "UPDATED",
+                        message: "Project details updated from lead conversion",
+                    },
+                });
+            }
+            else {
+                const newProject = await tx.project.create({
+                    data: {
+                        customerId: customer.id,
+                        projectName: data.projectName,
+                        location: data.location,
+                        estimatedBudget: data.estimatedBudget,
+                        assignedToId: lead.assignedToId,
+                    },
+                });
+                await tx.projectActivity.create({
+                    data: {
+                        projectId: newProject.id,
+                        type: "CREATED",
+                        message: "Project created from lead conversion",
+                    },
+                });
+                await tx.projectPhaseTracking.createMany({
+                    data: Object.values(client_1.ProjectPhase).map((phase) => ({
+                        projectId: newProject.id,
+                        phase,
+                        status: client_1.LifecycleStatus.NOT_STARTED,
+                    })),
+                });
+                project = newProject;
+            }
+            // Update lead status to WON if it's not already
+            if (lead.status !== client_1.LeadStatus.WON) {
+                await tx.lead.update({
+                    where: {
+                        id: lead.id,
+                    },
+                    data: {
+                        status: client_1.LeadStatus.WON,
+                        convertedAt: new Date(),
+                    },
+                });
+                await tx.leadActivity.create({
+                    data: {
+                        leadId: lead.id,
+                        type: "CONVERTED",
+                        message: "Lead converted to customer",
+                        metadata: {
+                            customerId: customer.id,
+                            projectId: project.id,
+                        },
+                    },
+                });
+            }
             return {
                 customer,
                 project,
@@ -402,6 +474,18 @@ class LeadService {
         const targetStatus = data.status;
         return prisma_1.prisma.$transaction(async (tx) => {
             if (isStatusChanged) {
+                const allowedTransitions = {
+                    NEW: ["CONTACTED", "NOT_RESPONDING"],
+                    CONTACTED: ["NOT_RESPONDING", "QUOTATION_SENT"],
+                    NOT_RESPONDING: ["CONTACTED", "QUOTATION_SENT", "LOST"],
+                    QUOTATION_SENT: ["NEGOTIATION", "WON", "LOST"],
+                    NEGOTIATION: ["WON", "LOST"],
+                    WON: [],
+                    LOST: ["NOT_RESPONDING"]
+                };
+                if (!allowedTransitions[lead.status].includes(targetStatus)) {
+                    throw new app_error_1.AppError(`Cannot change lead status from ${lead.status} to ${targetStatus}`, 400);
+                }
                 updateData.status = targetStatus;
                 if (targetStatus === "CONTACTED") {
                     if (!data.notes || data.notes.trim() === "") {
@@ -433,30 +517,17 @@ class LeadService {
                         data: {
                             leadId: lead.id,
                             userId,
-                            type: "NOTE_ADDED",
+                            type: "UPDATED",
                             message: "Note added",
                         },
                     });
-                    const reminder = await tx.reminder.create({
-                        data: {
-                            title: data.followUp?.title ?? `Follow up with ${lead.name}`,
-                            description: data.followUp?.description,
-                            type: "LEAD",
-                            priority: data.followUp?.priority ?? "MEDIUM",
-                            dueAt,
-                            userId,
-                            leadId: lead.id,
-                        },
+                    const reminder = await createNewReminder(tx, lead.id, userId, {
+                        title: data.followUp?.title ?? `Follow up with ${lead.name}`,
+                        description: data.followUp?.description,
+                        priority: data.followUp?.priority ?? "MEDIUM",
+                        dueAt,
                     });
                     updateData.nextFollowUpAt = reminder.dueAt;
-                    await tx.leadActivity.create({
-                        data: {
-                            leadId: lead.id,
-                            userId,
-                            type: "REMINDER_CREATED",
-                            message: `Reminder created: ${reminder.title}`,
-                        },
-                    });
                 }
                 else if (targetStatus === "NOT_RESPONDING") {
                     const rawDueAt = data.followUpDate || data.followUp?.dueAt;
@@ -464,16 +535,11 @@ class LeadService {
                         throw new app_error_1.AppError("Follow-up date & time are required when status is NOT_RESPONDING", 400);
                     }
                     const dueAt = new Date(rawDueAt);
-                    const reminder = await tx.reminder.create({
-                        data: {
-                            title: data.followUp?.title ?? `Follow up with ${lead.name} (Not Responding)`,
-                            description: data.followUp?.description,
-                            type: "LEAD",
-                            priority: data.followUp?.priority ?? "MEDIUM",
-                            dueAt,
-                            userId,
-                            leadId: lead.id,
-                        },
+                    const reminder = await createNewReminder(tx, lead.id, userId, {
+                        title: data.followUp?.title ?? `Follow up with ${lead.name} (Not Responding)`,
+                        description: data.followUp?.description,
+                        priority: data.followUp?.priority ?? "MEDIUM",
+                        dueAt,
                     });
                     updateData.nextFollowUpAt = reminder.dueAt;
                     if (data.notes && data.notes.trim() !== "") {
@@ -488,7 +554,7 @@ class LeadService {
                             data: {
                                 leadId: lead.id,
                                 userId,
-                                type: "NOTE_ADDED",
+                                type: "UPDATED",
                                 message: "Note added",
                             },
                         });
@@ -502,17 +568,46 @@ class LeadService {
                             metadata: { oldStatus: lead.status, newStatus: "NOT_RESPONDING" },
                         },
                     });
+                }
+                else if (targetStatus === "QUOTATION_SENT") {
+                    // It's allowed for post-quotation-creation popup.
+                    if (!data.notes || data.notes.trim() === "") {
+                        throw new app_error_1.AppError("Notes are required when status is QUOTATION_SENT", 400);
+                    }
+                    await tx.leadNote.create({
+                        data: {
+                            leadId: lead.id,
+                            userId,
+                            note: data.notes,
+                        },
+                    });
                     await tx.leadActivity.create({
                         data: {
                             leadId: lead.id,
                             userId,
-                            type: "REMINDER_CREATED",
-                            message: `Reminder created: ${reminder.title}`,
+                            type: "STATUS_CHANGED",
+                            message: `Status changed from ${lead.status} to QUOTATION_SENT`,
+                            metadata: { oldStatus: lead.status, newStatus: "QUOTATION_SENT" },
                         },
                     });
-                }
-                else if (targetStatus === "QUOTATION_SENT") {
-                    throw new app_error_1.AppError("Cannot change status to QUOTATION_SENT directly. Please create a quotation instead.", 400);
+                    await tx.leadActivity.create({
+                        data: {
+                            leadId: lead.id,
+                            userId,
+                            type: "UPDATED",
+                            message: "Note added after quotation creation",
+                        },
+                    });
+                    if (data.followUpDate || data.followUp?.dueAt) {
+                        const dueAt = new Date((data.followUpDate || data.followUp?.dueAt));
+                        const reminder = await createNewReminder(tx, lead.id, userId, {
+                            title: data.followUp?.title ?? `Follow up with ${lead.name} (Quotation Sent)`,
+                            description: data.followUp?.description,
+                            priority: data.followUp?.priority ?? "MEDIUM",
+                            dueAt,
+                        });
+                        updateData.nextFollowUpAt = reminder.dueAt;
+                    }
                 }
                 else if (targetStatus === "NEGOTIATION") {
                     if (!data.notes || data.notes.trim() === "") {
@@ -550,40 +645,22 @@ class LeadService {
                         data: {
                             leadId: lead.id,
                             userId,
-                            type: "NOTE_ADDED",
+                            type: "UPDATED",
                             message: "Note added",
                         },
                     });
-                    const reminder = await tx.reminder.create({
-                        data: {
-                            title: data.followUp?.title ?? `Follow up with ${lead.name} (Negotiation)`,
-                            description: data.followUp?.description,
-                            type: "LEAD",
-                            priority: data.followUp?.priority ?? "MEDIUM",
-                            dueAt,
-                            userId,
-                            leadId: lead.id,
-                        },
+                    const reminder = await createNewReminder(tx, lead.id, userId, {
+                        title: data.followUp?.title ?? `Follow up with ${lead.name} (Negotiation)`,
+                        description: data.followUp?.description,
+                        priority: data.followUp?.priority ?? "MEDIUM",
+                        dueAt,
                     });
                     updateData.nextFollowUpAt = reminder.dueAt;
-                    await tx.leadActivity.create({
-                        data: {
-                            leadId: lead.id,
-                            userId,
-                            type: "REMINDER_CREATED",
-                            message: `Reminder created: ${reminder.title}`,
-                        },
-                    });
                 }
                 else if (targetStatus === "LOST") {
                     if (!data.notes || data.notes.trim() === "") {
                         throw new app_error_1.AppError("Notes are required when status is LOST", 400);
                     }
-                    const rawDueAt = data.followUpDate || data.followUp?.dueAt;
-                    if (!rawDueAt) {
-                        throw new app_error_1.AppError("Follow-up date & time are required when status is LOST", 400);
-                    }
-                    const dueAt = new Date(rawDueAt);
                     const allowedLostReasons = ["price", "competitor", "cancelled", "budget", "no response", "other"];
                     if (!data.reason || !allowedLostReasons.includes(data.reason.toLowerCase())) {
                         throw new app_error_1.AppError("Invalid lost reason. Allowed values are: Price, Competitor, Cancelled, Budget, No Response, Other", 400);
@@ -613,30 +690,21 @@ class LeadService {
                         data: {
                             leadId: lead.id,
                             userId,
-                            type: "NOTE_ADDED",
+                            type: "UPDATED",
                             message: "Note added",
                         },
                     });
-                    const reminder = await tx.reminder.create({
-                        data: {
+                    const rawDueAt = data.followUpDate || data.followUp?.dueAt;
+                    if (rawDueAt) {
+                        const dueAt = new Date(rawDueAt);
+                        const reminder = await createNewReminder(tx, lead.id, userId, {
                             title: data.followUp?.title ?? `Follow up with ${lead.name} (Lost)`,
                             description: data.followUp?.description,
-                            type: "LEAD",
                             priority: data.followUp?.priority ?? "MEDIUM",
                             dueAt,
-                            userId,
-                            leadId: lead.id,
-                        },
-                    });
-                    updateData.nextFollowUpAt = reminder.dueAt;
-                    await tx.leadActivity.create({
-                        data: {
-                            leadId: lead.id,
-                            userId,
-                            type: "REMINDER_CREATED",
-                            message: `Reminder created: ${reminder.title}`,
-                        },
-                    });
+                        });
+                        updateData.nextFollowUpAt = reminder.dueAt;
+                    }
                 }
                 else if (targetStatus === "WON") {
                     if (!data.notes || data.notes.trim() === "") {
@@ -662,8 +730,94 @@ class LeadService {
                         data: {
                             leadId: lead.id,
                             userId,
-                            type: "NOTE_ADDED",
+                            type: "UPDATED",
                             message: "Note added",
+                        },
+                    });
+                    // 1. Create or find customer
+                    let customer = await tx.customer.findUnique({
+                        where: {
+                            mobile: lead.mobile,
+                        },
+                    });
+                    if (!customer) {
+                        customer = await tx.customer.create({
+                            data: {
+                                name: lead.name,
+                                mobile: lead.mobile,
+                                email: lead.email,
+                                assignedToId: lead.assignedToId,
+                                leadId: lead.id,
+                            },
+                        });
+                        await tx.customerActivity.create({
+                            data: {
+                                customerId: customer.id,
+                                type: "CREATED",
+                                message: "Customer created from lead conversion",
+                            },
+                        });
+                    }
+                    else if (!customer.leadId) {
+                        // Link existing customer to lead
+                        customer = await tx.customer.update({
+                            where: { id: customer.id },
+                            data: { leadId: lead.id },
+                        });
+                    }
+                    // 2. Create project if not exists
+                    let project = await tx.project.findFirst({
+                        where: {
+                            customerId: customer.id,
+                        },
+                    });
+                    if (!project) {
+                        // Find latest quotation to use its total amount as estimated budget
+                        const latestQuotation = await tx.quotation.findFirst({
+                            where: { leadId: lead.id },
+                            orderBy: { createdAt: "desc" },
+                        });
+                        const estimatedBudget = latestQuotation
+                            ? latestQuotation.totalAmount
+                            : lead.estimatedValue;
+                        const newProject = await tx.project.create({
+                            data: {
+                                customerId: customer.id,
+                                projectName: `${lead.name} Project`,
+                                location: lead.city,
+                                estimatedBudget,
+                                assignedToId: lead.assignedToId,
+                            },
+                        });
+                        await tx.projectActivity.create({
+                            data: {
+                                projectId: newProject.id,
+                                type: "CREATED",
+                                message: "Project created from lead conversion",
+                            },
+                        });
+                        await tx.projectPhaseTracking.createMany({
+                            data: Object.values(client_1.ProjectPhase).map((phase) => ({
+                                projectId: newProject.id,
+                                phase,
+                                status: client_1.LifecycleStatus.NOT_STARTED,
+                            })),
+                        });
+                        project = newProject;
+                    }
+                    // Set convertedAt on lead
+                    updateData.convertedAt = new Date();
+                    // Create lead activity for CONVERTED
+                    await tx.leadActivity.create({
+                        data: {
+                            leadId: lead.id,
+                            userId,
+                            type: "CONVERTED",
+                            message: "Lead converted to customer",
+                            metadata: {
+                                customerId: customer.id,
+                                projectId: project.id,
+                            },
                         },
                     });
                 }
@@ -681,32 +835,19 @@ class LeadService {
                         data: {
                             leadId: lead.id,
                             userId,
-                            type: "NOTE_ADDED",
+                            type: "UPDATED",
                             message: "Note added",
                         },
                     });
                 }
                 if (data.followUp) {
-                    const reminder = await tx.reminder.create({
-                        data: {
-                            title: data.followUp.title ?? `Follow up with ${lead.name}`,
-                            description: data.followUp.description,
-                            type: "LEAD",
-                            priority: data.followUp.priority ?? "MEDIUM",
-                            dueAt: new Date(data.followUp.dueAt),
-                            userId,
-                            leadId: lead.id,
-                        },
+                    const reminder = await createNewReminder(tx, lead.id, userId, {
+                        title: data.followUp.title ?? `Follow up with ${lead.name}`,
+                        description: data.followUp.description,
+                        priority: data.followUp.priority ?? "MEDIUM",
+                        dueAt: new Date(data.followUp.dueAt),
                     });
                     await updateLeadNextFollowUp(tx, lead.id);
-                    await tx.leadActivity.create({
-                        data: {
-                            leadId: lead.id,
-                            userId,
-                            type: "REMINDER_CREATED",
-                            message: `Reminder created: ${reminder.title}`,
-                        },
-                    });
                 }
             }
             const updatedLead = await tx.lead.update({
