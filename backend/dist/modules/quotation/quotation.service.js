@@ -245,6 +245,14 @@ class QuotationService {
                     });
                 }
             }
+            if (quotation.projectId) {
+                await tx.project.update({
+                    where: { id: quotation.projectId },
+                    data: {
+                        estimatedBudget: quotation.totalAmount,
+                    },
+                });
+            }
             return quotation;
         });
     }
@@ -587,6 +595,14 @@ class QuotationService {
                     totalPrice: item.totalPrice,
                 })),
             });
+            if (newQuotation.projectId) {
+                await tx.project.update({
+                    where: { id: newQuotation.projectId },
+                    data: {
+                        estimatedBudget: newQuotation.totalAmount,
+                    },
+                });
+            }
             return newQuotation;
         });
     }

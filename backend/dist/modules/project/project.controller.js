@@ -42,6 +42,15 @@ class ProjectController {
             data: project,
         });
     }
+    static async updatePhase(req, res) {
+        const data = project_validation_1.updateProjectPhaseSchema.parse(req.body);
+        const project = await project_service_1.ProjectService.updatePhase(req.params.id, data.phase);
+        return res.status(200).json({
+            success: true,
+            message: "Project phase updated",
+            data: project,
+        });
+    }
     static async deactivate(req, res) {
         const project = await project_service_1.ProjectService.deactivate(req.params.id);
         return res.status(200).json({

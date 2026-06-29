@@ -133,7 +133,7 @@ export default function QuotationPageMain() {
   }
 
   function buildQuotationPayload() {
-    if (quotationType !== "WALK_IN_CUSTOMER" && !phase) {
+    if (quotationType === "CUSTOMER" && !phase) {
       toast.error("Select quotation phase");
       return null;
     }
@@ -168,7 +168,7 @@ export default function QuotationPageMain() {
       leadId: quotationType === "LEAD" ? leadId : undefined,
       customerId: quotationType === "CUSTOMER" ? customerId : undefined,
       projectId: quotationType === "CUSTOMER" ? projectId : undefined,
-      phase: quotationType !== "WALK_IN_CUSTOMER" ? phase : undefined,
+      phase: quotationType === "CUSTOMER" ? phase : undefined,
       walkInName: quotationType === "WALK_IN_CUSTOMER" ? walkInName : undefined,
       walkInMobile: quotationType === "WALK_IN_CUSTOMER" ? walkInMobile : undefined,
       walkInEmail: (quotationType === "WALK_IN_CUSTOMER" && walkInEmail) ? walkInEmail : undefined,

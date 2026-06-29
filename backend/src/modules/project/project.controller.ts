@@ -4,6 +4,7 @@ import { ProjectService } from "@/modules/project/project.service";
 import {
   createProjectSchema,
   updateProjectSchema,
+  updateProjectPhaseSchema,
 } from "@/modules/project/project.validation";
 
 export class ProjectController {
@@ -59,6 +60,18 @@ export class ProjectController {
     return res.status(200).json({
       success: true,
       message: "Project updated",
+      data: project,
+    });
+  }
+
+  static async updatePhase(req: Request, res: Response) {
+    const data = updateProjectPhaseSchema.parse(req.body);
+
+    const project = await ProjectService.updatePhase(req.params.id as string, data.phase);
+
+    return res.status(200).json({
+      success: true,
+      message: "Project phase updated",
       data: project,
     });
   }

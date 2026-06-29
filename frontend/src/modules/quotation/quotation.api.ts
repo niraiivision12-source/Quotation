@@ -74,3 +74,8 @@ export const getLeads = async (search = "") => {
 
   return response.data.data;
 };
+
+export const getProjectQuotations = async (projectId: string): Promise<Quotation[]> => {
+  const response = await api.get(`/quotations/project/${projectId}`);
+  return response.data.data;
+};

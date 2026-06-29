@@ -329,9 +329,9 @@ function EditLeadDialog({ lead, open, onClose }: { lead: Lead; open: boolean; on
 
 // ─── Status section ─────────────────────────────────────────────────────────────
 const convertSchema = z.object({
-  projectName: z.string().min(2),
+  projectName: z.string().min(2, "Project Name must be at least 2 characters"),
   location: z.string().optional(),
-  estimatedBudget: z.number().optional().or(z.nan()),
+  currentPhase: z.string().min(1, "Phase is required"),
 });
 type ConvertForm = z.infer<typeof convertSchema>;
 
@@ -353,7 +353,11 @@ function StatusSection({ lead }: { lead: Lead }) {
   const submitConvert = async (data: ConvertForm) => {
     await convertMutation.mutateAsync({
       id: lead.id,
-      data: { ...data, estimatedBudget: Number.isNaN(data.estimatedBudget) ? undefined : data.estimatedBudget },
+      data: {
+        projectName: data.projectName,
+        location: data.location || undefined,
+        currentPhase: data.currentPhase,
+      },
     });
     form.reset();
     setConvertOpen(false);
@@ -409,10 +413,33 @@ function StatusSection({ lead }: { lead: Lead }) {
         <DialogContent onClick={(e) => e.stopPropagation()}>
           <DialogHeader><DialogTitle>Convert {lead.name} to Customer</DialogTitle></DialogHeader>
           <form onSubmit={form.handleSubmit(submitConvert)} className="space-y-4">
-            <Input placeholder="Project Name *" {...form.register("projectName")} />
-            <Input placeholder="Location" {...form.register("location")} />
-            <Input placeholder="Estimated Budget" type="number" {...form.register("estimatedBudget", { valueAsNumber: true })} />
-            <div className="flex gap-2">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Project Name *</label>
+              <Input placeholder="Project Name *" {...form.register("projectName")} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Location (Optional)</label>
+              <Input placeholder="Location" {...form.register("location")} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Current Phase *</label>
+              <select
+                className="w-full text-sm border rounded-md p-2 h-10 focus:outline-none focus:ring-1 focus:ring-ring bg-white"
+                {...form.register("currentPhase")}
+              >
+                <option value="">Select current phase</option>
+                <option value="PIPES">Pipes</option>
+                <option value="WIRING">Wiring</option>
+                <option value="SWITCHES">Switches</option>
+                <option value="LIGHTS">Lights</option>
+                <option value="FANS">Fans</option>
+                <option value="OTHERS">Others</option>
+              </select>
+              {form.formState.errors.currentPhase && (
+                <p className="text-xs text-red-500 mt-1">{form.formState.errors.currentPhase.message}</p>
+              )}
+            </div>
+            <div className="flex gap-2 pt-2">
               <Button type="submit" disabled={convertMutation.isPending}>
                 {convertMutation.isPending ? "Converting..." : "Confirm & Convert"}
               </Button>

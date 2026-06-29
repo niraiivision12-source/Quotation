@@ -26,6 +26,7 @@ const PHASE_ICON: Record<string, React.ReactNode> = {
   SWITCHES: <ToggleLeft size={16} />,
   LIGHTS: <Lightbulb size={16} />,
   FANS: <Wind size={16} />,
+  OTHERS: <Wrench size={16} />,
 };
 
 const PHASE_BG: Record<string, string> = {
@@ -34,6 +35,7 @@ const PHASE_BG: Record<string, string> = {
   SWITCHES: "bg-blue-100 text-blue-600",
   LIGHTS: "bg-violet-100 text-violet-600",
   FANS: "bg-teal-100 text-teal-600",
+  OTHERS: "bg-gray-100 text-gray-600",
 };
 
 const STATUS_BADGE: Record<PhaseStatus, string> = {

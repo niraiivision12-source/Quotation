@@ -52,7 +52,7 @@ export const useConvertLead = () => {
       data: {
         projectName: string;
         location?: string;
-        estimatedBudget?: number;
+        currentPhase: string;
       };
     }) => convertLead(id, data),
     onSuccess: () => {

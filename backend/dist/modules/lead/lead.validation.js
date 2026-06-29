@@ -15,7 +15,7 @@ exports.createLeadSchema = zod_1.z.object({
 exports.convertLeadSchema = zod_1.z.object({
     projectName: zod_1.z.string().min(2),
     location: zod_1.z.string().optional(),
-    estimatedBudget: zod_1.z.coerce.number().optional(),
+    currentPhase: zod_1.z.nativeEnum(client_1.ProjectPhase),
 });
 exports.updateLeadSchema = zod_1.z.object({
     name: zod_1.z.string().min(2).optional(),

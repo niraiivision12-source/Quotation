@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS = {
         SWITCHES: "",
         LIGHTS: "",
         FANS: "",
+        OTHERS: "",
     },
     quoteValidityDays: 30,
     quoteDefaultNotes: "Standard structural design work quotation.",

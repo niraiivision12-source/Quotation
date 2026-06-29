@@ -15,6 +15,8 @@ export interface Project {
 
   isCompleted: boolean;
 
+  status: string;
+
   isActive: boolean;
 
   customer: {
@@ -24,7 +26,23 @@ export interface Project {
     email?: string | null;
   };
 
-  quotations?: { totalAmount: string }[];
+  quotations?: { id: string; totalAmount: string; status: string; createdAt: string }[];
+  startDate?: string | null;
+  expectedCompletion?: string | null;
+  phaseTracking?: ProjectPhase[];
+  activities?: {
+    id: string;
+    type: string;
+    message: string;
+    createdAt: string;
+    user?: { id: string; name: string } | null;
+  }[];
+  reminders?: {
+    id: string;
+    title: string;
+    dueAt: string;
+    priority: string;
+  }[];
 }
 
 export interface ProjectListResponse {
@@ -37,7 +55,7 @@ export interface ProjectListResponse {
 export interface ProjectPhase {
   id: string;
 
-  phase: "PIPES" | "WIRING" | "SWITCHES" | "LIGHTS" | "FANS";
+  phase: "PIPES" | "WIRING" | "SWITCHES" | "LIGHTS" | "FANS" | "OTHERS";
 
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED";
 
@@ -58,6 +76,8 @@ export interface ProjectDetails {
   currentPhase: string;
 
   isCompleted: boolean;
+
+  status: string;
 
   customer: {
     id: string;

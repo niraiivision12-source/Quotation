@@ -61,6 +61,7 @@ export default function SettingsPageMain() {
     SWITCHES: "",
     LIGHTS: "",
     FANS: "",
+    OTHERS: "",
   });
 
   const [quoteValidityDays, setQuoteValidityDays] = useState(30);
@@ -140,6 +141,7 @@ export default function SettingsPageMain() {
           SWITCHES: "",
           LIGHTS: "",
           FANS: "",
+          OTHERS: "",
         });
 
         setQuoteValidityDays(settings.quoteValidityDays ?? 30);
@@ -211,7 +213,7 @@ export default function SettingsPageMain() {
     }
 
     if (projectAssignmentMethod === "PHASE_BASED") {
-      const phases = ["PIPES", "WIRING", "SWITCHES", "LIGHTS", "FANS"];
+      const phases = ["PIPES", "WIRING", "SWITCHES", "LIGHTS", "FANS", "OTHERS"];
       for (const p of phases) {
         if (!projectPhaseAssignment[p]) {
           toast.error(`Please assign a salesman to the project phase: ${p}`);
@@ -738,7 +740,7 @@ export default function SettingsPageMain() {
                     <p className="text-xs text-muted-foreground">Assign each project phase to a specific salesman. Project trackings are populated using these rules.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-                    {["PIPES", "WIRING", "SWITCHES", "LIGHTS", "FANS"].map((phase) => (
+                    {["PIPES", "WIRING", "SWITCHES", "LIGHTS", "FANS", "OTHERS"].map((phase) => (
                       <div key={phase} className="flex flex-col gap-1.5">
                         <label className="text-sm font-medium">
                           {phase.charAt(0) + phase.slice(1).toLowerCase()} Phase *

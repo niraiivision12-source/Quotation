@@ -167,7 +167,7 @@ export type PhaseStatus =
   | "IN_PROGRESS"
   | "COMPLETED"
   | "SKIPPED";
-export type ProjectPhase = "PIPES" | "WIRING" | "SWITCHES" | "LIGHTS" | "FANS";
+export type ProjectPhase = "PIPES" | "WIRING" | "SWITCHES" | "LIGHTS" | "FANS" | "OTHERS";
 
 export interface PhaseTracking {
   id: string;

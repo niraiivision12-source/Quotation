@@ -18,6 +18,8 @@ router.get("/:id", asyncHandler(ProjectController.getById));
 
 router.patch("/:id", checkPermission("editProjects"), asyncHandler(ProjectController.update));
 
+router.patch("/:id/phase", checkPermission("editProjects"), asyncHandler(ProjectController.updatePhase));
+
 router.patch("/:id/deactivate", checkPermission("editProjects"), asyncHandler(ProjectController.deactivate));
 
 export default router;

@@ -12,10 +12,10 @@ import type { CreateReminderInput } from "./reminder.types";
 
 export const REMINDER_KEY = ["reminders"];
 
-export const useMyReminders = (page = 1, limit = 50) => {
+export const useMyReminders = (page = 1, limit = 50, projectId?: string) => {
   return useQuery({
-    queryKey: [...REMINDER_KEY, page, limit],
-    queryFn: () => getMyReminders(page, limit),
+    queryKey: [...REMINDER_KEY, page, limit, projectId],
+    queryFn: () => getMyReminders(page, limit, projectId),
   });
 };
 
@@ -33,6 +33,7 @@ export const useCreateReminder = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
       queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });
+      queryClient.invalidateQueries({ queryKey: ["project"] });
     },
   });
 };
@@ -43,6 +44,7 @@ export const useCompleteReminder = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
       queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });
+      queryClient.invalidateQueries({ queryKey: ["project"] });
     },
   });
 };
@@ -53,17 +55,19 @@ export const useDeleteReminder = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
       queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });
+      queryClient.invalidateQueries({ queryKey: ["project"] });
     },
   });
 };
 
 export const useUpdateReminder = () => {
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<import("./reminder.types").CreateReminderInput> }) =>
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
       updateReminder(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
       queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });
+      queryClient.invalidateQueries({ queryKey: ["project"] });
     },
   });
 };

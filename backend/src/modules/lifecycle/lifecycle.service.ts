@@ -86,13 +86,71 @@ export class LifecycleService {
 
     const newCurrentPhase = inProgressPhase?.phase ?? notStartedPhase?.phase ?? allPhases[allPhases.length - 1].phase;
 
-    await prisma.project.update({
+    const projectBefore = await prisma.project.findUnique({
       where: { id: phase.projectId },
-      data: {
-        currentPhase: newCurrentPhase,
-        isCompleted: allDone,
-      },
     });
+
+    if (projectBefore) {
+      const oldPhase = projectBefore.currentPhase;
+      const oldStatus = projectBefore.status;
+      const newStatus = allDone ? "COMPLETED" : oldStatus;
+
+      await prisma.project.update({
+        where: { id: phase.projectId },
+        data: {
+          currentPhase: newCurrentPhase,
+          isCompleted: allDone,
+          ...(allDone && { status: "COMPLETED" }),
+        },
+      });
+
+      if (oldPhase !== newCurrentPhase) {
+        await prisma.projectActivity.create({
+          data: {
+            projectId: phase.projectId,
+            type: "PHASE_CHANGED",
+            message: `Project phase changed from ${oldPhase} to ${newCurrentPhase}`,
+          },
+        });
+
+        const quotation = await prisma.quotation.findFirst({
+          where: {
+            projectId: phase.projectId,
+            status: { in: ["APPROVED", "SENT", "DRAFT"] },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        const val = quotation ? Number(quotation.totalAmount) : 0;
+        if (val > 0) {
+          await prisma.projectActivity.create({
+            data: {
+              projectId: phase.projectId,
+              type: "PIPELINE_VALUE_MOVED",
+              message: `Pipeline value of ₹${val.toLocaleString()} moved from ${oldPhase} to ${newCurrentPhase}`,
+            },
+          });
+        }
+      }
+
+      if (oldStatus !== newStatus) {
+        await prisma.projectActivity.create({
+          data: {
+            projectId: phase.projectId,
+            type: "STATUS_CHANGED",
+            message: `Project status changed from ${oldStatus} to ${newStatus}`,
+          },
+        });
+
+        await prisma.projectActivity.create({
+          data: {
+            projectId: phase.projectId,
+            type: "CLOSED",
+            message: `Project closed with status ${newStatus}`,
+          },
+        });
+      }
+    }
 
     return updated;
   }

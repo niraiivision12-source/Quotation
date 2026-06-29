@@ -178,6 +178,7 @@ model Project {
   startDate          DateTime?
   expectedCompletion DateTime?
   isCompleted        Boolean                @default(false)
+  status             ProjectStatus          @default(ACTIVE)
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
   assignedToId       String?
@@ -421,6 +422,7 @@ enum ProjectPhase {
   SWITCHES
   LIGHTS
   FANS
+  OTHERS
 }
 
 enum LifecycleStatus {
@@ -524,3 +526,13 @@ enum LeadActivityType {
   NEGOTIATION_STARTED
   REMINDER_COMPLETED
 }
+
+enum ProjectStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CLOSED_WITH_SALE
+  CLOSED_WITHOUT_SALE
+  CANCELLED
+}
+

@@ -5,7 +5,7 @@ export type QuotationStatus =
   | "REJECTED"
   | "EXPIRED";
 
-export type ProjectPhase = "PIPES" | "WIRING" | "SWITCHES" | "LIGHTS" | "FANS";
+export type ProjectPhase = "PIPES" | "WIRING" | "SWITCHES" | "LIGHTS" | "FANS" | "OTHERS";
 
 export interface QuotationItemForm {
   id: string;

@@ -66,14 +66,16 @@ export class ReminderService {
     });
   }
 
-  static async getMyReminders(userId: string, page: number, limit: number) {
+  static async getMyReminders(userId: string, page: number, limit: number, projectId?: string) {
     const skip = (page - 1) * limit;
+
+    const where: Prisma.ReminderWhereInput = {
+      ...(projectId ? { projectId } : { userId }),
+    };
 
     const [items, total] = await Promise.all([
       prisma.reminder.findMany({
-        where: {
-          userId,
-        },
+        where,
         skip,
         take: limit,
         orderBy: {
@@ -81,9 +83,7 @@ export class ReminderService {
         },
       }),
       prisma.reminder.count({
-        where: {
-          userId,
-        },
+        where,
       }),
     ]);
 

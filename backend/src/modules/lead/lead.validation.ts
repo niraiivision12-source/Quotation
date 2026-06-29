@@ -1,4 +1,4 @@
-import { LeadStatus } from "@prisma/client";
+import { LeadStatus, ProjectPhase } from "@prisma/client";
 import { z } from "zod";
 
 export const createLeadSchema = z.object({
@@ -14,7 +14,7 @@ export const createLeadSchema = z.object({
 export const convertLeadSchema = z.object({
   projectName: z.string().min(2),
   location: z.string().optional(),
-  estimatedBudget: z.coerce.number().optional(),
+  currentPhase: z.nativeEnum(ProjectPhase),
 });
 
 export const updateLeadSchema = z.object({

@@ -1,12 +1,14 @@
-import { Phone } from "lucide-react";
+import { Phone, Mail, MapPin } from "lucide-react";
 
 interface Props {
   project: {
+    id: string;
     projectName: string;
     location?: string | null;
     estimatedBudget?: number | null;
     currentPhase: string;
     isCompleted: boolean;
+    status: string;
     customer: {
       name: string;
       mobile: string;
@@ -16,11 +18,21 @@ interface Props {
 }
 
 const PHASE_COLORS: Record<string, string> = {
-  PIPES: "bg-orange-100 text-orange-700",
-  WIRING: "bg-yellow-100 text-yellow-700",
-  SWITCHES: "bg-blue-100 text-blue-700",
-  LIGHTS: "bg-violet-100 text-violet-700",
-  FANS: "bg-teal-100 text-teal-700",
+  PIPES: "bg-orange-100 text-orange-700 ring-orange-200",
+  WIRING: "bg-yellow-100 text-yellow-700 ring-yellow-200",
+  SWITCHES: "bg-blue-100 text-blue-700 ring-blue-200",
+  LIGHTS: "bg-violet-100 text-violet-700 ring-violet-200",
+  FANS: "bg-teal-100 text-teal-700 ring-teal-200",
+  OTHERS: "bg-gray-100 text-gray-700 ring-gray-200",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  ACTIVE: "bg-blue-50 text-blue-700 ring-blue-200",
+  ON_HOLD: "bg-amber-50 text-amber-700 ring-amber-250",
+  COMPLETED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  CLOSED_WITH_SALE: "bg-green-50 text-green-700 ring-green-200",
+  CLOSED_WITHOUT_SALE: "bg-gray-50 text-gray-500 ring-gray-200",
+  CANCELLED: "bg-red-50 text-red-700 ring-red-200",
 };
 
 function Avatar({ name }: { name: string }) {
@@ -37,11 +49,11 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-function InfoItem({ label, value }: { label: string; value?: string | null }) {
+function InfoItem({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium">{value || "—"}</span>
+      <div className="text-sm font-medium">{value || "—"}</div>
     </div>
   );
 }
@@ -62,6 +74,12 @@ export default function ProjectOverview({ project }: Props) {
                 {project.customer.mobile}
               </div>
             )}
+            {project.customer.email && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                <Mail size={11} />
+                {project.customer.email}
+              </div>
+            )}
           </div>
         </div>
 
@@ -72,9 +90,12 @@ export default function ProjectOverview({ project }: Props) {
           <InfoItem
             label="Location"
             value={
-              project.location
-                ? `📍 ${project.location}`
-                : undefined
+              project.location ? (
+                <span className="flex items-center gap-1">
+                  <MapPin size={13} className="text-muted-foreground" />
+                  {project.location}
+                </span>
+              ) : undefined
             }
           />
           <InfoItem
@@ -88,7 +109,7 @@ export default function ProjectOverview({ project }: Props) {
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-muted-foreground">Current Phase</span>
             <span
-              className={`text-xs px-2 py-1 rounded-full font-semibold w-fit ${PHASE_COLORS[project.currentPhase] ?? "bg-gray-100 text-gray-700"}`}
+              className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ring-1 w-fit mt-1 ${PHASE_COLORS[project.currentPhase] ?? "bg-gray-100 text-gray-700 ring-gray-200"}`}
             >
               {project.currentPhase.charAt(0) +
                 project.currentPhase.slice(1).toLowerCase()}
@@ -97,9 +118,10 @@ export default function ProjectOverview({ project }: Props) {
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-muted-foreground">Status</span>
             <span
-              className={`text-xs px-2 py-1 rounded-full font-semibold w-fit ${project.isCompleted ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}
+              className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ring-1 w-fit mt-1 ${STATUS_COLORS[project.status] ?? "bg-gray-100 text-gray-700 ring-gray-200"}`}
             >
-              {project.isCompleted ? "Completed" : "Active"}
+              {project.status.replace(/_/g, " ").charAt(0) +
+                project.status.replace(/_/g, " ").slice(1).toLowerCase()}
             </span>
           </div>
         </div>

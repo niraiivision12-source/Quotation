@@ -6,6 +6,7 @@ import {
   getQuotation,
   getQuotations,
   updateQuotationStatus,
+  getProjectQuotations,
 } from "./quotation.api";
 
 export function useQuotations(page = 1, limit = 20) {
@@ -45,9 +46,9 @@ export function useUpdateQuotationStatus() {
       updateQuotationStatus(id, status),
 
     onSuccess: () => {
-      qc.invalidateQueries({
-        queryKey: ["quotations"],
-      });
+      qc.invalidateQueries({ queryKey: ["quotations"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["project"] });
     },
   });
 }
@@ -60,9 +61,17 @@ export function useCreateRevision() {
       createRevision(id, reason),
 
     onSuccess: () => {
-      qc.invalidateQueries({
-        queryKey: ["quotations"],
-      });
+      qc.invalidateQueries({ queryKey: ["quotations"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["project"] });
     },
+  });
+}
+
+export function useProjectQuotations(projectId: string) {
+  return useQuery({
+    queryKey: ["quotations", "project", projectId],
+    queryFn: () => getProjectQuotations(projectId),
+    enabled: !!projectId,
   });
 }

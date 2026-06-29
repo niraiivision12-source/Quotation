@@ -1,7 +1,7 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
 
-import { LifecycleStatus, ProjectPhase } from "@prisma/client";
+import { LifecycleStatus, ProjectPhase, ProjectStatus } from "@prisma/client";
 
 export class ProjectService {
   static async create(data: {
@@ -10,6 +10,7 @@ export class ProjectService {
     location?: string;
     assignedToId?: string;
     estimatedBudget?: number;
+    currentPhase?: ProjectPhase;
   }) {
     const customer = await prisma.customer.findUnique({
       where: {
@@ -104,6 +105,7 @@ export class ProjectService {
           location: data.location,
           assignedToId,
           estimatedBudget: data.estimatedBudget,
+          currentPhase: data.currentPhase || undefined,
         },
       });
 
@@ -113,11 +115,16 @@ export class ProjectService {
         ProjectPhase.SWITCHES,
         ProjectPhase.LIGHTS,
         ProjectPhase.FANS,
+        ProjectPhase.OTHERS,
       ];
+
+      const selectedPhase = data.currentPhase || ProjectPhase.PIPES;
+      const selectedIndex = phases.indexOf(selectedPhase);
 
       const phaseTrackings = [];
 
-      for (const phase of phases) {
+      for (let i = 0; i < phases.length; i++) {
+        const phase = phases[i];
         let phaseAssignedToId: string | null = null;
 
         if (settings.projectAssignmentMethod === "PHASE_BASED") {
@@ -139,10 +146,25 @@ export class ProjectService {
           phaseAssignedToId = salesmanId;
         }
 
+        let status: LifecycleStatus = LifecycleStatus.NOT_STARTED;
+        let startedAt: Date | null = null;
+        let completedAt: Date | null = null;
+
+        if (i < selectedIndex) {
+          status = LifecycleStatus.COMPLETED;
+          startedAt = new Date();
+          completedAt = new Date();
+        } else if (i === selectedIndex) {
+          status = LifecycleStatus.IN_PROGRESS;
+          startedAt = new Date();
+        }
+
         phaseTrackings.push({
           projectId: project.id,
           phase,
-          status: LifecycleStatus.NOT_STARTED,
+          status,
+          startedAt,
+          completedAt,
           assignedToId: phaseAssignedToId,
         });
       }
@@ -186,7 +208,8 @@ export class ProjectService {
         include: {
           customer: true,
           quotations: {
-            select: { totalAmount: true },
+            select: { id: true, totalAmount: true, status: true, createdAt: true },
+            orderBy: { createdAt: "desc" },
           },
         },
         orderBy: {
@@ -241,12 +264,18 @@ export class ProjectService {
         },
         activities: {
           orderBy: { createdAt: "desc" },
-          take: 4,
+          take: 100,
           select: {
             id: true,
             type: true,
             message: true,
             createdAt: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -267,6 +296,9 @@ export class ProjectService {
       assignedToId?: string | null;
       estimatedBudget?: number;
       isCompleted?: boolean;
+      status?: ProjectStatus;
+      startDate?: Date | null;
+      expectedCompletion?: Date | null;
     },
   ) {
     const project = await prisma.project.findUnique({
@@ -277,10 +309,45 @@ export class ProjectService {
       throw new AppError("Project not found", 404);
     }
 
-    return prisma.project.update({
+    const isStatusChanging = data.status && data.status !== project.status;
+    const oldStatus = project.status;
+    const newStatus = data.status;
+
+    if (data.status) {
+      const closedStatuses: ProjectStatus[] = ["COMPLETED", "CLOSED_WITH_SALE", "CLOSED_WITHOUT_SALE", "CANCELLED"];
+      data.isCompleted = closedStatuses.includes(data.status);
+    }
+
+    const updated = await prisma.project.update({
       where: { id },
       data,
     });
+
+    if (isStatusChanging) {
+      await prisma.projectActivity.create({
+        data: {
+          projectId: id,
+          type: "STATUS_CHANGED",
+          message: `Project status changed from ${oldStatus} to ${newStatus}`,
+        },
+      });
+
+      const closedStatuses: ProjectStatus[] = ["COMPLETED", "CLOSED_WITH_SALE", "CLOSED_WITHOUT_SALE", "CANCELLED"];
+      const wasActive = ["ACTIVE", "ON_HOLD"].includes(oldStatus);
+      const isClosedNow = closedStatuses.includes(newStatus!);
+
+      if (wasActive && isClosedNow) {
+        await prisma.projectActivity.create({
+          data: {
+            projectId: id,
+            type: "CLOSED",
+            message: `Project closed with status ${newStatus}`,
+          },
+        });
+      }
+    }
+
+    return updated;
   }
 
   static async deactivate(id: string) {
@@ -297,6 +364,121 @@ export class ProjectService {
       data: {
         isActive: false,
       },
+    });
+  }
+
+  static async updatePhase(
+    projectId: string,
+    newPhase: ProjectPhase,
+  ) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        phaseTracking: true,
+      },
+    });
+
+    if (!project) {
+      throw new AppError("Project not found", 404);
+    }
+
+    if (project.currentPhase === newPhase) {
+      return project;
+    }
+
+    const phases = [
+      ProjectPhase.PIPES,
+      ProjectPhase.WIRING,
+      ProjectPhase.SWITCHES,
+      ProjectPhase.LIGHTS,
+      ProjectPhase.FANS,
+      ProjectPhase.OTHERS,
+    ];
+
+    const oldPhase = project.currentPhase;
+    const newIndex = phases.indexOf(newPhase);
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Update Project currentPhase
+      const updatedProject = await tx.project.update({
+        where: { id: projectId },
+        data: {
+          currentPhase: newPhase,
+        },
+      });
+
+      // 2. Update phase tracking records
+      for (let i = 0; i < phases.length; i++) {
+        const phase = phases[i];
+        const tracking = project.phaseTracking.find((t) => t.phase === phase);
+
+        if (tracking) {
+          let status = tracking.status;
+          let startedAt = tracking.startedAt;
+          let completedAt = tracking.completedAt;
+
+          if (i < newIndex) {
+            // Mark previous phases as COMPLETED
+            if (status !== LifecycleStatus.COMPLETED && status !== LifecycleStatus.SKIPPED) {
+              status = LifecycleStatus.COMPLETED;
+              if (!startedAt) startedAt = new Date();
+              completedAt = new Date();
+            }
+          } else if (i === newIndex) {
+            // Mark the new phase as IN_PROGRESS
+            status = LifecycleStatus.IN_PROGRESS;
+            if (!startedAt) startedAt = new Date();
+            completedAt = null;
+          } else {
+            // Future phases: if they were IN_PROGRESS or COMPLETED, reset them to NOT_STARTED
+            if (status === LifecycleStatus.IN_PROGRESS || status === LifecycleStatus.COMPLETED) {
+              status = LifecycleStatus.NOT_STARTED;
+              startedAt = null;
+              completedAt = null;
+            }
+          }
+
+          await tx.projectPhaseTracking.update({
+            where: { id: tracking.id },
+            data: {
+              status,
+              startedAt,
+              completedAt,
+            },
+          });
+        }
+      }
+
+      // 3. Create ProjectActivity for phase transition
+      await tx.projectActivity.create({
+        data: {
+          projectId,
+          type: "PHASE_CHANGED",
+          message: `Project phase transitioned from ${oldPhase} to ${newPhase}`,
+        },
+      });
+
+      // 4. Log PIPELINE_VALUE_MOVED if a quotation exists
+      const quotation = await tx.quotation.findFirst({
+        where: {
+          projectId,
+          status: { in: ["APPROVED", "SENT", "DRAFT"] },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const val = quotation ? Number(quotation.totalAmount) : 0;
+      if (val > 0) {
+        await tx.projectActivity.create({
+          data: {
+            projectId,
+            type: "PIPELINE_VALUE_MOVED",
+            message: `Pipeline value of ₹${val.toLocaleString()} moved from ${oldPhase} to ${newPhase}`,
+          },
+        });
+      }
+
+      return updatedProject;
     });
   }
 }

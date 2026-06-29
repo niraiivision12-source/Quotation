@@ -465,27 +465,12 @@ export default function QuotationInfoCard({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="LEAD">Lead Quotation</SelectItem>
-              <SelectItem value="CUSTOMER">Customer Quotation</SelectItem>
+              <SelectItem value="CUSTOMER">Project Quotation</SelectItem>
               <SelectItem value="WALK_IN_CUSTOMER">Walk-in Customer Quotation</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div>
-          <label className="text-sm font-medium">Phase</label>
-          <Select value={phase ?? ""} onValueChange={(v) => onPhaseChange(v)}>
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select Phase" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="PIPES">Pipes</SelectItem>
-              <SelectItem value="WIRING">Wiring</SelectItem>
-              <SelectItem value="SWITCHES">Switches</SelectItem>
-              <SelectItem value="LIGHTS">Lights</SelectItem>
-              <SelectItem value="FANS">Fans</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
         {quotationType !== "WALK_IN_CUSTOMER" && (
           <div
@@ -777,6 +762,7 @@ export default function QuotationInfoCard({
                     <option value="SWITCHES">Switches</option>
                     <option value="LIGHTS">Lights</option>
                     <option value="FANS">Fans</option>
+                    <option value="OTHERS">Others</option>
                   </select>
                 ) : (
                   <Input
@@ -801,7 +787,7 @@ export default function QuotationInfoCard({
         </div>
 
         <div>
-          <label className="text-sm font-medium">Quotation Notes {quotationType === "LEAD" && <span className="text-red-500">*</span>}</label>
+          <label className="text-sm font-medium">Quotation Notes</label>
           <Textarea
             value={notes ?? ""}
             className="mt-1 min-h-14"

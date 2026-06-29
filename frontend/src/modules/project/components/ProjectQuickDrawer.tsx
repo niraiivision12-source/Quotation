@@ -28,6 +28,7 @@ const PHASE_BADGE: Record<string, string> = {
   SWITCHES: "bg-blue-100 text-blue-700",
   LIGHTS: "bg-violet-100 text-violet-700",
   FANS: "bg-teal-100 text-teal-700",
+  OTHERS: "bg-gray-100 text-gray-700",
 };
 
 const QUOTATION_STATUS_BADGE: Record<string, string> = {

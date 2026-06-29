@@ -45,7 +45,15 @@ export const updatePhase = async (
 
 export const updateProject = async (
   id: string,
-  data: { projectName?: string; location?: string | null; estimatedBudget?: number },
+  data: {
+    projectName?: string;
+    location?: string | null;
+    estimatedBudget?: number | null;
+    status?: string;
+    startDate?: string | null;
+    expectedCompletion?: string | null;
+    assignedToId?: string | null;
+  },
 ) => {
   const response = await api.patch(`/projects/${id}`, data);
   return response.data;
@@ -54,4 +62,12 @@ export const updateProject = async (
 export const deleteProject = async (id: string) => {
   const response = await api.patch(`/projects/${id}/deactivate`);
   return response.data;
+};
+
+export const updateProjectPhase = async (
+  id: string,
+  phase: string,
+) => {
+  const response = await api.patch(`/projects/${id}/phase`, { phase });
+  return response.data.data;
 };

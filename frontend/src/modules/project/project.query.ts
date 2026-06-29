@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryClient } from "@/lib/query-client";
-import { createProject, deleteProject, getProjectById, getProjects, updatePhase, updateProject } from "./project.api";
+import { createProject, deleteProject, getProjectById, getProjects, updatePhase, updateProject, updateProjectPhase } from "./project.api";
 
 export const useProjects = (page: number, search: string, limit = 20) => {
   return useQuery({
@@ -46,10 +46,19 @@ export const useUpdateProject = () => {
       data,
     }: {
       id: string;
-      data: { projectName?: string; location?: string | null; estimatedBudget?: number };
+      data: {
+        projectName?: string;
+        location?: string | null;
+        estimatedBudget?: number | null;
+        status?: string;
+        startDate?: string | null;
+        expectedCompletion?: string | null;
+        assignedToId?: string | null;
+      };
     }) => updateProject(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", variables.id] });
     },
   });
 };
@@ -70,5 +79,17 @@ export const useProject = (id: string) => {
     queryFn: () => getProjectById(id),
 
     enabled: !!id,
+  });
+};
+
+export const useUpdateProjectPhase = () => {
+  return useMutation({
+    mutationFn: ({ id, phase }: { id: string; phase: string }) =>
+      updateProjectPhase(id, phase),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+    },
   });
 };

@@ -29,8 +29,6 @@ const schema = z.object({
   projectName: z.string().min(2),
 
   location: z.string().optional(),
-
-  estimatedBudget: z.number().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -69,14 +67,6 @@ export default function ProjectForm() {
       <Input placeholder="Project Name" {...form.register("projectName")} />
 
       <Input placeholder="Location" {...form.register("location")} />
-
-      <Input
-        placeholder="Estimated Budget"
-        type="number"
-        {...form.register("estimatedBudget", {
-          valueAsNumber: true,
-        })}
-      />
 
       <Button type="submit">Create Project</Button>
     </form>

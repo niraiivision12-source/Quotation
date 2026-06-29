@@ -52,6 +52,9 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 
 import { CopyPhone } from "@/components/ui/CopyPhone";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useUsers } from "../user/user.query";
 import LeadForm from "./LeadForm";
 import { getLeads } from "./lead.api";
@@ -60,9 +63,17 @@ import {
   useLeadStats,
   useLeads,
   useUpdateLead,
+  useConvertLead,
 } from "./lead.query";
 import type { Lead, LeadStatus } from "./lead.types";
 import LeadStatusChangeModal from "./LeadStatusChangeModal";
+
+const convertSchema = z.object({
+  projectName: z.string().min(2, "Project Name must be at least 2 characters"),
+  location: z.string().optional(),
+  currentPhase: z.string().min(1, "Phase is required"),
+});
+type ConvertForm = z.infer<typeof convertSchema>;
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-blue-100 text-blue-700",
@@ -524,6 +535,25 @@ export default function LeadList() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAssignUserId, setBulkAssignUserId] = useState<string>("");
   const [pendingStatus, setPendingStatus] = useState<{ leadId: string; leadName: string; from: string; to: string } | null>(null);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [leadToConvert, setLeadToConvert] = useState<{ id: string; name: string } | null>(null);
+  const convertMutation = useConvertLead();
+  const form = useForm<ConvertForm>({ resolver: zodResolver(convertSchema) });
+
+  const submitConvert = async (data: ConvertForm) => {
+    if (!leadToConvert) return;
+    await convertMutation.mutateAsync({
+      id: leadToConvert.id,
+      data: {
+        projectName: data.projectName,
+        location: data.location || undefined,
+        currentPhase: data.currentPhase,
+      },
+    });
+    form.reset();
+    setConvertOpen(false);
+    setLeadToConvert(null);
+  };
   const [filters, setFilters] = useState<{
     source?: string;
     status?: string;
@@ -1279,9 +1309,58 @@ export default function LeadList() {
           lead={{ id: pendingStatus.leadId, name: pendingStatus.leadName, status: pendingStatus.from } as any}
           targetStatus={pendingStatus.to as any}
           onClose={() => setPendingStatus(null)}
-          onSuccess={() => setPendingStatus(null)}
+          onSuccess={() => {
+            const toWon = pendingStatus.to === "WON";
+            const leadId = pendingStatus.leadId;
+            const leadName = pendingStatus.leadName;
+            setPendingStatus(null);
+            if (toWon) {
+              setLeadToConvert({ id: leadId, name: leadName });
+              setConvertOpen(true);
+            }
+          }}
         />
       )}
+
+      <Dialog open={convertOpen} onOpenChange={(o) => { if (!o) setConvertOpen(false); }}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader><DialogTitle>Convert {leadToConvert?.name} to Customer</DialogTitle></DialogHeader>
+          <form onSubmit={form.handleSubmit(submitConvert)} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Project Name *</label>
+              <Input placeholder="Project Name *" {...form.register("projectName")} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Location (Optional)</label>
+              <Input placeholder="Location" {...form.register("location")} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Current Phase *</label>
+              <select
+                className="w-full text-sm border rounded-md p-2 h-10 focus:outline-none focus:ring-1 focus:ring-ring bg-white"
+                {...form.register("currentPhase")}
+              >
+                <option value="">Select current phase</option>
+                <option value="PIPES">Pipes</option>
+                <option value="WIRING">Wiring</option>
+                <option value="SWITCHES">Switches</option>
+                <option value="LIGHTS">Lights</option>
+                <option value="FANS">Fans</option>
+                <option value="OTHERS">Others</option>
+              </select>
+              {form.formState.errors.currentPhase && (
+                <p className="text-xs text-red-500 mt-1">{form.formState.errors.currentPhase.message}</p>
+              )}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button type="submit" disabled={convertMutation.isPending}>
+                {convertMutation.isPending ? "Converting..." : "Confirm & Convert"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setConvertOpen(false)}>Cancel</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
