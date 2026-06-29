@@ -542,7 +542,7 @@ export class LeadService {
     return prisma.$transaction(async (tx) => {
       if (isStatusChanged) {
         const allowedTransitions: Record<LeadStatus, LeadStatus[]> = {
-          NEW: ["CONTACTED", "NOT_RESPONDING"],
+          NEW: ["CONTACTED", "NOT_RESPONDING", "QUOTATION_SENT"],
           CONTACTED: ["NOT_RESPONDING", "QUOTATION_SENT"],
           NOT_RESPONDING: ["CONTACTED", "QUOTATION_SENT", "LOST"],
           QUOTATION_SENT: ["NEGOTIATION", "LOST"],

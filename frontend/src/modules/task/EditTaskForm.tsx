@@ -20,7 +20,7 @@ import type { Task } from "./task.types";
 const schema = z.object({
   title: z.string().min(2, "Title is required"),
   description: z.string().optional(),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
   status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"]),
   dueAt: z.string().optional(),
   assignedToId: z.string().min(1, "Assign to someone"),
@@ -92,7 +92,7 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
               <SelectItem value="LOW">Low</SelectItem>
               <SelectItem value="MEDIUM">Medium</SelectItem>
               <SelectItem value="HIGH">High</SelectItem>
-              <SelectItem value="URGENT">Urgent</SelectItem>
+              <SelectItem value="CRITICAL">Critical</SelectItem>
             </SelectContent>
           </Select>
         </div>
