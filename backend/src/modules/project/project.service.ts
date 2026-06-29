@@ -208,7 +208,7 @@ export class ProjectService {
         include: {
           customer: true,
           quotations: {
-            select: { id: true, totalAmount: true, status: true, createdAt: true },
+            select: { id: true, totalAmount: true, status: true, createdAt: true, phase: true },
             orderBy: { createdAt: "desc" },
           },
         },
@@ -249,6 +249,7 @@ export class ProjectService {
             status: true,
             totalAmount: true,
             createdAt: true,
+            phase: true,
           },
         },
         reminders: {
@@ -458,27 +459,28 @@ export class ProjectService {
         },
       });
 
-      // 4. Log PIPELINE_VALUE_MOVED if a quotation exists
-      const quotation = await tx.quotation.findFirst({
-        where: {
-          projectId,
-          status: { in: ["APPROVED", "SENT", "DRAFT"] },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      const val = quotation ? Number(quotation.totalAmount) : 0;
-      if (val > 0) {
-        await tx.projectActivity.create({
-          data: {
-            projectId,
-            type: "PIPELINE_VALUE_MOVED",
-            message: `Pipeline value of ₹${val.toLocaleString()} moved from ${oldPhase} to ${newPhase}`,
-          },
-        });
-      }
+      // 4. Quotations are bound to their phase permanently, so no pipeline value is moved.
 
       return updatedProject;
+    });
+  }
+
+  static async addNote(projectId: string, userId: string, note: string) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new AppError("Project not found", 404);
+    }
+
+    return prisma.projectActivity.create({
+      data: {
+        projectId,
+        userId,
+        type: "NOTE_ADDED",
+        message: note,
+      },
     });
   }
 }

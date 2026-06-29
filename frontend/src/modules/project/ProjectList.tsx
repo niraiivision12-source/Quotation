@@ -24,12 +24,12 @@ const KANBAN_COLUMNS: { phase: string; label: string; headerClass: string; icon:
   { phase: "OTHERS",            label: "Others",            headerClass: "bg-gray-100 text-gray-700",     icon: <Wrench size={14} /> },
 ];
 
-const getProjectPipelineValue = (project: Project) => {
+const getProjectPipelineValueForPhase = (project: Project, phase: string) => {
   if (!project.quotations || project.quotations.length === 0) return 0;
   
-  // Find the latest quotation with an active status (DRAFT, SENT, APPROVED)
+  // Find the latest quotation for this phase with an active status
   const active = project.quotations.find(q =>
-    ["APPROVED", "SENT", "DRAFT"].includes(q.status)
+    q.phase === phase && ["APPROVED", "SENT", "DRAFT"].includes(q.status)
   );
   return active ? Number(active.totalAmount) : 0;
 };
@@ -61,9 +61,9 @@ function LeadCard({ lead }: { lead: Lead }) {
   );
 }
 
-function KanbanCard({ project }: { project: Project }) {
+function KanbanCard({ project, phase }: { project: Project; phase: string }) {
   const initials = project.projectName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-  const totalAmount = getProjectPipelineValue(project);
+  const totalAmount = getProjectPipelineValueForPhase(project, phase);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("text/plain", project.id);
@@ -111,8 +111,8 @@ function ProjectKanban({ projects, newLeads, onProjectDrop }: ProjectKanbanProps
         const isLeadColumn = phase === "NEW_LEAD";
         const columnProjects = isLeadColumn ? [] : projects.filter((p) => p.currentPhase === phase);
         const count = isLeadColumn ? newLeads.length : columnProjects.length;
-        const totalAmount = columnProjects.reduce(
-          (sum, p) => sum + getProjectPipelineValue(p),
+        const totalAmount = isLeadColumn ? 0 : projects.reduce(
+          (sum, p) => sum + getProjectPipelineValueForPhase(p, phase),
           0,
         );
 
@@ -158,7 +158,7 @@ function ProjectKanban({ projects, newLeads, onProjectDrop }: ProjectKanbanProps
               ) : isLeadColumn ? (
                 newLeads.map((lead) => <LeadCard key={lead.id} lead={lead} />)
               ) : (
-                columnProjects.map((p) => <KanbanCard key={p.id} project={p} />)
+                columnProjects.map((p) => <KanbanCard key={p.id} project={p} phase={phase} />)
               )}
             </div>
           </div>

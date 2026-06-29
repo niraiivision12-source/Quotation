@@ -64,6 +64,10 @@ export interface CreateQuotationDTO {
     marginPercent: number;
   }[];
 
+  parentQuotationId?: string;
+
+  revisionReason?: string;
+
   followUp?: {
     dueAt: Date;
   };
@@ -105,6 +109,18 @@ export interface Quotation {
   validUntil?: string;
 
   createdAt: string;
+
+  createdById?: string;
+
+  discountAmount?: number;
+
+  items?: any[];
+
+  lead?: any;
+
+  customer?: any;
+
+  project?: any;
 }
 
 export interface QuotationTotals {

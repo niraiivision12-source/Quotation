@@ -62,6 +62,17 @@ export class ReminderService {
         });
       }
 
+      if (data.projectId) {
+        await tx.projectActivity.create({
+          data: {
+            projectId: data.projectId,
+            userId,
+            type: "REMINDER_CREATED",
+            message: `Reminder created: ${reminder.title}`,
+          },
+        });
+      }
+
       return reminder;
     });
   }
@@ -188,6 +199,17 @@ export class ReminderService {
         await tx.leadActivity.create({
           data: {
             leadId: reminder.leadId,
+            userId,
+            type: "REMINDER_COMPLETED",
+            message: `Reminder completed: ${reminder.title}`,
+          },
+        });
+      }
+
+      if (reminder.projectId) {
+        await tx.projectActivity.create({
+          data: {
+            projectId: reminder.projectId,
             userId,
             type: "REMINDER_COMPLETED",
             message: `Reminder completed: ${reminder.title}`,

@@ -87,23 +87,7 @@ class LifecycleService {
                         message: `Project phase changed from ${oldPhase} to ${newCurrentPhase}`,
                     },
                 });
-                const quotation = await prisma_1.prisma.quotation.findFirst({
-                    where: {
-                        projectId: phase.projectId,
-                        status: { in: ["APPROVED", "SENT", "DRAFT"] },
-                    },
-                    orderBy: { createdAt: "desc" },
-                });
-                const val = quotation ? Number(quotation.totalAmount) : 0;
-                if (val > 0) {
-                    await prisma_1.prisma.projectActivity.create({
-                        data: {
-                            projectId: phase.projectId,
-                            type: "PIPELINE_VALUE_MOVED",
-                            message: `Pipeline value of ₹${val.toLocaleString()} moved from ${oldPhase} to ${newCurrentPhase}`,
-                        },
-                    });
-                }
+                // Quotations are bound to their phase permanently, so no pipeline value is moved.
             }
             if (oldStatus !== newStatus) {
                 await prisma_1.prisma.projectActivity.create({

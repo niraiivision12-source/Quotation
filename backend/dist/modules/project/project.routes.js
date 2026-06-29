@@ -13,5 +13,6 @@ router.get("/:id", (0, async_handler_1.asyncHandler)(project_controller_1.Projec
 router.patch("/:id", (0, permission_middleware_1.checkPermission)("editProjects"), (0, async_handler_1.asyncHandler)(project_controller_1.ProjectController.update));
 router.patch("/:id/phase", (0, permission_middleware_1.checkPermission)("editProjects"), (0, async_handler_1.asyncHandler)(project_controller_1.ProjectController.updatePhase));
 router.patch("/:id/deactivate", (0, permission_middleware_1.checkPermission)("editProjects"), (0, async_handler_1.asyncHandler)(project_controller_1.ProjectController.deactivate));
+router.post("/:id/notes", (0, permission_middleware_1.checkPermission)("editProjects"), (0, async_handler_1.asyncHandler)(project_controller_1.ProjectController.addNote));
 exports.default = router;
 //# sourceMappingURL=project.routes.js.map

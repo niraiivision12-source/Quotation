@@ -59,6 +59,18 @@ class ProjectController {
             data: project,
         });
     }
+    static async addNote(req, res) {
+        const { note } = req.body;
+        if (!note || typeof note !== "string" || !note.trim()) {
+            return res.status(400).json({ success: false, message: "Note is required" });
+        }
+        const activity = await project_service_1.ProjectService.addNote(req.params.id, req.user.id, note);
+        return res.status(201).json({
+            success: true,
+            message: "Note added to project timeline",
+            data: activity,
+        });
+    }
 }
 exports.ProjectController = ProjectController;
 //# sourceMappingURL=project.controller.js.map

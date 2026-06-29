@@ -26,7 +26,7 @@ export interface Project {
     email?: string | null;
   };
 
-  quotations?: { id: string; totalAmount: string; status: string; createdAt: string }[];
+  quotations?: { id: string; totalAmount: string; status: string; createdAt: string; phase?: string | null }[];
   startDate?: string | null;
   expectedCompletion?: string | null;
   phaseTracking?: ProjectPhase[];

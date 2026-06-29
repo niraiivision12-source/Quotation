@@ -185,7 +185,8 @@ class QuotationService {
                     notes: data.notes,
                     validUntil,
                     createdById: data.createdById ?? userId,
-                    parentQuotationId: lastQuotation?.id,
+                    parentQuotationId: data.parentQuotationId || lastQuotation?.id,
+                    revisionReason: data.revisionReason || undefined,
                     companyNameSnapshot: settings.companyName,
                     companyLogoSnapshot: settings.companyLogo,
                     companyGstSnapshot: settings.companyGst,
@@ -210,12 +211,15 @@ class QuotationService {
                 },
             });
             if (quotation.leadId) {
+                const isRevision = !!data.parentQuotationId;
                 await tx.leadActivity.create({
                     data: {
                         leadId: quotation.leadId,
                         userId,
-                        type: "QUOTATION_CREATED",
-                        message: `Quotation ${quotation.quotationNumber} created`,
+                        type: isRevision ? "UPDATED" : "QUOTATION_CREATED",
+                        message: isRevision
+                            ? `Quotation ${quotation.quotationNumber} (v${quotation.version}) created as edit of v${lastQuotation?.version || quotation.version - 1}`
+                            : `Quotation ${quotation.quotationNumber} created`,
                     },
                 });
             }
@@ -250,6 +254,17 @@ class QuotationService {
                     where: { id: quotation.projectId },
                     data: {
                         estimatedBudget: quotation.totalAmount,
+                    },
+                });
+                const isRevision = !!data.parentQuotationId;
+                await tx.projectActivity.create({
+                    data: {
+                        projectId: quotation.projectId,
+                        userId,
+                        type: isRevision ? "QUOTATION_EDITED" : "QUOTATION_CREATED",
+                        message: isRevision
+                            ? `Quotation ${quotation.quotationNumber} edited (v${quotation.version} created from v${lastQuotation?.version || quotation.version - 1})`
+                            : `Quotation ${quotation.quotationNumber} (v${quotation.version}) created in ${quotation.phase} Phase`,
                     },
                 });
             }
@@ -454,6 +469,17 @@ class QuotationService {
                         },
                     });
                 }
+            }
+            if (quotation.projectId) {
+                let activityType = `QUOTATION_${status}`;
+                await tx.projectActivity.create({
+                    data: {
+                        projectId: quotation.projectId,
+                        userId,
+                        type: activityType,
+                        message: `Quotation ${updatedQuotation.quotationNumber} status updated to ${status.toLowerCase()}`,
+                    },
+                });
             }
             if (followUp) {
                 const reminder = await tx.reminder.create({

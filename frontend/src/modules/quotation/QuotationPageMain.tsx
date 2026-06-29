@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { RotateCcw, SearchCheck } from "lucide-react";
 
@@ -31,6 +31,7 @@ export default function QuotationPageMain() {
   const createMutation = useCreateQuotation();
   const currentUser = useAuthStore((state) => state.user);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [quotationType, setQuotationType] = useState<
     "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER"
@@ -56,6 +57,61 @@ export default function QuotationPageMain() {
   const [previewDetails, setPreviewDetails] = useState<{ targetName?: string; projectName?: string }>({});
   const [showSentPopup, setShowSentPopup] = useState(false);
   const [createdLeadId, setCreatedLeadId] = useState("");
+
+  const [parentQuotationId, setParentQuotationId] = useState<string | null>(null);
+  const [revisionReason, setRevisionReason] = useState<string>("PRICE_CHANGE");
+
+  const editId = searchParams.get("editId");
+
+  useEffect(() => {
+    if (!editId) return;
+
+    async function loadQuotationForEdit() {
+      try {
+        const response = await api.get(`/quotations/${editId}`);
+        const q = response.data.data;
+
+        setQuotationType(q.type);
+        setLeadId(q.leadId ?? "");
+        setCustomerId(q.customerId ?? "");
+        setProjectId(q.projectId ?? "");
+        setPhase(q.phase ?? undefined);
+        setValidUntil(q.validUntil ? q.validUntil.slice(0, 10) : "");
+        setNotes(q.notes ?? "");
+        setDiscountAmount(Number(q.discountAmount || 0));
+        setDiscountInput(String(q.discountAmount || 0));
+        setWalkInName(q.walkInName ?? "");
+        setWalkInMobile(q.walkInMobile ?? "");
+        setWalkInEmail(q.walkInEmail ?? "");
+        setWalkInAddress(q.walkInAddress ?? "");
+        setParentQuotationId(q.id);
+
+        if (q.createdById) {
+          setBillingUserId(q.createdById);
+        }
+
+        const mappedItems = q.items.map((item: any) => ({
+          id: item.id,
+          productId: item.productId,
+          productName: item.product?.name || "",
+          sku: item.product?.sku || "",
+          quantity: item.quantity,
+          costPrice: Number(item.costPrice),
+          marginPercent: Number(item.marginPercent),
+          sellingPrice: Number(item.sellingPrice),
+          totalPrice: Number(item.totalPrice),
+          search: item.product?.name || "",
+          showDropdown: false,
+        }));
+        setItems(mappedItems.length > 0 ? mappedItems : [createEmptyQuotationRow()]);
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to load quotation for editing");
+      }
+    }
+
+    loadQuotationForEdit();
+  }, [editId]);
 
   useEffect(() => {
     if (searchParams.get("leadId")) setSearchParams({}, { replace: true });
@@ -108,6 +164,9 @@ export default function QuotationPageMain() {
     setWalkInMobile("");
     setWalkInEmail("");
     setWalkInAddress("");
+    setParentQuotationId(null);
+    setRevisionReason("PRICE_CHANGE");
+    setSearchParams({});
   }
 
   function handleQuotationTypeChange(
@@ -177,6 +236,8 @@ export default function QuotationPageMain() {
       validUntil: validUntil || undefined,
       createdById: billingUserId,
       discountAmount,
+      parentQuotationId: parentQuotationId || undefined,
+      revisionReason: parentQuotationId ? revisionReason : undefined,
       items: validItems.map((item) => ({
         productId: item.productId!,
         quantity: item.quantity,
@@ -224,11 +285,17 @@ export default function QuotationPageMain() {
           footerText: quotation.footerTextSnapshot,
         } : undefined,
       });
-      toast.success("Quotation created");
+      toast.success(parentQuotationId ? "New quotation version created" : "Quotation created");
       
-      if (quotationType === "LEAD") {
-        setCreatedLeadId(previewPayload.leadId!);
-        setShowSentPopup(true);
+      if (previewPayload.projectId) {
+        navigate(`/projects/${previewPayload.projectId}`);
+      } else if (previewPayload.leadId) {
+        if (parentQuotationId) {
+          navigate(`/leads/${previewPayload.leadId}`);
+        } else {
+          setCreatedLeadId(previewPayload.leadId!);
+          setShowSentPopup(true);
+        }
       } else {
         handleReset();
       }
@@ -240,7 +307,18 @@ export default function QuotationPageMain() {
 
   return (
     <div>
-      <PageHeader title="Quotation" />
+      <PageHeader title={parentQuotationId ? "New Quotation Version" : "Quotation"} />
+
+      {parentQuotationId && (
+        <div className="mb-4 rounded-xl border border-amber-250 bg-amber-50 p-4 text-xs text-amber-800 flex justify-between items-center animate-in fade-in duration-200">
+          <div>
+            <span className="font-semibold text-sm">Quotation Versioning Mode:</span> You are editing an existing quotation. Saving your changes will create a new version of this quotation and preserve the original version as read-only for historical tracking.
+          </div>
+          <Button variant="outline" size="sm" className="h-7 text-xs border-amber-300 text-amber-800 hover:bg-amber-100/50" onClick={handleReset}>
+            Exit Edit Mode
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         {/* Left — info card */}
@@ -294,6 +372,25 @@ export default function QuotationPageMain() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Revision Reason (visible in edit mode) */}
+            {parentQuotationId && (
+              <div>
+                <label className="text-sm font-medium text-amber-700">Revision Reason</label>
+                <Select value={revisionReason} onValueChange={setRevisionReason}>
+                  <SelectTrigger className="mt-1 border-amber-300 bg-amber-50/50 text-xs">
+                    <SelectValue placeholder="Select reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PRICE_CHANGE">Price Change</SelectItem>
+                    <SelectItem value="PRODUCT_CHANGE">Product Change</SelectItem>
+                    <SelectItem value="CUSTOMER_REQUEST">Customer Request</SelectItem>
+                    <SelectItem value="STOCK_CHANGE">Stock Change</SelectItem>
+                    <SelectItem value="OTHER">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Totals */}
             <div className="rounded-xl border bg-slate-50 p-4 space-y-3 text-sm">

@@ -23,6 +23,8 @@ exports.createQuotationSchema = zod_1.z.object({
     notes: zod_1.z.string().optional(),
     validUntil: zod_1.z.coerce.date().optional(),
     discountAmount: zod_1.z.number().min(0).optional(),
+    parentQuotationId: zod_1.z.string().uuid().nullable().optional(),
+    revisionReason: zod_1.z.nativeEnum(client_1.QuotationRevisionReason).nullable().optional(),
     items: zod_1.z.array(zod_1.z.object({
         productId: zod_1.z.uuid(),
         quantity: zod_1.z.number().positive(),

@@ -31,6 +31,7 @@ interface Props {
   isCreating: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
+  onEdit?: () => void;
 }
 
 export default function QuotationPreviewDialog({
@@ -47,6 +48,7 @@ export default function QuotationPreviewDialog({
   isCreating,
   onOpenChange,
   onConfirm,
+  onEdit,
 }: Props) {
   const owner = users.find((user) => user.id === payload?.createdById);
   const validItems = items.filter((item) => item.productId);
@@ -140,19 +142,34 @@ export default function QuotationPreviewDialog({
           </div>
         )}
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isCreating}
-          >
-            Back
-          </Button>
-          <Button type="button" onClick={onConfirm} disabled={isCreating}>
-            <Check />
-            {isCreating ? "Creating..." : "OK, Create"}
-          </Button>
+        <DialogFooter className="flex flex-row justify-between items-center w-full gap-2 sm:gap-0">
+          <div>
+            {onEdit && (
+              <Button
+                type="button"
+                onClick={onEdit}
+                className="bg-violet-600 hover:bg-violet-750 text-white font-medium"
+              >
+                Edit Quotation
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isCreating}
+            >
+              {onEdit ? "Close" : "Back"}
+            </Button>
+            {!onEdit && (
+              <Button type="button" onClick={onConfirm} disabled={isCreating}>
+                <Check />
+                {isCreating ? "Creating..." : "OK, Create"}
+              </Button>
+            )}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

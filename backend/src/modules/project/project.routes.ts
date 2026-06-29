@@ -22,4 +22,6 @@ router.patch("/:id/phase", checkPermission("editProjects"), asyncHandler(Project
 
 router.patch("/:id/deactivate", checkPermission("editProjects"), asyncHandler(ProjectController.deactivate));
 
+router.post("/:id/notes", checkPermission("editProjects"), asyncHandler(ProjectController.addNote));
+
 export default router;

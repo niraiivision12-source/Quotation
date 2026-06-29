@@ -40,6 +40,10 @@ export const createQuotationSchema = z.object({
 
   discountAmount: z.number().min(0).optional(),
 
+  parentQuotationId: z.string().uuid().nullable().optional(),
+
+  revisionReason: z.nativeEnum(QuotationRevisionReason).nullable().optional(),
+
   items: z.array(
     z.object({
       productId: z.uuid(),

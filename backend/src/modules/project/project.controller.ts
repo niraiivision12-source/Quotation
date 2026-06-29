@@ -85,4 +85,23 @@ export class ProjectController {
       data: project,
     });
   }
+
+  static async addNote(req: Request, res: Response) {
+    const { note } = req.body;
+    if (!note || typeof note !== "string" || !note.trim()) {
+      return res.status(400).json({ success: false, message: "Note is required" });
+    }
+
+    const activity = await ProjectService.addNote(
+      req.params.id as string,
+      req.user!.id,
+      note,
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Note added to project timeline",
+      data: activity,
+    });
+  }
 }

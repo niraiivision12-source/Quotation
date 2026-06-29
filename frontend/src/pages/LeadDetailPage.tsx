@@ -39,6 +39,8 @@ import {
   useLead,
   useUpdateLead,
 } from "@/modules/lead/lead.query";
+import { useQuotation } from "@/modules/quotation/quotation.query";
+import QuotationPreviewDialog from "@/modules/quotation/components/QuotationPreviewDialog";
 import type {
   Lead,
   LeadActivity,
@@ -463,6 +465,60 @@ export default function LeadDetailPage() {
   const [activeTab, setActiveTab] = useState<PageTab>("timeline");
   const [selectedReminder, setSelectedReminder] = useState<any>(null);
 
+  const [selectedPreviewQuoteId, setSelectedPreviewQuoteId] = useState<string | null>(null);
+  const { data: fullSelectedQuote } = useQuotation(selectedPreviewQuoteId || undefined);
+  const { data: usersData } = useUsers(1);
+  const users = usersData?.items ?? [];
+
+  const mapSelectedQuoteForLead = () => {
+    if (!fullSelectedQuote) return null;
+    const q = fullSelectedQuote;
+    const payload = {
+      type: q.type,
+      leadId: q.leadId,
+      customerId: q.customerId,
+      projectId: q.projectId,
+      phase: q.phase,
+      walkInName: q.walkInName,
+      walkInMobile: q.walkInMobile,
+      walkInEmail: q.walkInEmail,
+      walkInAddress: q.walkInAddress,
+      notes: q.notes,
+      validUntil: q.validUntil,
+      createdById: q.createdById,
+      discountAmount: Number(q.discountAmount || 0),
+      items: (q.items || []).map((item: any) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        marginPercent: Number(item.marginPercent),
+      })),
+    };
+
+    const items = (q.items || []).map((item: any) => ({
+      id: item.id,
+      productId: item.productId,
+      productName: item.product?.name || "",
+      sku: item.product?.sku || "",
+      quantity: item.quantity,
+      costPrice: Number(item.costPrice),
+      marginPercent: Number(item.marginPercent),
+      sellingPrice: Number(item.sellingPrice),
+      totalPrice: Number(item.totalPrice),
+      search: item.product?.name || "",
+      showDropdown: false,
+    }));
+
+    return {
+      payload,
+      items,
+      subtotal: Number(q.subtotal),
+      discountAmount: Number(q.discountAmount || 0),
+      totalAmount: Number(q.totalAmount),
+    };
+  };
+
+  const leadPreviewData = mapSelectedQuoteForLead();
+
   const ids: string[] = (location.state as { ids?: string[] })?.ids ?? [];
   const currentIndex = ids.indexOf(id ?? "");
   const prevId = currentIndex > 0 ? ids[currentIndex - 1] : null;
@@ -687,7 +743,11 @@ export default function LeadDetailPage() {
                 {lead.quotations?.length ? (
                   <div className="space-y-3">
                     {lead.quotations.map((q) => (
-                      <div key={q.id} className="border border-gray-100 rounded-xl p-4 hover:border-gray-200 transition-colors">
+                      <div
+                        key={q.id}
+                        onClick={() => setSelectedPreviewQuoteId(q.id)}
+                        className="border border-gray-100 rounded-xl p-4 hover:border-violet-300 transition-colors cursor-pointer hover:shadow-xs hover:bg-slate-50/20"
+                      >
                         <div className="flex justify-between items-start mb-2">
                           <span className="font-semibold text-sm text-gray-900">{q.quotationNumber}</span>
                           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
@@ -870,6 +930,32 @@ export default function LeadDetailPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
+
+      {selectedPreviewQuoteId && leadPreviewData && (
+        <QuotationPreviewDialog
+          open={!!selectedPreviewQuoteId}
+          payload={leadPreviewData.payload}
+          quotationType={leadPreviewData.payload.type}
+          targetName={
+            leadPreviewData.payload.type === "WALK_IN_CUSTOMER"
+              ? leadPreviewData.payload.walkInName
+              : fullSelectedQuote?.lead?.name || fullSelectedQuote?.customer?.name || ""
+          }
+          projectName={fullSelectedQuote?.project?.projectName}
+          items={leadPreviewData.items}
+          users={users}
+          subtotal={leadPreviewData.subtotal}
+          discountAmount={leadPreviewData.discountAmount}
+          totalAmount={leadPreviewData.totalAmount}
+          isCreating={false}
+          onOpenChange={(open) => !open && setSelectedPreviewQuoteId(null)}
+          onConfirm={() => setSelectedPreviewQuoteId(null)}
+          onEdit={() => {
+            navigate(`/quotations?editId=${selectedPreviewQuoteId}`);
+            setSelectedPreviewQuoteId(null);
+          }}
+        />
       )}
     </div>
   );
