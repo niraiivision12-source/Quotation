@@ -438,6 +438,13 @@ export class QuotationService {
         customer: true,
         project: true,
         createdBy: true,
+        payment: {
+          include: {
+            transactions: {
+              orderBy: { date: "desc" },
+            },
+          },
+        },
         items: {
           include: {
             product: true,
@@ -459,6 +466,26 @@ export class QuotationService {
     return prisma.quotation.findMany({
       where: {
         projectId,
+      },
+      include: {
+        payment: {
+          select: {
+            id: true,
+            status: true,
+            amountReceived: true,
+            pendingAmount: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            mobile: true,
+            creditAllowed: true,
+            maxCreditAmount: true,
+            defaultCreditDays: true,
+          },
+        },
       },
       orderBy: [
         {
@@ -607,7 +634,7 @@ export class QuotationService {
       }
 
       if (quotation.projectId) {
-        let activityType = `QUOTATION_${status}`;
+        const activityType = `QUOTATION_${status}`;
         await tx.projectActivity.create({
           data: {
             projectId: quotation.projectId,

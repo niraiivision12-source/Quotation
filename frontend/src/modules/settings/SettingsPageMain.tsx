@@ -12,6 +12,7 @@ import {
   Download,
   Info,
   Lock,
+  CreditCard,
 } from "lucide-react";
 import { api } from "@/lib/axios";
 import { useAuthStore } from "@/store/auth.store";
@@ -88,6 +89,16 @@ export default function SettingsPageMain() {
   const [pricingAllowMarginOverride, setPricingAllowMarginOverride] = useState(true);
   const [pricingMinMargin, setPricingMinMargin] = useState(5);
   const [pricingMaxDiscount, setPricingMaxDiscount] = useState(20);
+
+  // Payment Settings states
+  const [paymentAssignmentMethod, setPaymentAssignmentMethod] = useState<"MANUAL" | "PERCENTAGE">("PERCENTAGE");
+  const [paymentAssignmentPercentages, setPaymentAssignmentPercentages] = useState<Record<string, number>>({});
+  const [paymentDefaultCreditDays, setPaymentDefaultCreditDays] = useState(30);
+  const [paymentDefaultReminderSchedule, setPaymentDefaultReminderSchedule] = useState<number[]>([0]);
+  const [paymentReminderFrequency, setPaymentReminderFrequency] = useState("DAILY");
+  const [paymentOverdueGracePeriod, setPaymentOverdueGracePeriod] = useState(0);
+  const [paymentDefaultMethods, setPaymentDefaultMethods] = useState<string[]>(["CASH", "BANK_TRANSFER", "UPI", "CHEQUE"]);
+  const [accountants, setAccountants] = useState<User[]>([]);
 
   // File Upload Helper
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
@@ -169,11 +180,21 @@ export default function SettingsPageMain() {
         setPricingMinMargin(settings.pricingMinMargin ?? 5);
         setPricingMaxDiscount(settings.pricingMaxDiscount ?? 20);
 
-        // Load active salesmen
+        setPaymentAssignmentMethod(settings.paymentAssignmentMethod || "PERCENTAGE");
+        setPaymentAssignmentPercentages(settings.paymentAssignmentPercentages || {});
+        setPaymentDefaultCreditDays(settings.paymentDefaultCreditDays ?? 30);
+        setPaymentDefaultReminderSchedule(settings.paymentDefaultReminderSchedule || [0]);
+        setPaymentReminderFrequency(settings.paymentReminderFrequency || "DAILY");
+        setPaymentOverdueGracePeriod(settings.paymentOverdueGracePeriod ?? 0);
+        setPaymentDefaultMethods(settings.paymentDefaultMethods || ["CASH", "BANK_TRANSFER", "UPI", "CHEQUE"]);
+
+        // Load active salesmen & accountants
         const usersRes = await api.get("/users");
         const allUsers = usersRes.data.data.items || [];
         const activeSalesmen = allUsers.filter((u: User) => u.role === "SALESMAN" && u.isActive);
         setSalesmen(activeSalesmen);
+        const activeAccountants = allUsers.filter((u: User) => u.role === "ACCOUNTANT" && u.isActive);
+        setAccountants(activeAccountants);
 
       } catch (err: any) {
         console.error(err);
@@ -222,6 +243,16 @@ export default function SettingsPageMain() {
       }
     }
 
+    if (paymentAssignmentMethod === "PERCENTAGE") {
+      const activeIds = [...salesmen.map((s) => s.id), ...accountants.map((a) => a.id)];
+      const activeWeights = activeIds.map((id) => Number(paymentAssignmentPercentages[id] || 0));
+      const sum = activeWeights.reduce((a, b) => a + b, 0);
+      if (activeWeights.length > 0 && Math.abs(sum - 100) > 0.01) {
+        toast.error(`Payment collection assignment percentages must equal 100%. Current sum: ${sum}%`);
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       const payload = {
@@ -247,6 +278,14 @@ export default function SettingsPageMain() {
         projectAssignmentMethod,
         projectSalesmanPercentages,
         projectPhaseAssignment,
+
+        paymentAssignmentMethod,
+        paymentAssignmentPercentages,
+        paymentDefaultCreditDays,
+        paymentDefaultReminderSchedule,
+        paymentReminderFrequency,
+        paymentOverdueGracePeriod,
+        paymentDefaultMethods,
 
         quoteValidityDays,
         quoteDefaultNotes,
@@ -334,6 +373,7 @@ export default function SettingsPageMain() {
     { id: "general", label: "General", icon: <Sliders size={16} /> },
     { id: "permissions", label: "Permissions", icon: <ShieldCheck size={16} /> },
     { id: "pricing", label: "Pricing & Margins", icon: <DollarSign size={16} /> },
+    { id: "payments", label: "Payment Settings", icon: <CreditCard size={16} /> },
     { id: "backup", label: "Backup & Export", icon: <Download size={16} /> },
   ];
 
@@ -990,6 +1030,8 @@ export default function SettingsPageMain() {
                       { id: "manageProducts", label: "Manage Products" },
                       { id: "accessReports", label: "Access Reports" },
                       { id: "accessSettings", label: "Access Settings" },
+                      { id: "managePayments", label: "Manage Payments (Link Bill/Record Payment)" },
+                      { id: "viewPayments", label: "View Payments & Reminders" },
                     ].map((act) => (
                       <tr key={act.id} className="border-b bg-white hover:bg-zinc-50">
                         <td className="p-3 font-medium text-zinc-900">{act.label}</td>
@@ -1075,6 +1117,149 @@ export default function SettingsPageMain() {
                   />
                   <span>Allow Salesmen to override default product margins</span>
                 </label>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 10: Payment Settings */}
+          {activeTab === "payments" && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-bold border-b pb-2">Payment Settings</h2>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Collection Assignment Method</label>
+                <div className="flex flex-wrap gap-4 mt-1">
+                  {["MANUAL", "PERCENTAGE"].map((m) => (
+                    <label key={m} className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        disabled={!isOwner}
+                        checked={paymentAssignmentMethod === m}
+                        onChange={() => setPaymentAssignmentMethod(m as any)}
+                        className="h-4 w-4 text-black focus:ring-black border-zinc-300"
+                      />
+                      <span>
+                        {m === "MANUAL" ? "Manual Assignment" : "Percentage-Based"}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Default Credit Days</label>
+                  <input
+                    type="number"
+                    disabled={!isOwner}
+                    value={paymentDefaultCreditDays}
+                    onChange={(e) => setPaymentDefaultCreditDays(Number(e.target.value))}
+                    className="w-full h-9 rounded-lg border px-3 text-sm focus:outline-zinc-800 disabled:bg-zinc-50"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Overdue Grace Period (Days)</label>
+                  <input
+                    type="number"
+                    disabled={!isOwner}
+                    value={paymentOverdueGracePeriod}
+                    onChange={(e) => setPaymentOverdueGracePeriod(Number(e.target.value))}
+                    className="w-full h-9 rounded-lg border px-3 text-sm focus:outline-zinc-800 disabled:bg-zinc-50"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Reminder Frequency</label>
+                  <select
+                    disabled={!isOwner}
+                    value={paymentReminderFrequency}
+                    onChange={(e) => setPaymentReminderFrequency(e.target.value)}
+                    className="w-full h-9 rounded-lg border px-3 text-sm bg-white focus:outline-zinc-800 disabled:bg-zinc-50"
+                  >
+                    <option value="DAILY">Daily</option>
+                    <option value="WEEKLY">Weekly</option>
+                  </select>
+                </div>
+              </div>
+
+              {paymentAssignmentMethod === "PERCENTAGE" && (
+                <div className="space-y-4 border-t pt-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">Collector Percentages</h3>
+                    <p className="text-xs text-muted-foreground">Specify what percentage of pending collections should be assigned to each active salesman/accountant. Must total 100%.</p>
+                  </div>
+                  {[...salesmen, ...accountants].length === 0 ? (
+                    <p className="text-xs text-rose-500 font-medium">No active collectors available in the system.</p>
+                  ) : (
+                    <div className="space-y-3 max-w-md">
+                      {[...salesmen, ...accountants].map((user) => (
+                        <div key={user.id} className="flex items-center gap-3">
+                          <span className="text-sm font-medium flex-1 truncate">{user.name} ({user.role})</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              disabled={!isOwner}
+                              min={0}
+                              max={100}
+                              value={paymentAssignmentPercentages[user.id] ?? 0}
+                              onChange={(e) =>
+                                setPaymentAssignmentPercentages((prev) => ({
+                                  ...prev,
+                                  [user.id]: Number(e.target.value),
+                                }))
+                              }
+                              className="w-20 h-9 rounded-lg border px-3 text-right text-sm focus:outline-zinc-800 disabled:bg-zinc-50"
+                            />
+                            <span className="text-sm font-medium text-zinc-500">%</span>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between border-t pt-2 max-w-md font-semibold text-sm">
+                        <span>Total Sum</span>
+                        <span
+                          className={
+                            Math.abs(
+                              [...salesmen, ...accountants].map((c) => Number(paymentAssignmentPercentages[c.id] || 0)).reduce((a, b) => a + b, 0) - 100
+                            ) < 0.01
+                              ? "text-green-600"
+                              : "text-rose-600"
+                          }
+                        >
+                          {[...salesmen, ...accountants].map((c) => Number(paymentAssignmentPercentages[c.id] || 0)).reduce((a, b) => a + b, 0)}% (Required: 100%)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-3 border-t pt-4">
+                <h3 className="text-sm font-semibold">Default Payment Methods</h3>
+                <div className="flex flex-wrap gap-4">
+                  {["CASH", "BANK_TRANSFER", "UPI", "CHEQUE"].map((m) => {
+                    const isChecked = paymentDefaultMethods.includes(m);
+                    return (
+                      <label key={m} className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                        <input
+                          type="checkbox"
+                          disabled={!isOwner}
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setPaymentDefaultMethods([...paymentDefaultMethods, m]);
+                            } else {
+                              setPaymentDefaultMethods(paymentDefaultMethods.filter((x) => x !== m));
+                            }
+                          }}
+                          className="h-4 w-4 text-black focus:ring-black border-zinc-300 rounded"
+                        />
+                        <span>{m.replace(/_/g, " ")}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

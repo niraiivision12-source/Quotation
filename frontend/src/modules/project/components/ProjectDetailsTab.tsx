@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 import { toast } from "sonner";
 import { useUpdateProject, useUpdateProjectPhase } from "../project.query";
 import { useUsers } from "@/modules/user/user.query";
@@ -22,11 +22,15 @@ export default function ProjectDetailsTab({ project }: Props) {
   const [location, setLocation] = useState(project.location ?? "");
 
   useEffect(() => {
-    setProjectName(project.projectName);
+    startTransition(() => {
+      setProjectName(project.projectName);
+    });
   }, [project.projectName]);
 
   useEffect(() => {
-    setLocation(project.location ?? "");
+    startTransition(() => {
+      setLocation(project.location ?? "");
+    });
   }, [project.location]);
 
   const handleNameBlur = async () => {

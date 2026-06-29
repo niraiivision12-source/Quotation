@@ -43,38 +43,58 @@ export function DonutChart({
     return <EmptyDataState message={`No ${totalLabel.toLowerCase()} metrics recorded`} />;
   }
 
-  let accumulatedPercent = 0;
+  const formattedTotal = new Intl.NumberFormat("en", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(total);
+
+  // Pre-compute segment data using reduce to avoid any variable mutation
+  type Segment = { item: (typeof data)[0]; idx: number; dashArray: string; dashOffset: number };
+  const { segments } = data
+    .filter(item => item.value > 0)
+    .reduce<{ segments: Segment[]; runningPercent: number }>(
+      ({ segments: acc, runningPercent }, item, idx) => {
+        const percent = (item.value / total) * 100;
+        return {
+          segments: [
+            ...acc,
+            {
+              item,
+              idx,
+              dashArray: `${percent} ${100 - percent}`,
+              dashOffset: 100 - runningPercent,
+            },
+          ],
+          runningPercent: runningPercent + percent,
+        };
+      },
+      { segments: [], runningPercent: 0 }
+    );
 
   return (
     <div className="flex flex-col sm:flex-row items-center gap-6 justify-center py-4">
       <div className="relative w-36 h-36 shrink-0">
         <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
           <circle cx="18" cy="18" r="15.915" fill="none" stroke="currentColor" strokeOpacity="0.08" strokeWidth="3" />
-          {data.map((item, idx) => {
-            if (item.value === 0) return null;
-            const percent = (item.value / total) * 100;
-            const dashArray = `${percent} ${100 - percent}`;
-            const dashOffset = 100 - accumulatedPercent;
-            accumulatedPercent += percent;
-
-            return (
-              <circle
-                key={idx}
-                cx="18"
-                cy="18"
-                r="15.915"
-                fill="none"
-                stroke={item.color}
-                strokeWidth="3.2"
-                strokeDasharray={dashArray}
-                strokeDashoffset={dashOffset}
-                className="transition-all duration-300 hover:stroke-[3.8] cursor-pointer"
-              />
-            );
-          })}
+          {segments.map(({ item, idx, dashArray, dashOffset }) => (
+            <circle
+              key={idx}
+              cx="18"
+              cy="18"
+              r="15.915"
+              fill="none"
+              stroke={item.color}
+              strokeWidth="3.2"
+              strokeDasharray={dashArray}
+              strokeDashoffset={dashOffset}
+              className="transition-all duration-300 hover:stroke-[3.8] cursor-pointer"
+            />
+          ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold text-foreground leading-none">{total}</span>
+          <span className="text-xl font-bold text-foreground leading-none text-center">
+            {formattedTotal}
+          </span>
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">{totalLabel}</span>
         </div>
       </div>
@@ -654,6 +674,160 @@ export function DashboardStats({ data, role }: DashboardStatsProps) {
               </div>
             </div>
           </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 6.5. Payment & Collections Analytics */}
+      {data.paymentAnalytics && (
+        <CollapsibleSection title={
+          role === "OWNER"
+            ? "Payment Collections Dashboard"
+            : role === "SALESMAN"
+              ? "My Collections"
+              : "Billing & Collections Analytics"
+        }>
+          {role === "OWNER" && (
+            <div className="space-y-6">
+              {/* Cards row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase">Revenue Collected</div>
+                  <div className="text-xl font-bold mt-1 text-emerald-600">₹{Number(data.paymentAnalytics.totalRevenueCollected || 0).toLocaleString()}</div>
+                </Card>
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase">Total Outstanding</div>
+                  <div className="text-xl font-bold mt-1 text-gray-900">₹{Number(data.paymentAnalytics.outstandingAmount || 0).toLocaleString()}</div>
+                </Card>
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase font-semibold text-rose-700">Overdue Collections</div>
+                  <div className="text-xl font-bold mt-1 text-rose-600">₹{Number(data.paymentAnalytics.overdueAmount || 0).toLocaleString()}</div>
+                </Card>
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase">Collection Rate</div>
+                  <div className="text-xl font-bold mt-1 text-violet-600">{(data.paymentAnalytics.collectionRate || 0).toFixed(1)}%</div>
+                </Card>
+              </div>
+
+              {/* Grid lists */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Top Outstanding Customers */}
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 shadow-xs">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase mb-3">Top Outstanding Customer Accounts</h4>
+                  {(!data.paymentAnalytics.topOutstandingCustomers || data.paymentAnalytics.topOutstandingCustomers.length === 0) ? (
+                    <div className="text-xs text-muted-foreground italic text-center py-6">No outstanding balances.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {data.paymentAnalytics.topOutstandingCustomers.map((cust: any) => (
+                        <div key={cust.customerId} className="flex justify-between items-center text-xs">
+                          <Link to={`/customers/${cust.customerId}`} className="font-semibold text-blue-600 hover:underline">{cust.name}</Link>
+                          <span className="font-bold text-rose-600">₹{cust.outstanding.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+
+                {/* Collector Performance */}
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 shadow-xs">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase mb-3">Collector Performance</h4>
+                  {(!data.paymentAnalytics.collectorPerformance || data.paymentAnalytics.collectorPerformance.length === 0) ? (
+                    <div className="text-xs text-muted-foreground italic text-center py-6">No collection activities.</div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {data.paymentAnalytics.collectorPerformance.map((col: any) => (
+                        <div key={col.collectorId} className="flex justify-between items-center text-xs">
+                          <span className="font-medium text-gray-800">{col.name}</span>
+                          <div className="text-right">
+                            <span className="font-bold text-emerald-600">₹{col.collected.toLocaleString()}</span>
+                            <span className="text-[10px] text-muted-foreground ml-2">({col.outstanding.toLocaleString()} pending)</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </div>
+
+              {/* Monthly Collection Trend */}
+              {data.paymentAnalytics.monthlyCollections && data.paymentAnalytics.monthlyCollections.length > 0 && (
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 shadow-xs">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase mb-3">Monthly Collections (Last 6 Months)</h4>
+                  <div className="flex items-end justify-between gap-2 h-36 pt-4 px-2">
+                    {data.paymentAnalytics.monthlyCollections.map((m: any, i: number) => {
+                      const maxVal = Math.max(...data.paymentAnalytics.monthlyCollections.map((x: any) => x.amount), 1);
+                      const pct = (m.amount / maxVal) * 100;
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                          <div className="absolute bottom-full mb-1 bg-zinc-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 font-bold whitespace-nowrap">
+                            ₹{m.amount.toLocaleString()}
+                          </div>
+                          <div className="w-full bg-blue-100 dark:bg-blue-950/20 rounded-t-md relative flex items-end overflow-hidden" style={{ height: '100px' }}>
+                            <div className="bg-blue-600 w-full transition-all duration-300" style={{ height: `${pct}%` }} />
+                          </div>
+                          <span className="text-[9px] font-bold text-muted-foreground font-mono mt-1">{m.month}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {role === "SALESMAN" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase">My Collected Amount</div>
+                  <div className="text-xl font-bold mt-1 text-emerald-600">₹{Number(data.paymentAnalytics.myCollectedAmount || 0).toLocaleString()}</div>
+                </Card>
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase font-semibold text-rose-700">My Outstanding Collections</div>
+                  <div className="text-xl font-bold mt-1 text-rose-600">₹{Number(data.paymentAnalytics.myPendingCollections || 0).toLocaleString()}</div>
+                </Card>
+              </div>
+
+              {/* Outstanding Customers list for Salesman */}
+              <Card className="border border-foreground/10 bg-card rounded-xl p-4 shadow-xs">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase mb-3">My Outstanding Customer Accounts</h4>
+                {(!data.paymentAnalytics.myOutstandingCustomers || data.paymentAnalytics.myOutstandingCustomers.length === 0) ? (
+                  <div className="text-xs text-muted-foreground italic text-center py-6">No pending collections.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {data.paymentAnalytics.myOutstandingCustomers.map((cust: any) => (
+                      <div key={cust.customerId} className="flex justify-between items-center text-xs">
+                        <Link to={`/customers/${cust.customerId}`} className="font-semibold text-blue-600 hover:underline">{cust.name}</Link>
+                        <span className="font-bold text-rose-600">₹{cust.outstanding.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          )}
+
+          {role === "ACCOUNTANT" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase">Tally Bills Linked</div>
+                  <div className="text-xl font-bold mt-1 text-gray-900">{data.paymentAnalytics.billsCreated || 0}</div>
+                </Card>
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase">Payments Logged</div>
+                  <div className="text-xl font-bold mt-1 text-emerald-600">{data.paymentAnalytics.paymentsRecorded || 0}</div>
+                </Card>
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase">Pending Invoices</div>
+                  <div className="text-xl font-bold mt-1 text-amber-600">{data.paymentAnalytics.pendingCollections || 0}</div>
+                </Card>
+                <Card className="border border-foreground/10 bg-card rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase font-semibold text-rose-700">Overdue Invoices</div>
+                  <div className="text-xl font-bold mt-1 text-rose-600">{data.paymentAnalytics.overdueCollections || 0}</div>
+                </Card>
+              </div>
+            </div>
+          )}
         </CollapsibleSection>
       )}
 

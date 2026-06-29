@@ -10,6 +10,8 @@ import { useProjectQuotations, useUpdateQuotationStatus, useQuotation } from "..
 import { useUsers } from "@/modules/user/user.query";
 import { downloadQuotationPDF } from "../../quotation/quotation.pdf";
 import QuotationPreviewDialog from "../../quotation/components/QuotationPreviewDialog";
+import PaymentCollectionPopup from "../../payment/components/PaymentCollectionPopup";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   projectId: string;
@@ -44,6 +46,7 @@ export default function ProjectQuotations({ projectId }: Props) {
     PIPES: true,
   });
   const [selectedPreviewQuoteId, setSelectedPreviewQuoteId] = useState<string | null>(null);
+  const [linkBillQuote, setLinkBillQuote] = useState<any | null>(null);
 
   // Fetch full details of the quotation currently selected for preview
   const { data: fullSelectedQuote } = useQuotation(
@@ -286,6 +289,39 @@ export default function ProjectQuotations({ projectId }: Props) {
                               Created: {new Date(q.createdAt).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}
                               {q.revisionReason && ` · Reason: ${q.revisionReason.replace(/_/g, " ")}`}
                             </p>
+                            {q.status === "APPROVED" && (
+                              <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                {q.billCreated ? (
+                                  <>
+                                    <span className="text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                      Tally Bill: {q.billNumber}
+                                    </span>
+                                    {q.payment && (
+                                      <>
+                                        <Badge className={`text-[9px] font-bold ${STATUS_BADGE_STYLE[q.payment.status] || 'bg-gray-150 text-gray-700'}`}>
+                                          Payment: {q.payment.status.replace(/_/g, " ")}
+                                        </Badge>
+                                        <span className="text-muted-foreground font-semibold">
+                                          Paid: ₹{Number(q.payment.amountReceived).toLocaleString()} · Pending: ₹{Number(q.payment.pendingAmount).toLocaleString()}
+                                        </span>
+                                      </>
+                                    )}
+                                  </>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 px-2 text-[9px] font-bold bg-violet-600 text-white hover:bg-violet-700 hover:text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLinkBillQuote(q);
+                                    }}
+                                  >
+                                    Link Tally Bill
+                                  </Button>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -365,6 +401,13 @@ export default function ProjectQuotations({ projectId }: Props) {
           }}
         />
       )}
+
+      {/* Link Tally Bill Popup */}
+      <PaymentCollectionPopup
+        open={!!linkBillQuote}
+        onOpenChange={(open) => !open && setLinkBillQuote(null)}
+        quotation={linkBillQuote}
+      />
     </div>
   );
 }

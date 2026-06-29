@@ -46,8 +46,9 @@ export class SettingsController {
         message: "Settings imported successfully",
         data: updated,
       });
-    } catch (error: any) {
-      throw new AppError(error.message || "Failed to import settings", 400);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to import settings";
+      throw new AppError(message, 400);
     }
   }
 }

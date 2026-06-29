@@ -63,12 +63,22 @@ const DEFAULT_SETTINGS = {
     manageProducts: [UserRole.OWNER],
     accessReports: [UserRole.OWNER, UserRole.ACCOUNTANT],
     accessSettings: [UserRole.OWNER],
+    managePayments: [UserRole.OWNER, UserRole.ACCOUNTANT],
+    viewPayments: [UserRole.OWNER, UserRole.ACCOUNTANT, UserRole.SALESMAN, UserRole.ATTENDANT],
   },
 
   pricingDefaultMargin: 10,
   pricingAllowMarginOverride: true,
   pricingMinMargin: 5,
   pricingMaxDiscount: 20,
+
+  paymentAssignmentMethod: "PERCENTAGE",
+  paymentAssignmentPercentages: {},
+  paymentDefaultCreditDays: 30,
+  paymentDefaultReminderSchedule: [0],
+  paymentReminderFrequency: "DAILY",
+  paymentOverdueGracePeriod: 0,
+  paymentDefaultMethods: ["CASH", "BANK_TRANSFER", "UPI", "CHEQUE"],
 };
 
 export class SettingsService {
@@ -98,8 +108,12 @@ export class SettingsService {
         leadSalesmanPercentages: data.leadSalesmanPercentages ?? undefined,
         projectSalesmanPercentages: data.projectSalesmanPercentages ?? undefined,
         projectPhaseAssignment: data.projectPhaseAssignment ?? undefined,
-        quotePdfHeaderFooter: data.quotePdfHeaderFooter ?? undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        quotePdfHeaderFooter: data.quotePdfHeaderFooter as any,
         rolePermissions: data.rolePermissions ?? undefined,
+        paymentAssignmentPercentages: data.paymentAssignmentPercentages ?? undefined,
+        paymentDefaultReminderSchedule: data.paymentDefaultReminderSchedule ?? undefined,
+        paymentDefaultMethods: data.paymentDefaultMethods ?? undefined,
       },
     });
   }
@@ -107,10 +121,12 @@ export class SettingsService {
   static async exportSettings() {
     const settings = await this.getSettings();
     // Return settings excluding system fields
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, createdAt, updatedAt, lastLeadAssignedUserId, ...exportable } = settings;
     return exportable;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async importSettings(data: any) {
     // Basic validation of import schema keys
     if (!data.companyName || !data.leadAssignmentMethod || !data.projectAssignmentMethod) {

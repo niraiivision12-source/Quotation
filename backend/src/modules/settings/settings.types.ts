@@ -37,7 +37,7 @@ export interface QuotationSettings {
   quoteCurrencySymbol: string;
   quoteNumberFormat: string;
   quoteTaxDisplay: string;
-  quotePdfHeaderFooter: Record<string, any>;
+  quotePdfHeaderFooter: Record<string, unknown>;
 }
 
 export interface NotificationSettings {
@@ -65,6 +65,16 @@ export interface ProductPricingSettings {
   pricingMaxDiscount: number;
 }
 
+export interface PaymentSettings {
+  paymentAssignmentMethod: "MANUAL" | "PERCENTAGE";
+  paymentAssignmentPercentages: Record<string, number>;
+  paymentDefaultCreditDays: number;
+  paymentDefaultReminderSchedule: number[];
+  paymentReminderFrequency: "DAILY" | "WEEKLY";
+  paymentOverdueGracePeriod: number;
+  paymentDefaultMethods: string[];
+}
+
 export interface SystemSettingsDTO
   extends CompanySettings,
     LeadAssignmentSettings,
@@ -73,4 +83,5 @@ export interface SystemSettingsDTO
     NotificationSettings,
     GeneralSettings,
     RolePermissionSettings,
-    ProductPricingSettings {}
+    ProductPricingSettings,
+    PaymentSettings {}

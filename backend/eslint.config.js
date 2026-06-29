@@ -6,7 +6,7 @@ export default [
   ...tseslint.configs.recommended,
 
   {
-    ignores: ["dist/**", "node_modules/**"],
+    ignores: ["dist/**", "node_modules/**", "jest.config.js", "check_db.js"],
   },
 
   {
@@ -14,5 +14,11 @@ export default [
     languageOptions: {
       parser: tseslint.parser,
     },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+      ]
+    }
   },
 ];

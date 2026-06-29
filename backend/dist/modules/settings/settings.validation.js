@@ -53,6 +53,14 @@ exports.updateSettingsSchema = zod_1.z.object({
     pricingAllowMarginOverride: zod_1.z.boolean().default(true),
     pricingMinMargin: zod_1.z.coerce.number().min(0, "Minimum margin must be positive"),
     pricingMaxDiscount: zod_1.z.coerce.number().min(0, "Maximum discount must be positive").max(100, "Maximum discount cannot exceed 100%"),
+    // Payment Settings
+    paymentAssignmentMethod: zod_1.z.enum(["MANUAL", "PERCENTAGE"]).default("PERCENTAGE"),
+    paymentAssignmentPercentages: zod_1.z.record(zod_1.z.string(), zod_1.z.coerce.number()).default({}),
+    paymentDefaultCreditDays: zod_1.z.coerce.number().min(0, "Default credit days cannot be negative").default(30),
+    paymentDefaultReminderSchedule: zod_1.z.array(zod_1.z.coerce.number()).default([0]),
+    paymentReminderFrequency: zod_1.z.enum(["DAILY", "WEEKLY"]).default("DAILY"),
+    paymentOverdueGracePeriod: zod_1.z.coerce.number().min(0, "Overdue grace period cannot be negative").default(0),
+    paymentDefaultMethods: zod_1.z.array(zod_1.z.string()).default(["CASH", "BANK_TRANSFER", "UPI", "CHEQUE"]),
 }).superRefine((data, ctx) => {
     // Validate Lead Assignment Percentages if method is PERCENTAGE
     if (data.leadAssignmentMethod === "PERCENTAGE") {
@@ -92,6 +100,27 @@ exports.updateSettingsSchema = zod_1.z.object({
                     code: zod_1.z.ZodIssueCode.custom,
                     message: `Total percentage must equal 100%. Current sum: ${sum}%`,
                     path: ["projectSalesmanPercentages"],
+                });
+            }
+        }
+    }
+    // Validate Payment Assignment Percentages if method is PERCENTAGE
+    if (data.paymentAssignmentMethod === "PERCENTAGE") {
+        const percentages = Object.values(data.paymentAssignmentPercentages);
+        if (percentages.length === 0) {
+            ctx.addIssue({
+                code: zod_1.z.ZodIssueCode.custom,
+                message: "At least one collector percentage must be configured for Percentage Based assignment.",
+                path: ["paymentAssignmentPercentages"],
+            });
+        }
+        else {
+            const sum = percentages.reduce((acc, curr) => acc + curr, 0);
+            if (Math.abs(sum - 100) > 0.01) {
+                ctx.addIssue({
+                    code: zod_1.z.ZodIssueCode.custom,
+                    message: `Total percentage must equal 100%. Current sum: ${sum}%`,
+                    path: ["paymentAssignmentPercentages"],
                 });
             }
         }

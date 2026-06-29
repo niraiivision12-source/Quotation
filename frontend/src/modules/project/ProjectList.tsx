@@ -111,7 +111,7 @@ function ProjectKanban({ projects, newLeads, onProjectDrop }: ProjectKanbanProps
         const isLeadColumn = phase === "NEW_LEAD";
         const columnProjects = isLeadColumn ? [] : projects.filter((p) => p.currentPhase === phase);
         const count = isLeadColumn ? newLeads.length : columnProjects.length;
-        const totalAmount = isLeadColumn ? 0 : projects.reduce(
+        const totalAmount = isLeadColumn ? 0 : columnProjects.reduce(
           (sum, p) => sum + getProjectPipelineValueForPhase(p, phase),
           0,
         );

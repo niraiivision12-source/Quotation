@@ -1,4 +1,4 @@
-import { UserRole, ProjectPhase } from "@prisma/client";
+import { ProjectPhase } from "@prisma/client";
 
 export interface KPICardData {
   current: number;
@@ -23,6 +23,7 @@ export interface DashboardSummaryResponse {
     lowStockProducts: KPICardData;
     pendingReminders: KPICardData;
   };
+  paymentAnalytics?: Record<string, unknown>;
   salesAnalytics: {
     revenueTrend: Array<{ date: string; revenue: number }>;
     quotationsCreated: number;
@@ -125,10 +126,10 @@ export interface DashboardSummaryResponse {
     }>;
   };
   upcomingWork: {
-    upcomingReminders: Array<any>;
-    upcomingTasks: Array<any>;
-    overdueTasks: Array<any>;
-    overdueFollowUps: Array<any>;
+    upcomingReminders: Array<unknown>;
+    upcomingTasks: Array<unknown>;
+    overdueTasks: Array<unknown>;
+    overdueFollowUps: Array<unknown>;
     todaySchedule: Array<{
       id: string;
       type: "reminder" | "task";

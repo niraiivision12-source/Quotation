@@ -8,6 +8,7 @@ import {
   getCustomerById,
   getCustomerOptions,
   getCustomers,
+  updateCustomer,
 } from "./customer.api";
 
 import type { CustomerOption } from "./customer.types";
@@ -58,5 +59,16 @@ export const useCustomer = (id: string) => {
     queryFn: () => getCustomerById(id),
 
     enabled: !!id,
+  });
+};
+
+export const useUpdateCustomer = () => {
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateCustomer>[1] }) =>
+      updateCustomer(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customer", variables.id] });
+    },
   });
 };

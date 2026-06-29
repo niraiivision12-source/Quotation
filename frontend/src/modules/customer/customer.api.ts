@@ -40,6 +40,9 @@ export const updateCustomer = async (
     mobile?: string;
     email?: string | null;
     address?: string | null;
+    creditAllowed?: boolean;
+    defaultCreditDays?: number;
+    maxCreditAmount?: number;
   },
 ) => {
   const response = await api.patch(`/customers/${id}`, data);

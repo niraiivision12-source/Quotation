@@ -58,11 +58,20 @@ const DEFAULT_SETTINGS = {
         manageProducts: [client_1.UserRole.OWNER],
         accessReports: [client_1.UserRole.OWNER, client_1.UserRole.ACCOUNTANT],
         accessSettings: [client_1.UserRole.OWNER],
+        managePayments: [client_1.UserRole.OWNER, client_1.UserRole.ACCOUNTANT],
+        viewPayments: [client_1.UserRole.OWNER, client_1.UserRole.ACCOUNTANT, client_1.UserRole.SALESMAN, client_1.UserRole.ATTENDANT],
     },
     pricingDefaultMargin: 10,
     pricingAllowMarginOverride: true,
     pricingMinMargin: 5,
     pricingMaxDiscount: 20,
+    paymentAssignmentMethod: "PERCENTAGE",
+    paymentAssignmentPercentages: {},
+    paymentDefaultCreditDays: 30,
+    paymentDefaultReminderSchedule: [0],
+    paymentReminderFrequency: "DAILY",
+    paymentOverdueGracePeriod: 0,
+    paymentDefaultMethods: ["CASH", "BANK_TRANSFER", "UPI", "CHEQUE"],
 };
 class SettingsService {
     static async getSettings() {
@@ -89,6 +98,9 @@ class SettingsService {
                 projectPhaseAssignment: data.projectPhaseAssignment ?? undefined,
                 quotePdfHeaderFooter: data.quotePdfHeaderFooter ?? undefined,
                 rolePermissions: data.rolePermissions ?? undefined,
+                paymentAssignmentPercentages: data.paymentAssignmentPercentages ?? undefined,
+                paymentDefaultReminderSchedule: data.paymentDefaultReminderSchedule ?? undefined,
+                paymentDefaultMethods: data.paymentDefaultMethods ?? undefined,
             },
         });
     }

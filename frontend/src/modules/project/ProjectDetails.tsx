@@ -8,9 +8,11 @@ import ProjectDetailsTab from "./components/ProjectDetailsTab";
 import ProjectLifecycleTab from "./components/ProjectLifecycleTab";
 import ProjectQuotations from "./components/ProjectQuotations";
 import ProjectReminders from "./components/ProjectReminders";
+import ProjectPaymentsTab from "../payment/components/ProjectPaymentsTab";
 import { useProject } from "./project.query";
+import { CreditCard } from "lucide-react";
 
-type Tab = "details" | "lifecycle" | "phase-tracking" | "quotations" | "reminders";
+type Tab = "details" | "lifecycle" | "phase-tracking" | "quotations" | "reminders" | "payments";
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "details", label: "Project Details", icon: <LayoutDashboard size={14} /> },
@@ -18,6 +20,7 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "phase-tracking", label: "Phase Tracking", icon: <ListTodo size={14} /> },
   { key: "quotations", label: "Quotations", icon: <FileText size={14} /> },
   { key: "reminders", label: "Reminders", icon: <Calendar size={14} /> },
+  { key: "payments", label: "Payments", icon: <CreditCard size={14} /> },
 ];
 
 export default function ProjectDetails() {
@@ -93,6 +96,9 @@ export default function ProjectDetails() {
         )}
         {activeTab === "reminders" && (
           <ProjectReminders projectId={id || ""} customerId={data.customerId} />
+        )}
+        {activeTab === "payments" && (
+          <ProjectPaymentsTab projectId={id || ""} project={data} />
         )}
       </div>
     </div>

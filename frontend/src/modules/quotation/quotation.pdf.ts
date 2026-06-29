@@ -144,7 +144,7 @@ export function downloadQuotationPDF({
   doc.setFont("helvetica", "normal");
 
   // Client Details
-  let clientLines = [];
+  const clientLines = [];
   if (quotationType === "WALK_IN_CUSTOMER") {
     clientLines.push(payload.walkInName || "-");
     clientLines.push(`Mobile: ${payload.walkInMobile || "-"}`);
@@ -209,7 +209,7 @@ export function downloadQuotationPDF({
   // -----------------------------
   // Totals & Bank Box side-by-side
   // -----------------------------
-  let nextSectionY = finalY + 10;
+  const nextSectionY = finalY + 10;
 
   // Render Bank Details Box on the left
   doc.setDrawColor(220);
@@ -252,7 +252,7 @@ export function downloadQuotationPDF({
   // -----------------------------
   // Terms & Conditions / Signatures
   // -----------------------------
-  let termsY = nextSectionY + 44;
+  const termsY = nextSectionY + 44;
 
   // Terms & Conditions on the Left
   if (comp.termsAndConditions) {
@@ -270,7 +270,7 @@ export function downloadQuotationPDF({
 
   // Notes if exists
   if (payload.notes) {
-    let notesY = termsY + 30;
+    const notesY = termsY + 30;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(33, 37, 41);

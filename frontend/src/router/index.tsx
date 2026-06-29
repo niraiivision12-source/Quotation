@@ -17,6 +17,7 @@ import ReminderPage from "@/pages/ReminderPage";
 import TaskPage from "@/pages/TaskPage";
 import UserPage from "@/pages/UserPage";
 import SettingsPage from "@/pages/SettingsPage";
+import PaymentPage from "@/pages/PaymentPage";
 
 export default function AppRouter() {
   return (
@@ -54,6 +55,8 @@ export default function AppRouter() {
           <Route path="/users" element={<UserPage />} />
 
           <Route path="/settings" element={<SettingsPage />} />
+
+          <Route path="/payments" element={<PaymentPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

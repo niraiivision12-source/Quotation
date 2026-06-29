@@ -348,6 +348,13 @@ class QuotationService {
                 customer: true,
                 project: true,
                 createdBy: true,
+                payment: {
+                    include: {
+                        transactions: {
+                            orderBy: { date: "desc" },
+                        },
+                    },
+                },
                 items: {
                     include: {
                         product: true,
@@ -366,6 +373,26 @@ class QuotationService {
         return prisma_1.prisma.quotation.findMany({
             where: {
                 projectId,
+            },
+            include: {
+                payment: {
+                    select: {
+                        id: true,
+                        status: true,
+                        amountReceived: true,
+                        pendingAmount: true,
+                    },
+                },
+                customer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        mobile: true,
+                        creditAllowed: true,
+                        maxCreditAmount: true,
+                        defaultCreditDays: true,
+                    },
+                },
             },
             orderBy: [
                 {

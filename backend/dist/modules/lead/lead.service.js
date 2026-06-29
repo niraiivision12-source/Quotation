@@ -338,7 +338,9 @@ class LeadService {
                 where: { leadId, status: { in: ["APPROVED", "SENT", "DRAFT"] } },
                 orderBy: { createdAt: "desc" },
             });
-            const estimatedBudget = latestQuotation ? latestQuotation.totalAmount : null;
+            const estimatedBudget = latestQuotation
+                ? latestQuotation.totalAmount
+                : null;
             // Find or create customer
             let isNewCustomer = false;
             let customer = await tx.customer.findUnique({
@@ -568,7 +570,7 @@ class LeadService {
                     QUOTATION_SENT: ["NEGOTIATION", "WON", "LOST"],
                     NEGOTIATION: ["WON", "LOST"],
                     WON: [],
-                    LOST: ["NOT_RESPONDING"]
+                    LOST: ["NOT_RESPONDING"],
                 };
                 if (!allowedTransitions[lead.status].includes(targetStatus)) {
                     throw new app_error_1.AppError(`Cannot change lead status from ${lead.status} to ${targetStatus}`, 400);
@@ -623,7 +625,8 @@ class LeadService {
                     }
                     const dueAt = new Date(rawDueAt);
                     const reminder = await createNewReminder(tx, lead.id, userId, {
-                        title: data.followUp?.title ?? `Follow up with ${lead.name} (Not Responding)`,
+                        title: data.followUp?.title ??
+                            `Follow up with ${lead.name} (Not Responding)`,
                         description: data.followUp?.description,
                         priority: data.followUp?.priority ?? "MEDIUM",
                         dueAt,
@@ -688,7 +691,8 @@ class LeadService {
                     if (data.followUpDate || data.followUp?.dueAt) {
                         const dueAt = new Date((data.followUpDate || data.followUp?.dueAt));
                         const reminder = await createNewReminder(tx, lead.id, userId, {
-                            title: data.followUp?.title ?? `Follow up with ${lead.name} (Quotation Sent)`,
+                            title: data.followUp?.title ??
+                                `Follow up with ${lead.name} (Quotation Sent)`,
                             description: data.followUp?.description,
                             priority: data.followUp?.priority ?? "MEDIUM",
                             dueAt,
@@ -737,7 +741,8 @@ class LeadService {
                         },
                     });
                     const reminder = await createNewReminder(tx, lead.id, userId, {
-                        title: data.followUp?.title ?? `Follow up with ${lead.name} (Negotiation)`,
+                        title: data.followUp?.title ??
+                            `Follow up with ${lead.name} (Negotiation)`,
                         description: data.followUp?.description,
                         priority: data.followUp?.priority ?? "MEDIUM",
                         dueAt,
@@ -748,8 +753,16 @@ class LeadService {
                     if (!data.notes || data.notes.trim() === "") {
                         throw new app_error_1.AppError("Notes are required when status is LOST", 400);
                     }
-                    const allowedLostReasons = ["price", "competitor", "cancelled", "budget", "no response", "other"];
-                    if (!data.reason || !allowedLostReasons.includes(data.reason.toLowerCase())) {
+                    const allowedLostReasons = [
+                        "price",
+                        "competitor",
+                        "cancelled",
+                        "budget",
+                        "no response",
+                        "other",
+                    ];
+                    if (!data.reason ||
+                        !allowedLostReasons.includes(data.reason.toLowerCase())) {
                         throw new app_error_1.AppError("Invalid lost reason. Allowed values are: Price, Competitor, Cancelled, Budget, No Response, Other", 400);
                     }
                     updateData.lostReason = data.reason;
@@ -865,7 +878,9 @@ class LeadService {
         tomorrow.setDate(tomorrow.getDate() + 1);
         const [total, notResponding, won, lost, todayFollowUp] = await Promise.all([
             prisma_1.prisma.lead.count({ where: { isActive: true } }),
-            prisma_1.prisma.lead.count({ where: { isActive: true, status: "NOT_RESPONDING" } }),
+            prisma_1.prisma.lead.count({
+                where: { isActive: true, status: "NOT_RESPONDING" },
+            }),
             prisma_1.prisma.lead.count({ where: { isActive: true, status: "WON" } }),
             prisma_1.prisma.lead.count({ where: { isActive: true, status: "LOST" } }),
             prisma_1.prisma.lead.count({

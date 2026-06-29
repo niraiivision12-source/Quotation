@@ -7,6 +7,7 @@ import {
   UserRound,
   Users,
   Settings,
+  CreditCard,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: "/leads", label: "Leads", icon: <Users size={18} /> },
   { to: "/reminders", label: "Reminders", icon: <Bell size={18} /> },
   { to: "/quotations", label: "Quotations", icon: <ScrollText size={18} /> },
+  { to: "/payments", label: "Payments", icon: <CreditCard size={18} /> },
   { to: "/tasks", label: "Tasks", icon: <ListTodo size={18} /> },
   { to: "/users", label: "Users", icon: <UserRound size={18} /> },
   { to: "/settings", label: "Settings", icon: <Settings size={18} /> },

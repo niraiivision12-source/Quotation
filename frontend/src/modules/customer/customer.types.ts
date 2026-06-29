@@ -12,6 +12,9 @@ export interface Customer {
   assignedToId?: string | null;
 
   isActive: boolean;
+  creditAllowed: boolean;
+  defaultCreditDays: number;
+  maxCreditAmount: number;
 }
 
 export interface CustomerListResponse {
@@ -38,6 +41,9 @@ export interface CustomerDetails {
   mobile: string;
   email?: string;
   address?: string;
+  creditAllowed: boolean;
+  defaultCreditDays: number;
+  maxCreditAmount: number;
 
   projects: CustomerProject[];
 }

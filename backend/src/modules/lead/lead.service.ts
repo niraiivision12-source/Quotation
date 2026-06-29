@@ -1,8 +1,18 @@
 import { prisma } from "@/config/prisma";
 import { AppError } from "@/utils/app-error";
-import { LeadStatus, LifecycleStatus, ProjectPhase, Prisma, ReminderPriority, ReminderStatus } from "@prisma/client";
+import {
+  LeadStatus,
+  LifecycleStatus,
+  Prisma,
+  ProjectPhase,
+  ReminderPriority,
+  ReminderStatus,
+} from "@prisma/client";
 
-async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: string) {
+async function updateLeadNextFollowUp(
+  tx: Prisma.TransactionClient,
+  leadId: string,
+) {
   const nextReminder = await tx.reminder.findFirst({
     where: {
       leadId,
@@ -21,7 +31,17 @@ async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: stri
   });
 }
 
-async function createNewReminder(tx: Prisma.TransactionClient, leadId: string, userId: string, data: { title: string, description?: string, dueAt: Date, priority: ReminderPriority }) {
+async function createNewReminder(
+  tx: Prisma.TransactionClient,
+  leadId: string,
+  userId: string,
+  data: {
+    title: string;
+    description?: string;
+    dueAt: Date;
+    priority: ReminderPriority;
+  },
+) {
   const currentPending = await tx.reminder.findFirst({
     where: { leadId, status: ReminderStatus.PENDING },
   });
@@ -129,11 +149,15 @@ export class LeadService {
         });
 
         if (activeSalesmen.length === 0) {
-          throw new AppError("No active salesmen available for automatic assignment", 400);
+          throw new AppError(
+            "No active salesmen available for automatic assignment",
+            400,
+          );
         }
 
         if (settings.leadAssignmentMethod === "PERCENTAGE") {
-          const percentages = (settings.leadSalesmanPercentages as Record<string, number>) || {};
+          const percentages =
+            (settings.leadSalesmanPercentages as Record<string, number>) || {};
           const activePercentages = activeSalesmen
             .map((s) => ({
               id: s.id,
@@ -142,10 +166,16 @@ export class LeadService {
             .filter((p) => p.weight > 0);
 
           if (activePercentages.length === 0) {
-            throw new AppError("No active salesmen have a configured assignment percentage", 400);
+            throw new AppError(
+              "No active salesmen have a configured assignment percentage",
+              400,
+            );
           }
 
-          const totalWeight = activePercentages.reduce((sum, item) => sum + item.weight, 0);
+          const totalWeight = activePercentages.reduce(
+            (sum, item) => sum + item.weight,
+            0,
+          );
           const randomVal = Math.random() * totalWeight;
 
           let cumulativeWeight = 0;
@@ -162,7 +192,9 @@ export class LeadService {
           const lastAssignedId = settings.lastLeadAssignedUserId;
           let nextIndex = 0;
           if (lastAssignedId) {
-            const index = activeSalesmen.findIndex((s) => s.id === lastAssignedId);
+            const index = activeSalesmen.findIndex(
+              (s) => s.id === lastAssignedId,
+            );
             if (index !== -1) {
               nextIndex = (index + 1) % activeSalesmen.length;
             }
@@ -184,7 +216,10 @@ export class LeadService {
           where: { id: assignedToId, role: "SALESMAN", isActive: true },
         });
         if (!salesman) {
-          throw new AppError("The assigned salesman is inactive or does not exist", 400);
+          throw new AppError(
+            "The assigned salesman is inactive or does not exist",
+            400,
+          );
         }
       }
 
@@ -396,10 +431,10 @@ export class LeadService {
         where: { leadId, status: { in: ["APPROVED", "SENT", "DRAFT"] } },
         orderBy: { createdAt: "desc" },
       });
-      const estimatedBudget = latestQuotation ? latestQuotation.totalAmount : null;
+      const estimatedBudget = latestQuotation
+        ? latestQuotation.totalAmount
+        : null;
 
-      // Find or create customer
-      let isNewCustomer = false;
       let customer = await tx.customer.findUnique({
         where: {
           mobile: lead.mobile,
@@ -407,7 +442,6 @@ export class LeadService {
       });
 
       if (!customer) {
-        isNewCustomer = true;
         customer = await tx.customer.create({
           data: {
             name: lead.name,
@@ -674,22 +708,31 @@ export class LeadService {
           QUOTATION_SENT: ["NEGOTIATION", "WON", "LOST"],
           NEGOTIATION: ["WON", "LOST"],
           WON: [],
-          LOST: ["NOT_RESPONDING"]
+          LOST: ["NOT_RESPONDING"],
         };
 
         if (!allowedTransitions[lead.status].includes(targetStatus!)) {
-          throw new AppError(`Cannot change lead status from ${lead.status} to ${targetStatus}`, 400);
+          throw new AppError(
+            `Cannot change lead status from ${lead.status} to ${targetStatus}`,
+            400,
+          );
         }
 
         updateData.status = targetStatus;
 
         if (targetStatus === "CONTACTED") {
           if (!data.notes || data.notes.trim() === "") {
-            throw new AppError("Notes are required when status is CONTACTED", 400);
+            throw new AppError(
+              "Notes are required when status is CONTACTED",
+              400,
+            );
           }
           const rawDueAt = data.followUpDate || data.followUp?.dueAt;
           if (!rawDueAt) {
-            throw new AppError("Follow-up date & time are required when status is CONTACTED", 400);
+            throw new AppError(
+              "Follow-up date & time are required when status is CONTACTED",
+              400,
+            );
           }
           const dueAt = new Date(rawDueAt);
 
@@ -730,17 +773,20 @@ export class LeadService {
           });
 
           updateData.nextFollowUpAt = reminder.dueAt;
-        }
-
-        else if (targetStatus === "NOT_RESPONDING") {
+        } else if (targetStatus === "NOT_RESPONDING") {
           const rawDueAt = data.followUpDate || data.followUp?.dueAt;
           if (!rawDueAt) {
-            throw new AppError("Follow-up date & time are required when status is NOT_RESPONDING", 400);
+            throw new AppError(
+              "Follow-up date & time are required when status is NOT_RESPONDING",
+              400,
+            );
           }
           const dueAt = new Date(rawDueAt);
 
           const reminder = await createNewReminder(tx, lead.id, userId, {
-            title: data.followUp?.title ?? `Follow up with ${lead.name} (Not Responding)`,
+            title:
+              data.followUp?.title ??
+              `Follow up with ${lead.name} (Not Responding)`,
             description: data.followUp?.description,
             priority: data.followUp?.priority ?? "MEDIUM",
             dueAt,
@@ -776,12 +822,13 @@ export class LeadService {
               metadata: { oldStatus: lead.status, newStatus: "NOT_RESPONDING" },
             },
           });
-        }
-
-        else if (targetStatus === "QUOTATION_SENT") {
+        } else if (targetStatus === "QUOTATION_SENT") {
           // It's allowed for post-quotation-creation popup.
           if (!data.notes || data.notes.trim() === "") {
-            throw new AppError("Notes are required when status is QUOTATION_SENT", 400);
+            throw new AppError(
+              "Notes are required when status is QUOTATION_SENT",
+              400,
+            );
           }
           await tx.leadNote.create({
             data: {
@@ -809,29 +856,40 @@ export class LeadService {
           });
 
           if (data.followUpDate || data.followUp?.dueAt) {
-            const dueAt = new Date((data.followUpDate || data.followUp?.dueAt) as any);
+            const dueAt = new Date(
+              (data.followUpDate || data.followUp?.dueAt) as string | number | Date,
+            );
             const reminder = await createNewReminder(tx, lead.id, userId, {
-              title: data.followUp?.title ?? `Follow up with ${lead.name} (Quotation Sent)`,
+              title:
+                data.followUp?.title ??
+                `Follow up with ${lead.name} (Quotation Sent)`,
               description: data.followUp?.description,
               priority: data.followUp?.priority ?? "MEDIUM",
               dueAt,
             });
             updateData.nextFollowUpAt = reminder.dueAt;
           }
-        }
-
-        else if (targetStatus === "NEGOTIATION") {
+        } else if (targetStatus === "NEGOTIATION") {
           if (!data.notes || data.notes.trim() === "") {
-            throw new AppError("Notes are required when status is NEGOTIATION", 400);
+            throw new AppError(
+              "Notes are required when status is NEGOTIATION",
+              400,
+            );
           }
           const rawDueAt = data.followUpDate || data.followUp?.dueAt;
           if (!rawDueAt) {
-            throw new AppError("Follow-up date & time are required when status is NEGOTIATION", 400);
+            throw new AppError(
+              "Follow-up date & time are required when status is NEGOTIATION",
+              400,
+            );
           }
           const dueAt = new Date(rawDueAt);
 
           if (!data.reason || data.reason.trim() === "") {
-            throw new AppError("Negotiation reason is required when status is NEGOTIATION", 400);
+            throw new AppError(
+              "Negotiation reason is required when status is NEGOTIATION",
+              400,
+            );
           }
 
           await tx.leadNote.create({
@@ -866,23 +924,36 @@ export class LeadService {
           });
 
           const reminder = await createNewReminder(tx, lead.id, userId, {
-            title: data.followUp?.title ?? `Follow up with ${lead.name} (Negotiation)`,
+            title:
+              data.followUp?.title ??
+              `Follow up with ${lead.name} (Negotiation)`,
             description: data.followUp?.description,
             priority: data.followUp?.priority ?? "MEDIUM",
             dueAt,
           });
 
           updateData.nextFollowUpAt = reminder.dueAt;
-        }
-
-        else if (targetStatus === "LOST") {
+        } else if (targetStatus === "LOST") {
           if (!data.notes || data.notes.trim() === "") {
             throw new AppError("Notes are required when status is LOST", 400);
           }
 
-          const allowedLostReasons = ["price", "competitor", "cancelled", "budget", "no response", "other"];
-          if (!data.reason || !allowedLostReasons.includes(data.reason.toLowerCase())) {
-            throw new AppError("Invalid lost reason. Allowed values are: Price, Competitor, Cancelled, Budget, No Response, Other", 400);
+          const allowedLostReasons = [
+            "price",
+            "competitor",
+            "cancelled",
+            "budget",
+            "no response",
+            "other",
+          ];
+          if (
+            !data.reason ||
+            !allowedLostReasons.includes(data.reason.toLowerCase())
+          ) {
+            throw new AppError(
+              "Invalid lost reason. Allowed values are: Price, Competitor, Cancelled, Budget, No Response, Other",
+              400,
+            );
           }
 
           updateData.lostReason = data.reason;
@@ -922,16 +993,15 @@ export class LeadService {
           if (rawDueAt) {
             const dueAt = new Date(rawDueAt);
             const reminder = await createNewReminder(tx, lead.id, userId, {
-              title: data.followUp?.title ?? `Follow up with ${lead.name} (Lost)`,
+              title:
+                data.followUp?.title ?? `Follow up with ${lead.name} (Lost)`,
               description: data.followUp?.description,
               priority: data.followUp?.priority ?? "MEDIUM",
               dueAt,
             });
             updateData.nextFollowUpAt = reminder.dueAt;
           }
-        }
-
-        else if (targetStatus === "WON") {
+        } else if (targetStatus === "WON") {
           if (!data.notes || data.notes.trim() === "") {
             throw new AppError("Notes are required when status is WON", 400);
           }
@@ -963,9 +1033,7 @@ export class LeadService {
             },
           });
         }
-      }
-
-      else {
+      } else {
         if (data.notes && data.notes.trim() !== "") {
           await tx.leadNote.create({
             data: {
@@ -986,7 +1054,7 @@ export class LeadService {
         }
 
         if (data.followUp) {
-          const reminder = await createNewReminder(tx, lead.id, userId, {
+          await createNewReminder(tx, lead.id, userId, {
             title: data.followUp.title ?? `Follow up with ${lead.name}`,
             description: data.followUp.description,
             priority: data.followUp.priority ?? "MEDIUM",
@@ -1014,7 +1082,9 @@ export class LeadService {
 
     const [total, notResponding, won, lost, todayFollowUp] = await Promise.all([
       prisma.lead.count({ where: { isActive: true } }),
-      prisma.lead.count({ where: { isActive: true, status: "NOT_RESPONDING" } }),
+      prisma.lead.count({
+        where: { isActive: true, status: "NOT_RESPONDING" },
+      }),
       prisma.lead.count({ where: { isActive: true, status: "WON" } }),
       prisma.lead.count({ where: { isActive: true, status: "LOST" } }),
       prisma.lead.count({

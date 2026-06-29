@@ -18,5 +18,28 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'react-hooks/exhaustive-deps': 'warn',
+      'prefer-const': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { 'argsIgnorePattern': '^_', 'varsIgnorePattern': '^_' }
+      ],
+      // shadcn/ui components export both components and variant utilities from same file
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+    },
+  },
+  // UI component library files (shadcn/ui generated) - relax react-refresh rule
+  {
+    files: ['src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])
+
+

@@ -328,20 +328,31 @@ class DashboardService {
                 phase: { not: null },
                 createdAt: { lte: end },
                 ...quotationWhere,
+                project: {
+                    status: client_1.ProjectStatus.ACTIVE,
+                    createdAt: { lte: end },
+                    ...projectWhere,
+                },
             },
             select: {
                 projectId: true,
                 phase: true,
                 totalAmount: true,
+                project: {
+                    select: {
+                        currentPhase: true,
+                    },
+                },
             },
         });
         // Group latest quotation for each unique (projectId, phase) combination
         const uniquePhaseQuotes = new Map();
         allLatestQuotesForPipeline.forEach(q => {
             const key = `${q.projectId}_${q.phase}`;
-            // Since they are ordered or we just want to ensure we take the latest,
-            // but findMany with none childVersions already returns the latest leaf node.
-            uniquePhaseQuotes.set(key, Number(q.totalAmount));
+            // Only include quotation if its phase matches the project's current phase
+            if (q.project && q.phase === q.project.currentPhase) {
+                uniquePhaseQuotes.set(key, Number(q.totalAmount));
+            }
         });
         uniquePhaseQuotes.forEach((amount, key) => {
             const phase = key.split("_")[1];
@@ -677,6 +688,143 @@ class DashboardService {
         ]
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
             .slice(0, 15);
+        // --- PAYMENT ANALYTICS ---
+        let paymentAnalytics = {};
+        if (role === client_1.UserRole.OWNER) {
+            const paymentsAll = await prisma_1.prisma.payment.findMany({
+                where: { status: { not: client_1.PaymentStatus.CANCELLED } },
+                include: {
+                    customer: { select: { id: true, name: true } },
+                    collector: { select: { id: true, name: true } },
+                },
+            });
+            const totalRevenueCollected = paymentsAll.reduce((sum, p) => sum + Number(p.amountReceived), 0);
+            const outstandingAmount = paymentsAll.reduce((sum, p) => sum + Number(p.pendingAmount), 0);
+            const overdueAmount = paymentsAll
+                .filter((p) => p.status === client_1.PaymentStatus.OVERDUE)
+                .reduce((sum, p) => sum + Number(p.pendingAmount), 0);
+            const totalBillAmount = paymentsAll.reduce((sum, p) => sum + Number(p.totalBillAmount), 0);
+            const collectionRate = totalBillAmount > 0 ? (totalRevenueCollected / totalBillAmount) * 100 : 0;
+            const totalBills = paymentsAll.length;
+            const pendingCollections = paymentsAll.filter((p) => p.status === client_1.PaymentStatus.PENDING || p.status === client_1.PaymentStatus.PARTIALLY_PAID).length;
+            // Monthly Collections (last 6 months)
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+            sixMonthsAgo.setDate(1);
+            sixMonthsAgo.setHours(0, 0, 0, 0);
+            const recentTransactions = await prisma_1.prisma.paymentTransaction.findMany({
+                where: { date: { gte: sixMonthsAgo }, payment: { status: { not: client_1.PaymentStatus.CANCELLED } } },
+            });
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const monthlyCollectionsMap = new Map();
+            for (let i = 0; i < 6; i++) {
+                const d = new Date();
+                d.setMonth(d.getMonth() - i);
+                const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+                monthlyCollectionsMap.set(key, 0);
+            }
+            for (const tx of recentTransactions) {
+                const m = tx.date.getMonth();
+                const y = tx.date.getFullYear();
+                const key = `${monthNames[m]} ${y}`;
+                if (monthlyCollectionsMap.has(key)) {
+                    monthlyCollectionsMap.set(key, monthlyCollectionsMap.get(key) + Number(tx.amount));
+                }
+            }
+            const monthlyCollections = Array.from(monthlyCollectionsMap.entries())
+                .map(([month, amount]) => ({ month, amount }))
+                .reverse();
+            // Top Outstanding Customers
+            const customerOutstandingMap = new Map();
+            for (const p of paymentsAll) {
+                if (Number(p.pendingAmount) > 0) {
+                    const prev = customerOutstandingMap.get(p.customerId) || { name: p.customer.name, outstanding: 0 };
+                    customerOutstandingMap.set(p.customerId, {
+                        name: p.customer.name,
+                        outstanding: prev.outstanding + Number(p.pendingAmount),
+                    });
+                }
+            }
+            const topOutstandingCustomers = Array.from(customerOutstandingMap.entries())
+                .map(([customerId, data]) => ({ customerId, name: data.name, outstanding: data.outstanding }))
+                .sort((a, b) => b.outstanding - a.outstanding)
+                .slice(0, 5);
+            // Collector Performance
+            const collectorPerformanceMap = new Map();
+            for (const p of paymentsAll) {
+                const prev = collectorPerformanceMap.get(p.collectorId) || { name: p.collector.name, collected: 0, outstanding: 0 };
+                collectorPerformanceMap.set(p.collectorId, {
+                    name: p.collector.name,
+                    collected: prev.collected + Number(p.amountReceived),
+                    outstanding: prev.outstanding + Number(p.pendingAmount),
+                });
+            }
+            const collectorPerformance = Array.from(collectorPerformanceMap.entries()).map(([collectorId, data]) => ({
+                collectorId,
+                name: data.name,
+                collected: data.collected,
+                outstanding: data.outstanding,
+            }));
+            paymentAnalytics = {
+                totalRevenueCollected,
+                outstandingAmount,
+                overdueAmount,
+                collectionRate,
+                totalBills,
+                pendingCollections,
+                monthlyCollections,
+                topOutstandingCustomers,
+                collectorPerformance,
+            };
+        }
+        else if (role === client_1.UserRole.SALESMAN) {
+            const myPayments = await prisma_1.prisma.payment.findMany({
+                where: { collectorId: userId, status: { not: client_1.PaymentStatus.CANCELLED } },
+                include: { customer: { select: { id: true, name: true } } },
+            });
+            const myPendingCollections = myPayments
+                .filter((p) => p.status === client_1.PaymentStatus.PENDING ||
+                p.status === client_1.PaymentStatus.PARTIALLY_PAID ||
+                p.status === client_1.PaymentStatus.OVERDUE)
+                .reduce((sum, p) => sum + Number(p.pendingAmount), 0);
+            const myCollectedAmount = myPayments.reduce((sum, p) => sum + Number(p.amountReceived), 0);
+            const myOutstandingCustomersMap = new Map();
+            for (const p of myPayments) {
+                if (Number(p.pendingAmount) > 0) {
+                    const prev = myOutstandingCustomersMap.get(p.customerId) || { name: p.customer.name, outstanding: 0 };
+                    myOutstandingCustomersMap.set(p.customerId, {
+                        name: p.customer.name,
+                        outstanding: prev.outstanding + Number(p.pendingAmount),
+                    });
+                }
+            }
+            const myOutstandingCustomers = Array.from(myOutstandingCustomersMap.entries())
+                .map(([customerId, data]) => ({ customerId, name: data.name, outstanding: data.outstanding }))
+                .sort((a, b) => b.outstanding - a.outstanding)
+                .slice(0, 5);
+            paymentAnalytics = {
+                myPendingCollections,
+                myCollectedAmount,
+                myOutstandingCustomers,
+            };
+        }
+        else if (role === client_1.UserRole.ACCOUNTANT) {
+            const paymentsAll = await prisma_1.prisma.payment.findMany({
+                where: { status: { not: client_1.PaymentStatus.CANCELLED } },
+            });
+            const billsCreated = paymentsAll.length;
+            const pendingCollectionsCount = paymentsAll.filter((p) => p.status === client_1.PaymentStatus.PENDING || p.status === client_1.PaymentStatus.PARTIALLY_PAID).length;
+            const overdueCollectionsCount = paymentsAll.filter((p) => p.status === client_1.PaymentStatus.OVERDUE).length;
+            const totalTransactionsCount = await prisma_1.prisma.paymentTransaction.count({
+                where: { payment: { status: { not: client_1.PaymentStatus.CANCELLED } } },
+            });
+            paymentAnalytics = {
+                billsCreated,
+                paymentsRecorded: totalTransactionsCount,
+                pendingCollections: pendingCollectionsCount,
+                overdueCollections: overdueCollectionsCount,
+            };
+        }
         return {
             kpiCards,
             salesAnalytics,
@@ -686,6 +834,7 @@ class DashboardService {
             employeePerformance,
             upcomingWork,
             recentActivityFeed,
+            paymentAnalytics,
         };
     }
     static getDateRange(period, startDateStr, endDateStr) {
