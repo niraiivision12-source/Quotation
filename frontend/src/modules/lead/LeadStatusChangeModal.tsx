@@ -61,8 +61,8 @@ export default function LeadStatusChangeModal({
     );
   }
 
-  const isNotesRequired = ["CONTACTED", "NEGOTIATION", "WON", "LOST"].includes(targetStatus);
-  const isNotesOptional = targetStatus === "NOT_RESPONDING";
+  const isNotesRequired = ["CONTACTED", "NEGOTIATION", "LOST"].includes(targetStatus);
+  const isNotesOptional = ["NOT_RESPONDING", "WON"].includes(targetStatus);
   const isNotesVisible = isNotesRequired || isNotesOptional;
 
   const isFollowUpRequired = ["CONTACTED", "NOT_RESPONDING", "NEGOTIATION", "LOST"].includes(targetStatus);

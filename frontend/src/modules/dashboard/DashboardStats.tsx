@@ -324,6 +324,169 @@ export function DashboardStats({ data, role }: DashboardStatsProps) {
         </div>
       </CollapsibleSection>
 
+      {/* 2.5 Business Analytics (Location, Brand & Category) */}
+      <CollapsibleSection title="Business Analytics & Product Metrics">
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Sales by Location */}
+          <Card className="border shadow-sm p-4 bg-white">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-sm font-bold text-gray-800">Sales by Location</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  {(data.salesByLocation || []).slice(0, 5).map((loc: any) => (
+                    <div key={loc.location} className="space-y-1">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="text-gray-700">{loc.location}</span>
+                        <span className="text-gray-900">
+                          ₹{new Intl.NumberFormat("en-IN").format(loc.totalRevenue)} ({loc.revenuePercentage}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-violet-600 h-full rounded-full transition-all"
+                          style={{ width: `${loc.revenuePercentage}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>{loc.totalSales} Sales</span>
+                        <span>{loc.totalProjects} Projects</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(!data.salesByLocation || data.salesByLocation.length === 0) && (
+                    <EmptyDataState message="No location data recorded for this period" />
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Product Brand Analytics */}
+          <Card className="border shadow-sm p-4 bg-white">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-sm font-bold text-gray-800">Product Brand Performance</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 mb-2">
+                  <div className="p-2.5 bg-green-50/50 rounded-lg border border-green-100 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase font-semibold">Most Profitable</p>
+                    <p className="text-xs font-bold text-green-700 truncate mt-0.5">{data.brandAnalytics?.mostProfitableBrand || "—"}</p>
+                  </div>
+                  <div className="p-2.5 bg-blue-50/50 rounded-lg border border-blue-100 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase font-semibold">Top Selling</p>
+                    <p className="text-xs font-bold text-blue-700 truncate mt-0.5">{data.brandAnalytics?.topSellingBrand || "—"}</p>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="text-xs font-semibold py-2">Brand</TableHead>
+                        <TableHead className="text-xs font-semibold py-2 text-right">Revenue</TableHead>
+                        <TableHead className="text-xs font-semibold py-2 text-right">Qty</TableHead>
+                        <TableHead className="text-xs font-semibold py-2 text-right">Profit</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(data.brandAnalytics?.brands || []).slice(0, 5).map((b: any) => (
+                        <TableRow key={b.brand} className="hover:bg-slate-50 transition-colors">
+                          <TableCell className="text-xs py-2 font-medium">{b.brand}</TableCell>
+                          <TableCell className="text-xs py-2 text-right font-semibold">₹{new Intl.NumberFormat("en-IN").format(b.revenue)}</TableCell>
+                          <TableCell className="text-xs py-2 text-right">{b.quantity}</TableCell>
+                          <TableCell className="text-xs py-2 text-right font-medium text-green-600">₹{new Intl.NumberFormat("en-IN").format(b.profit)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {(!data.brandAnalytics?.brands || data.brandAnalytics.brands.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-4 text-xs text-muted-foreground">No brand metrics available</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Product Category Analytics */}
+          <Card className="border shadow-sm p-4 bg-white md:col-span-2">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-sm font-bold text-gray-800">Product Category Performance</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-2.5 bg-emerald-50/50 rounded-lg border border-emerald-100 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase font-semibold">Most Profitable</p>
+                      <p className="text-xs font-bold text-emerald-700 truncate mt-0.5">{data.categoryAnalytics?.mostProfitableCategory || "—"}</p>
+                    </div>
+                    <div className="p-2.5 bg-indigo-50/50 rounded-lg border border-indigo-100 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase font-semibold">Top Selling</p>
+                      <p className="text-xs font-bold text-indigo-700 truncate mt-0.5">{data.categoryAnalytics?.topSellingCategory || "—"}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5 pt-2">
+                    {(data.categoryAnalytics?.categories || []).slice(0, 4).map((cat: any, idx: number) => {
+                      const colors = ["bg-emerald-500", "bg-indigo-500", "bg-pink-500", "bg-amber-500"];
+                      const maxRevenue = data.categoryAnalytics?.categories[0]?.revenue || 1;
+                      const percentage = Math.min(100, Math.round((cat.revenue / maxRevenue) * 100));
+                      return (
+                        <div key={cat.category} className="space-y-1">
+                          <div className="flex justify-between text-xs font-semibold">
+                            <span className="text-gray-700">{cat.category}</span>
+                            <span className="text-gray-900">₹{new Intl.NumberFormat("en-IN").format(cat.revenue)}</span>
+                          </div>
+                          <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                            <div
+                              className={`${colors[idx % colors.length]} h-full rounded-full transition-all`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="text-xs font-semibold py-2">Category</TableHead>
+                        <TableHead className="text-xs font-semibold py-2 text-right">Revenue</TableHead>
+                        <TableHead className="text-xs font-semibold py-2 text-right">Qty</TableHead>
+                        <TableHead className="text-xs font-semibold py-2 text-right">Profit</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(data.categoryAnalytics?.categories || []).slice(0, 5).map((c: any) => (
+                        <TableRow key={c.category} className="hover:bg-slate-50 transition-colors">
+                          <TableCell className="text-xs py-2 font-medium">{c.category}</TableCell>
+                          <TableCell className="text-xs py-2 text-right font-semibold">₹{new Intl.NumberFormat("en-IN").format(c.revenue)}</TableCell>
+                          <TableCell className="text-xs py-2 text-right">{c.quantity}</TableCell>
+                          <TableCell className="text-xs py-2 text-right font-medium text-green-600">₹{new Intl.NumberFormat("en-IN").format(c.profit)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {(!data.categoryAnalytics?.categories || data.categoryAnalytics.categories.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-4 text-xs text-muted-foreground">No category metrics available</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </CollapsibleSection>
+
       {/* 3. Lead Analytics */}
       <CollapsibleSection title={isOwner ? "Lead Analytics" : "My Lead Analytics"}>
         <div className="grid gap-6 md:grid-cols-3">

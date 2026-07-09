@@ -9,6 +9,13 @@ export const getTasks = async (
     status?: string;
     priority?: string;
     assignedToId?: string;
+    leadId?: string;
+    customerId?: string;
+    projectId?: string;
+    paymentId?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: string;
   },
 ): Promise<TaskListResponse> => {
   const response = await api.get("/tasks", {
@@ -31,6 +38,7 @@ export const createTask = async (data: {
   leadId?: string;
   customerId?: string;
   projectId?: string;
+  paymentId?: string;
 }) => {
   const response = await api.post("/tasks", data);
   return response.data.data;
@@ -45,6 +53,10 @@ export const updateTask = async (
     status?: string;
     dueAt?: string;
     assignedToId?: string;
+    leadId?: string | null;
+    customerId?: string | null;
+    projectId?: string | null;
+    paymentId?: string | null;
   },
 ) => {
   const response = await api.patch(`/tasks/${id}`, data);
@@ -59,4 +71,8 @@ export const completeTask = async (id: string) => {
 export const cancelTask = async (id: string) => {
   const response = await api.patch(`/tasks/${id}/cancel`);
   return response.data.data;
+};
+
+export const deleteTask = async (id: string): Promise<void> => {
+  await api.delete(`/tasks/${id}`);
 };

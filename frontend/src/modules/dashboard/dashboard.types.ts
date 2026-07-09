@@ -150,4 +150,22 @@ export interface DashboardSummaryResponse {
     userId?: string | null;
     userName?: string | null;
   }>;
+  paymentAnalytics?: any;
+  salesByLocation?: Array<{
+    location: string;
+    totalRevenue: number;
+    totalSales: number;
+    totalProjects: number;
+    revenuePercentage: number;
+  }>;
+  brandAnalytics?: {
+    brands: Array<{ brand: string; revenue: number; quantity: number; profit: number }>;
+    mostProfitableBrand: string | null;
+    topSellingBrand: string | null;
+  };
+  categoryAnalytics?: {
+    categories: Array<{ category: string; revenue: number; quantity: number; profit: number }>;
+    mostProfitableCategory: string | null;
+    topSellingCategory: string | null;
+  };
 }

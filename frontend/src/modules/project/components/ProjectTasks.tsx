@@ -42,11 +42,11 @@ function isOverdue(task: Task) {
 
 export default function ProjectTasks({ projectId }: { projectId: string }) {
   const [createOpen, setCreateOpen] = useState(false);
-  const { data, isLoading } = useTasks(1, {}, 50);
+  const { data, isLoading } = useTasks(1, { projectId }, 100);
   const completeMutation = useCompleteTask();
   const cancelMutation = useCancelTask();
 
-  const tasks = (data?.items ?? []).filter((t) => t.project?.id === projectId);
+  const tasks = data?.items ?? [];
 
   return (
     <div className="space-y-4">

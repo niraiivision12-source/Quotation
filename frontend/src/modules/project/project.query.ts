@@ -54,6 +54,7 @@ export const useUpdateProject = () => {
         startDate?: string | null;
         expectedCompletion?: string | null;
         assignedToId?: string | null;
+        paymentDetails?: any;
       };
     }) => updateProject(id, data),
     onSuccess: (_, variables) => {

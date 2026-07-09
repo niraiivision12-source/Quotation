@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuthStore } from "@/store/auth.store";
 
 import AppLayout from "@/layouts/AppLayout";
 
@@ -18,6 +19,15 @@ import TaskPage from "@/pages/TaskPage";
 import UserPage from "@/pages/UserPage";
 import SettingsPage from "@/pages/SettingsPage";
 import PaymentPage from "@/pages/PaymentPage";
+import ApiTestingPage from "@/pages/ApiTestingPage";
+
+function OwnerRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((state) => state.user);
+  if (!user || user.role !== "OWNER") {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
 
 export default function AppRouter() {
   return (
@@ -57,6 +67,15 @@ export default function AppRouter() {
           <Route path="/settings" element={<SettingsPage />} />
 
           <Route path="/payments" element={<PaymentPage />} />
+
+          <Route
+            path="/api-testing"
+            element={
+              <OwnerRoute>
+                <ApiTestingPage />
+              </OwnerRoute>
+            }
+          />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -64,3 +83,4 @@ export default function AppRouter() {
     </BrowserRouter>
   );
 }
+

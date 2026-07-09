@@ -34,6 +34,9 @@ export const useCreateReminder = () => {
       queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
       queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });
       queryClient.invalidateQueries({ queryKey: ["project"] });
+      queryClient.invalidateQueries({ queryKey: ["lead"] });
+      queryClient.invalidateQueries({ queryKey: ["customer"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
     },
   });
 };
@@ -45,6 +48,9 @@ export const useCompleteReminder = () => {
       queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
       queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });
       queryClient.invalidateQueries({ queryKey: ["project"] });
+      queryClient.invalidateQueries({ queryKey: ["lead"] });
+      queryClient.invalidateQueries({ queryKey: ["customer"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
     },
   });
 };
@@ -56,6 +62,9 @@ export const useDeleteReminder = () => {
       queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
       queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });
       queryClient.invalidateQueries({ queryKey: ["project"] });
+      queryClient.invalidateQueries({ queryKey: ["lead"] });
+      queryClient.invalidateQueries({ queryKey: ["customer"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
     },
   });
 };
@@ -68,6 +77,9 @@ export const useUpdateReminder = () => {
       queryClient.invalidateQueries({ queryKey: REMINDER_KEY });
       queryClient.invalidateQueries({ queryKey: ["reminders-overdue"] });
       queryClient.invalidateQueries({ queryKey: ["project"] });
+      queryClient.invalidateQueries({ queryKey: ["lead"] });
+      queryClient.invalidateQueries({ queryKey: ["customer"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
     },
   });
 };

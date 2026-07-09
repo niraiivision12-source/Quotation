@@ -20,7 +20,14 @@ class TaskController {
             status: req.query.status,
             priority: req.query.priority,
             assignedToId: req.query.assignedToId,
-        });
+            leadId: req.query.leadId,
+            customerId: req.query.customerId,
+            projectId: req.query.projectId,
+            paymentId: req.query.paymentId,
+            search: req.query.search,
+            sortBy: req.query.sortBy,
+            sortOrder: req.query.sortOrder,
+        }, req.user.id, req.user.role);
         return res.status(200).json({
             success: true,
             message: "Tasks fetched",
@@ -58,6 +65,13 @@ class TaskController {
             success: true,
             message: "Task cancelled",
             data: task,
+        });
+    }
+    static async remove(req, res) {
+        await task_service_1.TaskService.delete(req.params.id);
+        return res.status(200).json({
+            success: true,
+            message: "Task deleted",
         });
     }
 }

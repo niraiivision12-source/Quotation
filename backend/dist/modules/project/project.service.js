@@ -245,12 +245,288 @@ class ProjectService {
         }
         return project;
     }
-    static async update(id, data) {
+    static async update(id, data, userId) {
         const project = await prisma_1.prisma.project.findUnique({
             where: { id },
         });
         if (!project) {
             throw new app_error_1.AppError("Project not found", 404);
+        }
+        if (data.status === client_1.ProjectStatus.CLOSED_WITH_SALE) {
+            if (!data.paymentDetails) {
+                throw new app_error_1.AppError("Payment details are required to close project with sale", 400);
+            }
+            return prisma_1.prisma.$transaction(async (tx) => {
+                // 1. Verify Quotation
+                const quotation = await tx.quotation.findUnique({
+                    where: { id: data.paymentDetails.quotationId },
+                    include: { customer: true, project: true },
+                });
+                if (!quotation) {
+                    throw new app_error_1.AppError("Quotation not found", 404);
+                }
+                if (quotation.status !== "APPROVED") {
+                    throw new app_error_1.AppError("Only approved quotations can be linked to Tally bills", 400);
+                }
+                if (quotation.billCreated) {
+                    throw new app_error_1.AppError(`Quotation already has a bill linked: #${quotation.billNumber}`, 400);
+                }
+                const customer = quotation.customer;
+                const project = quotation.project;
+                if (!customer) {
+                    throw new app_error_1.AppError("Customer associated with quotation not found", 404);
+                }
+                if (!project) {
+                    throw new app_error_1.AppError("Project associated with quotation not found", 404);
+                }
+                const billDate = new Date(data.paymentDetails.billDate || new Date());
+                const initialReceived = data.paymentDetails.initialAmountReceived || 0;
+                const totalAmount = data.paymentDetails.totalBillAmount;
+                if (initialReceived > totalAmount) {
+                    throw new app_error_1.AppError("Initial amount received cannot exceed total bill amount", 400);
+                }
+                const pendingAmount = totalAmount - initialReceived;
+                const allowCredit = data.paymentDetails.allowCredit;
+                if (pendingAmount > 0) {
+                    if (!allowCredit) {
+                        throw new app_error_1.AppError("Credit is disabled, full bill amount must be paid", 400);
+                    }
+                    if (!customer.creditAllowed) {
+                        throw new app_error_1.AppError(`Credit is not allowed for customer '${customer.name}'`, 400);
+                    }
+                    // Validate max credit amount if set (> 0)
+                    if (Number(customer.maxCreditAmount) > 0) {
+                        const outstandingAggregate = await tx.payment.aggregate({
+                            _sum: { pendingAmount: true },
+                            where: {
+                                customerId: customer.id,
+                                status: { in: [client_1.PaymentStatus.PENDING, client_1.PaymentStatus.PARTIALLY_PAID, client_1.PaymentStatus.OVERDUE] },
+                            },
+                        });
+                        const currentOutstanding = Number(outstandingAggregate._sum.pendingAmount || 0);
+                        const limit = Number(customer.maxCreditAmount);
+                        if (currentOutstanding + pendingAmount > limit) {
+                            throw new app_error_1.AppError(`Transaction exceeds credit limit. Current outstanding: ₹${currentOutstanding}, Limit: ₹${limit}, Requested: ₹${pendingAmount}`, 400);
+                        }
+                    }
+                }
+                // Resolve Dates
+                const systemSettings = await tx.systemSettings.findUnique({
+                    where: { id: "default" },
+                });
+                const defaultCreditDays = customer.defaultCreditDays || systemSettings?.paymentDefaultCreditDays || 30;
+                let dueDate = billDate;
+                if (allowCredit) {
+                    dueDate = data.paymentDetails.dueDate ? new Date(data.paymentDetails.dueDate) : new Date(billDate.getTime() + defaultCreditDays * 24 * 60 * 60 * 1000);
+                }
+                if (dueDate.getTime() < billDate.getTime()) {
+                    throw new app_error_1.AppError("Due date cannot be before bill date", 400);
+                }
+                const creditPeriod = Math.ceil((dueDate.getTime() - billDate.getTime()) / (1000 * 60 * 60 * 24));
+                let status = client_1.PaymentStatus.PENDING;
+                if (pendingAmount <= 0) {
+                    status = client_1.PaymentStatus.FULLY_PAID;
+                }
+                else if (initialReceived > 0) {
+                    status = client_1.PaymentStatus.PARTIALLY_PAID;
+                }
+                const gracePeriod = systemSettings?.paymentOverdueGracePeriod || 0;
+                const graceDueDate = new Date(dueDate.getTime() + gracePeriod * 24 * 60 * 60 * 1000);
+                if (pendingAmount > 0 && graceDueDate < new Date()) {
+                    status = client_1.PaymentStatus.OVERDUE;
+                }
+                // Collector assignment
+                let collectorId = data.paymentDetails.collectorId;
+                if (!collectorId) {
+                    const method = systemSettings?.paymentAssignmentMethod || "PERCENTAGE";
+                    if (method === "PERCENTAGE") {
+                        const activeCollectors = await tx.user.findMany({
+                            where: {
+                                role: { in: ["SALESMAN", "ACCOUNTANT"] },
+                                isActive: true,
+                            },
+                            orderBy: { id: "asc" },
+                        });
+                        if (activeCollectors.length === 0) {
+                            collectorId = quotation.createdById;
+                        }
+                        else {
+                            const weights = systemSettings?.paymentAssignmentPercentages || {};
+                            const activeWeights = activeCollectors
+                                .map((c) => ({
+                                id: c.id,
+                                weight: weights[c.id] || 0,
+                            }))
+                                .filter((w) => w.weight > 0);
+                            if (activeWeights.length === 0) {
+                                collectorId = quotation.createdById;
+                            }
+                            else {
+                                const totalWeight = activeWeights.reduce((sum, item) => sum + item.weight, 0);
+                                const randomVal = Math.random() * totalWeight;
+                                let cumulativeWeight = 0;
+                                let selectedCollectorId = activeWeights[0].id;
+                                for (const item of activeWeights) {
+                                    cumulativeWeight += item.weight;
+                                    if (randomVal <= cumulativeWeight) {
+                                        selectedCollectorId = item.id;
+                                        break;
+                                    }
+                                }
+                                collectorId = selectedCollectorId;
+                            }
+                        }
+                    }
+                    else {
+                        collectorId = project.assignedToId || quotation.createdById;
+                    }
+                }
+                // Create Payment Record
+                const payment = await tx.payment.create({
+                    data: {
+                        customerId: customer.id,
+                        projectId: project.id,
+                        quotationId: quotation.id,
+                        salesmanId: quotation.createdById,
+                        collectorId,
+                        billNumber: data.paymentDetails.billNumber || "",
+                        billDate,
+                        totalBillAmount: totalAmount,
+                        amountReceived: initialReceived,
+                        pendingAmount,
+                        status,
+                        dueDate,
+                        creditPeriod,
+                        remarks: data.paymentDetails.remarks,
+                    },
+                });
+                // Update Quotation
+                await tx.quotation.update({
+                    where: { id: quotation.id },
+                    data: {
+                        billCreated: true,
+                        billNumber: data.paymentDetails.billNumber || "",
+                        billDate,
+                    },
+                });
+                // Create Initial Transaction if paid
+                if (initialReceived > 0) {
+                    await tx.paymentTransaction.create({
+                        data: {
+                            paymentId: payment.id,
+                            amount: initialReceived,
+                            paymentMethod: data.paymentDetails.paymentMethod || "CASH",
+                            referenceNumber: data.paymentDetails.referenceNumber,
+                            notes: data.paymentDetails.notes || "Initial payment upon billing",
+                            updatedById: userId,
+                            date: billDate,
+                        },
+                    });
+                }
+                // Log Activities
+                await tx.customerActivity.create({
+                    data: {
+                        customerId: customer.id,
+                        type: "BILL_LINKED",
+                        message: `Tally Bill #${data.paymentDetails.billNumber || ""} linked to Quotation ${quotation.quotationNumber}. Amount: ₹${totalAmount.toLocaleString()}`,
+                        metadata: { paymentId: payment.id, billNumber: data.paymentDetails.billNumber || "" },
+                    },
+                });
+                await tx.projectActivity.create({
+                    data: {
+                        projectId: project.id,
+                        userId,
+                        type: "BILL_LINKED",
+                        message: `Tally Bill #${data.paymentDetails.billNumber || ""} linked. Amount: ₹${totalAmount.toLocaleString()}`,
+                        metadata: { paymentId: payment.id, billNumber: data.paymentDetails.billNumber || "" },
+                    },
+                });
+                await tx.customerActivity.create({
+                    data: {
+                        customerId: customer.id,
+                        type: "PAYMENT_CREATED",
+                        message: `Payment record created for Bill #${data.paymentDetails.billNumber || ""}. Collector assigned.`,
+                    },
+                });
+                if (initialReceived > 0) {
+                    const actionType = pendingAmount <= 0 ? "FULL_PAYMENT_RECEIVED" : "PARTIAL_PAYMENT_RECEIVED";
+                    const msg = pendingAmount <= 0
+                        ? `Full payment of ₹${initialReceived.toLocaleString()} received for Bill #${data.paymentDetails.billNumber || ""}`
+                        : `Initial partial payment of ₹${initialReceived.toLocaleString()} received for Bill #${data.paymentDetails.billNumber || ""}. Remaining: ₹${pendingAmount.toLocaleString()}`;
+                    await tx.customerActivity.create({
+                        data: { customerId: customer.id, type: actionType, message: msg },
+                    });
+                    await tx.projectActivity.create({
+                        data: { projectId: project.id, userId, type: actionType, message: msg },
+                    });
+                }
+                if (allowCredit && pendingAmount > 0) {
+                    const msg = `Credit of ₹${pendingAmount.toLocaleString()} granted for Bill #${data.paymentDetails.billNumber || ""} until ${dueDate.toLocaleDateString()}`;
+                    await tx.customerActivity.create({
+                        data: { customerId: customer.id, type: "CREDIT_GRANTED", message: msg },
+                    });
+                    await tx.projectActivity.create({
+                        data: { projectId: project.id, userId, type: "CREDIT_GRANTED", message: msg },
+                    });
+                }
+                // Collection Reminder
+                if (pendingAmount > 0) {
+                    const collector = await tx.user.findUnique({ where: { id: collectorId } });
+                    const reminderTitle = `Payment Collection: Bill #${data.paymentDetails.billNumber || ""}`;
+                    const reminderDesc = `Customer: ${customer.name}\nProject: ${project.projectName}\nPending Amount: ₹${pendingAmount.toLocaleString()}\nDue Date: ${dueDate.toLocaleDateString()}\nBill Number: ${data.paymentDetails.billNumber || ""}`;
+                    await tx.reminder.create({
+                        data: {
+                            title: reminderTitle,
+                            description: reminderDesc,
+                            type: client_1.ReminderType.PAYMENT,
+                            dueAt: dueDate,
+                            userId: collectorId,
+                            customerId: customer.id,
+                            projectId: project.id,
+                            paymentId: payment.id,
+                            priority: "HIGH",
+                        },
+                    });
+                    const rMsg = `Reminder created for collector ${collector?.name || "assigned person"} due on ${dueDate.toLocaleDateString()}`;
+                    await tx.customerActivity.create({
+                        data: { customerId: customer.id, type: "REMINDER_CREATED", message: rMsg },
+                    });
+                    await tx.projectActivity.create({
+                        data: { projectId: project.id, userId, type: "REMINDER_CREATED", message: rMsg },
+                    });
+                }
+                const closedStatuses = ["COMPLETED", "CLOSED_WITH_SALE", "CLOSED_WITHOUT_SALE", "CANCELLED"];
+                const isCompleted = closedStatuses.includes(client_1.ProjectStatus.CLOSED_WITH_SALE);
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { paymentDetails, ...projectUpdateData } = data;
+                const updatedProject = await tx.project.update({
+                    where: { id },
+                    data: {
+                        ...projectUpdateData,
+                        status: client_1.ProjectStatus.CLOSED_WITH_SALE,
+                        isCompleted,
+                    },
+                });
+                const oldStatus = project.status;
+                const newStatus = client_1.ProjectStatus.CLOSED_WITH_SALE;
+                await tx.projectActivity.create({
+                    data: {
+                        projectId: id,
+                        userId,
+                        type: "STATUS_CHANGED",
+                        message: `Project status changed from ${oldStatus} to ${newStatus}`,
+                    },
+                });
+                await tx.projectActivity.create({
+                    data: {
+                        projectId: id,
+                        userId,
+                        type: "CLOSED",
+                        message: `Project closed with status ${newStatus}`,
+                    },
+                });
+                return updatedProject;
+            });
         }
         const isStatusChanging = data.status && data.status !== project.status;
         const oldStatus = project.status;
@@ -267,6 +543,7 @@ class ProjectService {
             await prisma_1.prisma.projectActivity.create({
                 data: {
                     projectId: id,
+                    userId,
                     type: "STATUS_CHANGED",
                     message: `Project status changed from ${oldStatus} to ${newStatus}`,
                 },
@@ -278,6 +555,7 @@ class ProjectService {
                 await prisma_1.prisma.projectActivity.create({
                     data: {
                         projectId: id,
+                        userId,
                         type: "CLOSED",
                         message: `Project closed with status ${newStatus}`,
                     },

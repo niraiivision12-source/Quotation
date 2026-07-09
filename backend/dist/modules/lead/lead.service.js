@@ -341,15 +341,12 @@ class LeadService {
             const estimatedBudget = latestQuotation
                 ? latestQuotation.totalAmount
                 : null;
-            // Find or create customer
-            let isNewCustomer = false;
             let customer = await tx.customer.findUnique({
                 where: {
                     mobile: lead.mobile,
                 },
             });
             if (!customer) {
-                isNewCustomer = true;
                 customer = await tx.customer.create({
                     data: {
                         name: lead.name,
@@ -807,16 +804,23 @@ class LeadService {
                     }
                 }
                 else if (targetStatus === "WON") {
-                    if (!data.notes || data.notes.trim() === "") {
-                        throw new app_error_1.AppError("Notes are required when status is WON", 400);
+                    if (data.notes && data.notes.trim() !== "") {
+                        await tx.leadNote.create({
+                            data: {
+                                leadId: lead.id,
+                                userId,
+                                note: data.notes,
+                            },
+                        });
+                        await tx.leadActivity.create({
+                            data: {
+                                leadId: lead.id,
+                                userId,
+                                type: "UPDATED",
+                                message: "Note added",
+                            },
+                        });
                     }
-                    await tx.leadNote.create({
-                        data: {
-                            leadId: lead.id,
-                            userId,
-                            note: data.notes,
-                        },
-                    });
                     await tx.leadActivity.create({
                         data: {
                             leadId: lead.id,
@@ -824,14 +828,6 @@ class LeadService {
                             type: "STATUS_CHANGED",
                             message: `Status changed from ${lead.status} to WON`,
                             metadata: { oldStatus: lead.status, newStatus: "WON" },
-                        },
-                    });
-                    await tx.leadActivity.create({
-                        data: {
-                            leadId: lead.id,
-                            userId,
-                            type: "UPDATED",
-                            message: "Note added",
                         },
                     });
                 }
@@ -855,7 +851,7 @@ class LeadService {
                     });
                 }
                 if (data.followUp) {
-                    const reminder = await createNewReminder(tx, lead.id, userId, {
+                    await createNewReminder(tx, lead.id, userId, {
                         title: data.followUp.title ?? `Follow up with ${lead.name}`,
                         description: data.followUp.description,
                         priority: data.followUp.priority ?? "MEDIUM",

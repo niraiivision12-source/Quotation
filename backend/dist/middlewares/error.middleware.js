@@ -3,9 +3,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.errorHandler = void 0;
 const zod_1 = require("zod");
 const app_error_1 = require("@/utils/app-error");
-const errorHandler = (error, _req, res, 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-_next) => {
+const async_storage_1 = require("@/utils/async-storage");
+const errorHandler = (error, _req, res, _next) => {
+    const store = async_storage_1.devLocalStorage.getStore();
+    if (store) {
+        store.error = {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+            raw: error,
+        };
+    }
     if (error instanceof zod_1.ZodError) {
         return res.status(400).json({
             success: false,

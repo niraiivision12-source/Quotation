@@ -15,12 +15,15 @@ import {
 
 import { useUpdateProject, useUpdateProjectPhase } from "../project.query";
 import { useUsers } from "@/modules/user/user.query";
+import { useProjectQuotations } from "@/modules/quotation/quotation.query";
+import AddPaymentPopup from "@/modules/payment/components/AddPaymentPopup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/axios";
 import type { Project } from "../project.types";
+import { useEffect } from "react";
 
 interface Props {
   project: Project;
@@ -71,6 +74,19 @@ export default function ProjectLifecycleTab({ project }: Props) {
   const updatePhaseMutation = useUpdateProjectPhase();
   const { data: usersData } = useUsers(1);
 
+  const { data: quotations = [], isLoading: quotesLoading } = useProjectQuotations(project.id);
+  const [currentStatus, setCurrentStatus] = useState(project.status);
+  const [isPaymentPopupOpen, setIsPaymentPopupOpen] = useState(false);
+
+  useEffect(() => {
+    setCurrentStatus(project.status);
+  }, [project.status]);
+
+  const approvedQuotes = quotations.filter((q: any) => q.status === "APPROVED");
+  const latestApprovedQuotation = approvedQuotes.sort(
+    (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )[0];
+
   const [noteText, setNoteText] = useState("");
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
 
@@ -78,16 +94,61 @@ export default function ProjectLifecycleTab({ project }: Props) {
   const activities = project.activities ?? [];
 
   const handleStatusChange = async (val: string) => {
+    if (val === "CLOSED_WITH_SALE") {
+      if (quotesLoading) {
+        toast.error("Loading quotations, please wait...");
+        return;
+      }
+      if (!latestApprovedQuotation) {
+        toast.error("Project must have at least one approved quotation to be closed with sale");
+        setCurrentStatus(project.status);
+        return;
+      }
+      setCurrentStatus(val);
+      setIsPaymentPopupOpen(true);
+    } else {
+      try {
+        setCurrentStatus(val);
+        await updateProjectMutation.mutateAsync({
+          id: project.id,
+          data: { status: val },
+        });
+        toast.success("Project status updated");
+        qc.invalidateQueries({ queryKey: ["project", project.id] });
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to update status");
+        setCurrentStatus(project.status);
+      }
+    }
+  };
+
+  const handlePaymentPopupCancel = () => {
+    setIsPaymentPopupOpen(false);
+    setCurrentStatus(project.status);
+  };
+
+  const handlePaymentPopupConfirm = async (paymentDetails: any) => {
     try {
       await updateProjectMutation.mutateAsync({
         id: project.id,
-        data: { status: val },
+        data: {
+          status: "CLOSED_WITH_SALE",
+          paymentDetails,
+        },
       });
-      toast.success("Project status updated");
+      toast.success("Project closed with sale and payment details saved!");
+      setIsPaymentPopupOpen(false);
       qc.invalidateQueries({ queryKey: ["project", project.id] });
-    } catch (err) {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      qc.invalidateQueries({ queryKey: ["reminders"] });
+      qc.invalidateQueries({ queryKey: ["quotations"] });
+    } catch (err: any) {
       console.error(err);
-      toast.error("Failed to update status");
+      toast.error(err.response?.data?.message || "Failed to update project status and save payment");
+      setCurrentStatus(project.status);
     }
   };
 
@@ -191,7 +252,7 @@ export default function ProjectLifecycleTab({ project }: Props) {
           {/* Status Select */}
           <div className="space-y-1">
             <label className="font-semibold text-gray-700 uppercase tracking-wide">Status</label>
-            <Select value={project.status} onValueChange={handleStatusChange} disabled={updateProjectMutation.isPending}>
+            <Select value={currentStatus} onValueChange={handleStatusChange} disabled={updateProjectMutation.isPending}>
               <SelectTrigger className="w-full text-xs h-8">
                 <SelectValue placeholder="Select Status" />
               </SelectTrigger>
@@ -370,6 +431,17 @@ export default function ProjectLifecycleTab({ project }: Props) {
           )}
         </div>
       </div>
+      {latestApprovedQuotation && (
+        <AddPaymentPopup
+          open={isPaymentPopupOpen}
+          onOpenChange={setIsPaymentPopupOpen}
+          project={project as any}
+          latestApprovedQuotation={latestApprovedQuotation}
+          onConfirm={handlePaymentPopupConfirm}
+          onCancel={handlePaymentPopupCancel}
+        />
+      )}
     </div>
   );
 }
+

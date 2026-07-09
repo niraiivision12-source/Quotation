@@ -45,7 +45,8 @@ class SettingsController {
             });
         }
         catch (error) {
-            throw new app_error_1.AppError(error.message || "Failed to import settings", 400);
+            const message = error instanceof Error ? error.message : "Failed to import settings";
+            throw new app_error_1.AppError(message, 400);
         }
     }
 }

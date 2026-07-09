@@ -3,7 +3,7 @@ import { prisma } from "@/config/prisma";
 import { UserRole } from "@prisma/client";
 
 export const checkPermission = (action: string) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  const middleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -48,4 +48,6 @@ export const checkPermission = (action: string) => {
       next(error);
     }
   };
+  (middleware as any).permissionAction = action;
+  return middleware;
 };

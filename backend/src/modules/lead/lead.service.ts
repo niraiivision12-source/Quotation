@@ -1002,17 +1002,24 @@ export class LeadService {
             updateData.nextFollowUpAt = reminder.dueAt;
           }
         } else if (targetStatus === "WON") {
-          if (!data.notes || data.notes.trim() === "") {
-            throw new AppError("Notes are required when status is WON", 400);
-          }
+          if (data.notes && data.notes.trim() !== "") {
+            await tx.leadNote.create({
+              data: {
+                leadId: lead.id,
+                userId,
+                note: data.notes,
+              },
+            });
 
-          await tx.leadNote.create({
-            data: {
-              leadId: lead.id,
-              userId,
-              note: data.notes,
-            },
-          });
+            await tx.leadActivity.create({
+              data: {
+                leadId: lead.id,
+                userId,
+                type: "UPDATED",
+                message: "Note added",
+              },
+            });
+          }
 
           await tx.leadActivity.create({
             data: {
@@ -1021,15 +1028,6 @@ export class LeadService {
               type: "STATUS_CHANGED",
               message: `Status changed from ${lead.status} to WON`,
               metadata: { oldStatus: lead.status, newStatus: "WON" },
-            },
-          });
-
-          await tx.leadActivity.create({
-            data: {
-              leadId: lead.id,
-              userId,
-              type: "UPDATED",
-              message: "Note added",
             },
           });
         }

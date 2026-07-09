@@ -553,16 +553,55 @@ export class DashboardService {
         salesmen.map(async (s, index) => {
           const [leadsAssigned, leadsWon, leadsLost, activeProj, approvedQuotes, remindersPending, tasksPending] =
             await Promise.all([
-              prisma.lead.count({ where: { assignedToId: s.id } }),
-              prisma.lead.count({ where: { assignedToId: s.id, status: LeadStatus.WON } }),
-              prisma.lead.count({ where: { assignedToId: s.id, status: LeadStatus.LOST } }),
-              prisma.project.count({ where: { assignedToId: s.id, status: ProjectStatus.ACTIVE } }),
+              prisma.lead.count({
+                where: {
+                  assignedToId: s.id,
+                  createdAt: { gte: start, lte: end },
+                },
+              }),
+              prisma.lead.count({
+                where: {
+                  assignedToId: s.id,
+                  status: LeadStatus.WON,
+                  createdAt: { gte: start, lte: end },
+                },
+              }),
+              prisma.lead.count({
+                where: {
+                  assignedToId: s.id,
+                  status: LeadStatus.LOST,
+                  createdAt: { gte: start, lte: end },
+                },
+              }),
+              prisma.project.count({
+                where: {
+                  assignedToId: s.id,
+                  status: ProjectStatus.ACTIVE,
+                  createdAt: { gte: start, lte: end },
+                },
+              }),
               prisma.quotation.aggregate({
                 _sum: { totalAmount: true },
-                where: { createdById: s.id, status: QuotationStatus.APPROVED },
+                where: {
+                  createdById: s.id,
+                  status: QuotationStatus.APPROVED,
+                  approvedAt: { gte: start, lte: end },
+                },
               }),
-              prisma.reminder.count({ where: { userId: s.id, status: ReminderStatus.PENDING } }),
-              prisma.task.count({ where: { assignedToId: s.id, status: TaskStatus.PENDING } }),
+              prisma.reminder.count({
+                where: {
+                  userId: s.id,
+                  status: ReminderStatus.PENDING,
+                  createdAt: { gte: start, lte: end },
+                },
+              }),
+              prisma.task.count({
+                where: {
+                  assignedToId: s.id,
+                  status: TaskStatus.PENDING,
+                  createdAt: { gte: start, lte: end },
+                },
+              }),
             ]);
 
           const convRate = leadsAssigned === 0 ? 0 : Number(((leadsWon / leadsAssigned) * 100).toFixed(1));
@@ -604,23 +643,28 @@ export class DashboardService {
       const accountantPerformance = await Promise.all(
         accountants.map(async a => {
           const [processedCount, approvedQuotes, pendingCount] = await Promise.all([
-            prisma.quotation.count({
-              where: {
-                createdById: a.id,
-                status: { in: [QuotationStatus.APPROVED, QuotationStatus.REJECTED, QuotationStatus.SENT] },
-              },
-            }),
-            prisma.quotation.findMany({
-              where: {
-                createdById: a.id,
-                status: QuotationStatus.APPROVED,
-                approvedAt: { not: null },
-              },
-              select: { createdAt: true, approvedAt: true },
-            }),
-            prisma.quotation.count({
-              where: { createdById: a.id, status: QuotationStatus.DRAFT },
-            }),
+             prisma.quotation.count({
+               where: {
+                 createdById: a.id,
+                 status: { in: [QuotationStatus.APPROVED, QuotationStatus.REJECTED, QuotationStatus.SENT] },
+                 createdAt: { gte: start, lte: end },
+               },
+             }),
+             prisma.quotation.findMany({
+               where: {
+                 createdById: a.id,
+                 status: QuotationStatus.APPROVED,
+                 approvedAt: { gte: start, lte: end },
+               },
+               select: { createdAt: true, approvedAt: true },
+             }),
+             prisma.quotation.count({
+               where: {
+                 createdById: a.id,
+                 status: QuotationStatus.DRAFT,
+                 createdAt: { gte: start, lte: end },
+               },
+             }),
           ]);
 
           const totalHours = approvedQuotes.reduce((sum, q) => {
@@ -643,9 +687,26 @@ export class DashboardService {
       const attendantPerformance = await Promise.all(
         attendants.map(async att => {
           const [assigned, completed, pending] = await Promise.all([
-            prisma.task.count({ where: { assignedToId: att.id } }),
-            prisma.task.count({ where: { assignedToId: att.id, status: TaskStatus.COMPLETED } }),
-            prisma.task.count({ where: { assignedToId: att.id, status: TaskStatus.PENDING } }),
+             prisma.task.count({
+               where: {
+                 assignedToId: att.id,
+                 createdAt: { gte: start, lte: end },
+               },
+             }),
+             prisma.task.count({
+               where: {
+                 assignedToId: att.id,
+                 status: TaskStatus.COMPLETED,
+                 createdAt: { gte: start, lte: end },
+               },
+             }),
+             prisma.task.count({
+               where: {
+                 assignedToId: att.id,
+                 status: TaskStatus.PENDING,
+                 createdAt: { gte: start, lte: end },
+               },
+             }),
           ]);
           return {
             id: att.id,
@@ -960,6 +1021,143 @@ export class DashboardService {
       };
     }
 
+    // --- SALES BY LOCATION ---
+    const approvedQuotesForLocation = await prisma.quotation.findMany({
+      where: {
+        status: QuotationStatus.APPROVED,
+        approvedAt: { gte: start, lte: end },
+        ...quotationWhere,
+      },
+      select: {
+        id: true,
+        totalAmount: true,
+        projectId: true,
+        customer: { select: { city: true } },
+        project: { select: { location: true } },
+        lead: { select: { city: true } }
+      }
+    });
+
+    const locationMap = new Map<string, { totalRevenue: number; totalSales: number; projectIds: Set<string> }>();
+    let totalRevenueSum = 0;
+
+    approvedQuotesForLocation.forEach(q => {
+      let loc = q.customer?.city || q.project?.location || q.lead?.city || "Unknown";
+      loc = loc.trim();
+      if (loc) {
+        loc = loc.charAt(0).toUpperCase() + loc.slice(1).toLowerCase();
+      } else {
+        loc = "Unknown";
+      }
+
+      const revenue = Number(q.totalAmount);
+      totalRevenueSum += revenue;
+
+      const prev = locationMap.get(loc) || { totalRevenue: 0, totalSales: 0, projectIds: new Set<string>() };
+      prev.totalRevenue += revenue;
+      prev.totalSales += 1;
+      if (q.projectId) {
+        prev.projectIds.add(q.projectId);
+      }
+      locationMap.set(loc, prev);
+    });
+
+    const salesByLocation = Array.from(locationMap.entries()).map(([location, stats]) => {
+      const revenuePercentage = totalRevenueSum === 0 ? 0 : Number(((stats.totalRevenue / totalRevenueSum) * 100).toFixed(1));
+      return {
+        location,
+        totalRevenue: stats.totalRevenue,
+        totalSales: stats.totalSales,
+        totalProjects: stats.projectIds.size,
+        revenuePercentage,
+      };
+    }).sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+    // --- BRAND & CATEGORY PRODUCT ANALYTICS ---
+    const approvedQuoteItems = await prisma.quotationItem.findMany({
+      where: {
+        quotation: {
+          status: QuotationStatus.APPROVED,
+          approvedAt: { gte: start, lte: end },
+          ...quotationWhere,
+        }
+      },
+      include: {
+        product: {
+          select: {
+            brand: true,
+            category: true,
+          }
+        }
+      }
+    });
+
+    const brandMap = new Map<string, { revenue: number; quantity: number; profit: number }>();
+    const categoryMap = new Map<string, { revenue: number; quantity: number; profit: number }>();
+
+    approvedQuoteItems.forEach(item => {
+      const brand = item.product?.brand || "Unknown";
+      const category = item.product?.category || "Unknown";
+
+      const revenue = Number(item.totalPrice);
+      const quantity = item.quantity;
+      const profit = revenue - (Number(item.costPrice) * quantity);
+
+      // Brand aggregation
+      const prevBrand = brandMap.get(brand) || { revenue: 0, quantity: 0, profit: 0 };
+      prevBrand.revenue += revenue;
+      prevBrand.quantity += quantity;
+      prevBrand.profit += profit;
+      brandMap.set(brand, prevBrand);
+
+      // Category aggregation
+      const prevCategory = categoryMap.get(category) || { revenue: 0, quantity: 0, profit: 0 };
+      prevCategory.revenue += revenue;
+      prevCategory.quantity += quantity;
+      prevCategory.profit += profit;
+      categoryMap.set(category, prevCategory);
+    });
+
+    const brandList = Array.from(brandMap.entries()).map(([brand, stats]) => ({
+      brand,
+      revenue: stats.revenue,
+      quantity: stats.quantity,
+      profit: stats.profit,
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    let mostProfitableBrand = null;
+    let topSellingBrand = null;
+    if (brandList.length > 0) {
+      mostProfitableBrand = [...brandList].sort((a, b) => b.profit - a.profit)[0].brand;
+      topSellingBrand = [...brandList].sort((a, b) => b.quantity - a.quantity)[0].brand;
+    }
+
+    const brandAnalytics = {
+      brands: brandList,
+      mostProfitableBrand,
+      topSellingBrand,
+    };
+
+    const categoryList = Array.from(categoryMap.entries()).map(([category, stats]) => ({
+      category,
+      revenue: stats.revenue,
+      quantity: stats.quantity,
+      profit: stats.profit,
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    let mostProfitableCategory = null;
+    let topSellingCategory = null;
+    if (categoryList.length > 0) {
+      mostProfitableCategory = [...categoryList].sort((a, b) => b.profit - a.profit)[0].category;
+      topSellingCategory = [...categoryList].sort((a, b) => b.quantity - a.quantity)[0].category;
+    }
+
+    const categoryAnalytics = {
+      categories: categoryList,
+      mostProfitableCategory,
+      topSellingCategory,
+    };
+
     return {
       kpiCards,
       salesAnalytics,
@@ -970,6 +1168,9 @@ export class DashboardService {
       upcomingWork,
       recentActivityFeed,
       paymentAnalytics,
+      salesByLocation,
+      brandAnalytics,
+      categoryAnalytics,
     };
   }
 

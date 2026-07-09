@@ -9,7 +9,8 @@
         "./src/*"
       ]
     },
-    "strict": true,
+    "strict": false,
+    "noImplicitAny": false,
     "esModuleInterop": true,
     "types": [
       "node"

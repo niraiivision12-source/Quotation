@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
 import { AppError } from "@/utils/app-error";
+import { devLocalStorage } from "@/utils/async-storage";
 
 export const errorHandler = (
   error: Error,
@@ -9,6 +10,16 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction,
 ) => {
+  const store = devLocalStorage.getStore();
+  if (store) {
+    store.error = {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      raw: error,
+    };
+  }
+
   if (error instanceof ZodError) {
     return res.status(400).json({
       success: false,
@@ -31,3 +42,4 @@ export const errorHandler = (
     message: "Internal Server Error",
   });
 };
+

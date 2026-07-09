@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -16,6 +16,10 @@ import {
 import { useUsers } from "../user/user.query";
 import { useUpdateTask } from "./task.query";
 import type { Task } from "./task.types";
+import { useLeads } from "../lead/lead.query";
+import { useCustomers } from "../customer/customer.query";
+import { useProjects } from "../project/project.query";
+import { usePayments } from "../payment/payment.query";
 
 const schema = z.object({
   title: z.string().min(2, "Title is required"),
@@ -31,6 +35,24 @@ type FormData = z.infer<typeof schema>;
 export default function EditTaskForm({ task, onSuccess }: { task: Task; onSuccess?: () => void }) {
   const mutation = useUpdateTask();
   const { data: usersData } = useUsers(1);
+
+  const [linkType, setLinkType] = useState<"none" | "lead" | "customer" | "project" | "payment">(
+    task.lead ? "lead" :
+    task.customer ? "customer" :
+    task.project ? "project" :
+    task.payment ? "payment" : "none"
+  );
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(
+    task.lead?.id ||
+    task.customer?.id ||
+    task.project?.id ||
+    task.payment?.id || ""
+  );
+
+  const { data: leadsData } = useLeads(1, "");
+  const { data: customersData } = useCustomers(1, "");
+  const { data: projectsData } = useProjects(1, "");
+  const { data: paymentsData } = usePayments({ page: 1, limit: 100 });
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -53,6 +75,18 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
       dueAt: task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : "",
       assignedToId: task.assignedTo.id,
     });
+    setLinkType(
+      task.lead ? "lead" :
+      task.customer ? "customer" :
+      task.project ? "project" :
+      task.payment ? "payment" : "none"
+    );
+    setSelectedEntityId(
+      task.lead?.id ||
+      task.customer?.id ||
+      task.project?.id ||
+      task.payment?.id || ""
+    );
   }, [task]);
 
   const submit = async (data: FormData) => {
@@ -62,6 +96,10 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
         ...data,
         description: data.description || undefined,
         dueAt: data.dueAt || undefined,
+        leadId: linkType === "lead" ? selectedEntityId : null,
+        customerId: linkType === "customer" ? selectedEntityId : null,
+        projectId: linkType === "project" ? selectedEntityId : null,
+        paymentId: linkType === "payment" ? selectedEntityId : null,
       },
     });
     onSuccess?.();
@@ -138,8 +176,69 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
         </Select>
       </div>
 
+      <div className="grid grid-cols-2 gap-3 border-t pt-3">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Link To Entity</label>
+          <Select
+            value={linkType}
+            onValueChange={(v) => {
+              setLinkType(v as any);
+              setSelectedEntityId("");
+            }}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="lead">Lead</SelectItem>
+              <SelectItem value="customer">Customer</SelectItem>
+              <SelectItem value="project">Project</SelectItem>
+              <SelectItem value="payment">Payment</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {linkType !== "none" && (
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Select {linkType}</label>
+            <Select value={selectedEntityId} onValueChange={setSelectedEntityId}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder={`Select ${linkType}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {linkType === "lead" &&
+                  leadsData?.items.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                {linkType === "customer" &&
+                  customersData?.items.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                {linkType === "project" &&
+                  projectsData?.items.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.projectName}
+                    </SelectItem>
+                  ))}
+                {linkType === "payment" &&
+                  (paymentsData?.data?.items || paymentsData?.items || []).map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.billNumber} / {p.project?.projectName || "—"}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-2">
-        <Button type="submit" disabled={mutation.isPending} className="flex-1">
+        <Button type="submit" disabled={mutation.isPending} className="w-full">
           {mutation.isPending ? "Saving..." : "Save Changes"}
         </Button>
       </div>

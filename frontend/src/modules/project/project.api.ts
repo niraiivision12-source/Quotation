@@ -53,6 +53,7 @@ export const updateProject = async (
     startDate?: string | null;
     expectedCompletion?: string | null;
     assignedToId?: string | null;
+    paymentDetails?: any;
   },
 ) => {
   const response = await api.patch(`/projects/${id}`, data);

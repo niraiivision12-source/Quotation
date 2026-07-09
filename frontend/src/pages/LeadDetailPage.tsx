@@ -15,6 +15,15 @@ import { useForm } from "react-hook-form";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import LeadStatusChangeModal from "@/modules/lead/LeadStatusChangeModal";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import LeadTasks from "@/modules/lead/components/LeadTasks";
+import {
+  useCreateReminder,
+  useCompleteReminder,
+  useUpdateReminder,
+  useDeleteReminder,
+} from "@/modules/reminder/reminder.query";
 
 import { CopyPhone } from "@/components/ui/CopyPhone";
 import { Button } from "@/components/ui/button";
@@ -455,7 +464,7 @@ function StatusSection({ lead }: { lead: Lead }) {
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────────
-type PageTab = "timeline" | "quotations" | "notes" | "followups";
+type PageTab = "timeline" | "quotations" | "notes" | "followups" | "tasks";
 
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -464,6 +473,40 @@ export default function LeadDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PageTab>("timeline");
   const [selectedReminder, setSelectedReminder] = useState<any>(null);
+
+  const [addReminderOpen, setAddReminderOpen] = useState(false);
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderDesc, setReminderDesc] = useState("");
+  const [reminderPriority, setReminderPriority] = useState<"LOW" | "MEDIUM" | "HIGH" | "CRITICAL">("MEDIUM");
+  const [reminderDue, setReminderDue] = useState("");
+
+  const createReminderMutation = useCreateReminder();
+  const completeReminderMutation = useCompleteReminder();
+  const updateReminderMutation = useUpdateReminder();
+  const deleteReminderMutation = useDeleteReminder();
+
+  const handleAddReminder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reminderTitle.trim() || !reminderDue || !lead) return;
+    try {
+      await createReminderMutation.mutateAsync({
+        title: reminderTitle,
+        description: reminderDesc,
+        type: "LEAD",
+        priority: reminderPriority,
+        dueAt: new Date(reminderDue).toISOString(),
+        leadId: lead.id,
+      });
+      toast.success("Follow-up reminder added");
+      setReminderTitle("");
+      setReminderDesc("");
+      setReminderPriority("MEDIUM");
+      setReminderDue("");
+      setAddReminderOpen(false);
+    } catch (err) {
+      toast.error("Failed to add follow-up");
+    }
+  };
 
   const [selectedPreviewQuoteId, setSelectedPreviewQuoteId] = useState<string | null>(null);
   const { data: fullSelectedQuote } = useQuotation(selectedPreviewQuoteId || undefined);
@@ -553,6 +596,7 @@ export default function LeadDetailPage() {
     { key: "quotations", label: "Quotations", count: lead.quotations?.length },
     { key: "notes", label: "Notes", count: lead.notesHistory?.length },
     { key: "followups", label: "Follow-ups", count: lead.reminders?.length },
+    { key: "tasks", label: "Tasks" },
   ];
 
   return (
@@ -801,6 +845,12 @@ export default function LeadDetailPage() {
 
             {activeTab === "followups" && (
               <>
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-sm font-semibold text-gray-700">Follow-up reminders</p>
+                  <Button size="sm" onClick={() => setAddReminderOpen(true)}>
+                    + Add Follow-up
+                  </Button>
+                </div>
                 {lead.reminders?.length ? (
                   <div className="space-y-4">
                     <div className="border border-gray-150 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -839,18 +889,43 @@ export default function LeadDetailPage() {
                                   <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
                                     {reminder.user?.name ?? "System"}
                                   </td>
-                                  <td className="px-4 py-3 text-right text-sm whitespace-nowrap">
-                                    {isCompleted ? (
+                                  <td className="px-4 py-3 text-right text-sm whitespace-nowrap flex items-center justify-end gap-1.5">
+                                    {isCompleted && (
                                       <Button
-                                        size="sm"
+                                        size="xs"
                                         variant="ghost"
                                         onClick={() => setSelectedReminder(reminder)}
                                       >
                                         View details
                                       </Button>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground italic">Pending</span>
                                     )}
+                                    {!isCompleted && reminder.status !== "CANCELLED" && (
+                                      <>
+                                        <Button
+                                          size="xs"
+                                          className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 text-xs"
+                                          onClick={() => completeReminderMutation.mutate(reminder.id)}
+                                        >
+                                          Done
+                                        </Button>
+                                        <Button
+                                          size="xs"
+                                          variant="outline"
+                                          className="text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 text-xs"
+                                          onClick={() => updateReminderMutation.mutate({ id: reminder.id, data: { status: "CANCELLED" } })}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </>
+                                    )}
+                                    <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 text-xs"
+                                      onClick={() => deleteReminderMutation.mutate(reminder.id)}
+                                    >
+                                      Delete
+                                    </Button>
                                   </td>
                                 </tr>
                               );
@@ -869,6 +944,10 @@ export default function LeadDetailPage() {
                   </div>
                 )}
               </>
+            )}
+
+            {activeTab === "tasks" && (
+              <LeadTasks leadId={lead.id} />
             )}
           </div>
         </div>
@@ -931,6 +1010,64 @@ export default function LeadDetailPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      <Dialog open={addReminderOpen} onOpenChange={setAddReminderOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Follow-up Reminder</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddReminder} className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Title *</label>
+              <Input
+                value={reminderTitle}
+                onChange={(e) => setReminderTitle(e.target.value)}
+                className="mt-1"
+                placeholder="Follow up call"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Description</label>
+              <Textarea
+                value={reminderDesc}
+                onChange={(e) => setReminderDesc(e.target.value)}
+                className="mt-1 text-xs"
+                placeholder="Discuss options..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Priority</label>
+                <Select value={reminderPriority} onValueChange={(v: any) => setReminderPriority(v)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LOW">Low</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="HIGH">High</SelectItem>
+                    <SelectItem value="CRITICAL">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Due Date & Time *</label>
+                <Input
+                  type="datetime-local"
+                  value={reminderDue}
+                  onChange={(e) => setReminderDue(e.target.value)}
+                  className="mt-1"
+                  required
+                />
+              </div>
+            </div>
+            <Button type="submit" className="w-full" disabled={createReminderMutation.isPending}>
+              {createReminderMutation.isPending ? "Adding..." : "Add Follow-up"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {selectedPreviewQuoteId && leadPreviewData && (
         <QuotationPreviewDialog

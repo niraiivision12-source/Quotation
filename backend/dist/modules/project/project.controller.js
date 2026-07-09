@@ -35,7 +35,7 @@ class ProjectController {
     }
     static async update(req, res) {
         const data = project_validation_1.updateProjectSchema.parse(req.body);
-        const project = await project_service_1.ProjectService.update(req.params.id, data);
+        const project = await project_service_1.ProjectService.update(req.params.id, data, req.user.id);
         return res.status(200).json({
             success: true,
             message: "Project updated",

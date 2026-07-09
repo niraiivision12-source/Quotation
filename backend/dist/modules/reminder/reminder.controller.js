@@ -17,7 +17,7 @@ class ReminderController {
         const page = Number(req.query.page || 1);
         const limit = Number(req.query.limit || 20);
         const projectId = req.query.projectId?.toString();
-        const reminders = await reminder_service_1.ReminderService.getMyReminders(req.user.id, page, limit, projectId);
+        const reminders = await reminder_service_1.ReminderService.getMyReminders(req.user.id, req.user.role, page, limit, projectId);
         return res.status(200).json({
             success: true,
             data: reminders,
@@ -31,7 +31,7 @@ class ReminderController {
         });
     }
     static async getById(req, res) {
-        const reminder = await reminder_service_1.ReminderService.getById(req.params.id, req.user.id);
+        const reminder = await reminder_service_1.ReminderService.getById(req.params.id, req.user.id, req.user.role);
         return res.status(200).json({
             success: true,
             data: reminder,
@@ -39,7 +39,7 @@ class ReminderController {
     }
     static async update(req, res) {
         const data = reminder_validation_1.updateReminderSchema.parse(req.body);
-        const reminder = await reminder_service_1.ReminderService.update(req.params.id, req.user.id, data);
+        const reminder = await reminder_service_1.ReminderService.update(req.params.id, req.user.id, req.user.role, data);
         return res.status(200).json({
             success: true,
             message: "Reminder updated",
@@ -47,7 +47,7 @@ class ReminderController {
         });
     }
     static async complete(req, res) {
-        const reminder = await reminder_service_1.ReminderService.complete(req.params.id, req.user.id);
+        const reminder = await reminder_service_1.ReminderService.complete(req.params.id, req.user.id, req.user.role);
         return res.status(200).json({
             success: true,
             message: "Reminder completed",
@@ -55,7 +55,7 @@ class ReminderController {
         });
     }
     static async remove(req, res) {
-        await reminder_service_1.ReminderService.delete(req.params.id, req.user.id);
+        await reminder_service_1.ReminderService.delete(req.params.id, req.user.id, req.user.role);
         return res.status(200).json({
             success: true,
             message: "Reminder deleted",

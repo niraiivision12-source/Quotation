@@ -498,7 +498,7 @@ class QuotationService {
                 }
             }
             if (quotation.projectId) {
-                let activityType = `QUOTATION_${status}`;
+                const activityType = `QUOTATION_${status}`;
                 await tx.projectActivity.create({
                     data: {
                         projectId: quotation.projectId,

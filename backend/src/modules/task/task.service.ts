@@ -2,7 +2,7 @@ import { prisma } from "@/config/prisma";
 
 import { AppError } from "@/utils/app-error";
 
-import { TaskPriority, TaskStatus } from "@prisma/client";
+import { TaskPriority, TaskStatus, UserRole } from "@prisma/client";
 
 export class TaskService {
   static async create(
@@ -16,6 +16,7 @@ export class TaskService {
       leadId?: string;
       customerId?: string;
       projectId?: string;
+      paymentId?: string;
     },
   ) {
     const assignedUser = await prisma.user.findUnique({
@@ -43,9 +44,21 @@ export class TaskService {
       status?: TaskStatus;
       priority?: TaskPriority;
       assignedToId?: string;
+      leadId?: string;
+      customerId?: string;
+      projectId?: string;
+      paymentId?: string;
+      search?: string;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
     },
+    userId: string,
+    role: string,
   ) {
     const skip = (page - 1) * limit;
+
+    const isOwner = role === UserRole.OWNER;
+    const resolvedAssignedToId = isOwner ? filters.assignedToId : userId;
 
     const where = {
       ...(filters.status && {
@@ -56,10 +69,36 @@ export class TaskService {
         priority: filters.priority,
       }),
 
-      ...(filters.assignedToId && {
-        assignedToId: filters.assignedToId,
+      ...(resolvedAssignedToId && {
+        assignedToId: resolvedAssignedToId,
+      }),
+
+      ...(filters.leadId && {
+        leadId: filters.leadId,
+      }),
+
+      ...(filters.customerId && {
+        customerId: filters.customerId,
+      }),
+
+      ...(filters.projectId && {
+        projectId: filters.projectId,
+      }),
+
+      ...(filters.paymentId && {
+        paymentId: filters.paymentId,
+      }),
+
+      ...(filters.search && {
+        OR: [
+          { title: { contains: filters.search, mode: "insensitive" } },
+          { description: { contains: filters.search, mode: "insensitive" } },
+        ],
       }),
     };
+
+    const sortBy = filters.sortBy || "createdAt";
+    const sortOrder = filters.sortOrder || "desc";
 
     const [items, total] = await Promise.all([
       prisma.task.findMany({
@@ -81,10 +120,43 @@ export class TaskService {
               name: true,
             },
           },
+
+          lead: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+
+          customer: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+
+          project: {
+            select: {
+              id: true,
+              projectName: true,
+            },
+          },
+
+          payment: {
+            select: {
+              id: true,
+              billNumber: true,
+              project: {
+                select: {
+                  projectName: true,
+                },
+              },
+            },
+          },
         },
 
         orderBy: {
-          createdAt: "desc",
+          [sortBy]: sortOrder,
         },
       }),
 
@@ -154,6 +226,8 @@ export class TaskService {
       customerId?: string | null;
 
       projectId?: string | null;
+
+      paymentId?: string | null;
     },
   ) {
     const task = await prisma.task.findUnique({
@@ -206,6 +280,20 @@ export class TaskService {
       data: {
         status: TaskStatus.CANCELLED,
       },
+    });
+  }
+
+  static async delete(id: string) {
+    const task = await prisma.task.findUnique({
+      where: { id },
+    });
+
+    if (!task) {
+      throw new AppError("Task not found", 404);
+    }
+
+    return prisma.task.delete({
+      where: { id },
     });
   }
 }

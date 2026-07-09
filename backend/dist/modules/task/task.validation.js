@@ -12,6 +12,7 @@ exports.createTaskSchema = zod_1.z.object({
     leadId: zod_1.z.uuid().optional(),
     customerId: zod_1.z.uuid().optional(),
     projectId: zod_1.z.uuid().optional(),
+    paymentId: zod_1.z.uuid().optional(),
 });
 exports.updateTaskSchema = zod_1.z.object({
     title: zod_1.z.string().min(2).optional(),
@@ -23,5 +24,6 @@ exports.updateTaskSchema = zod_1.z.object({
     leadId: zod_1.z.uuid().optional().nullable(),
     customerId: zod_1.z.uuid().optional().nullable(),
     projectId: zod_1.z.uuid().optional().nullable(),
+    paymentId: zod_1.z.uuid().optional().nullable(),
 });
 //# sourceMappingURL=task.validation.js.map

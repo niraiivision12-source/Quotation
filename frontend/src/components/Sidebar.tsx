@@ -8,8 +8,10 @@ import {
   Users,
   Settings,
   CreditCard,
+  Activity,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useAuthStore } from "@/store/auth.store";
 
 const NAV_ITEMS = [
   {
@@ -26,6 +28,7 @@ const NAV_ITEMS = [
   { to: "/tasks", label: "Tasks", icon: <ListTodo size={18} /> },
   { to: "/users", label: "Users", icon: <UserRound size={18} /> },
   { to: "/settings", label: "Settings", icon: <Settings size={18} /> },
+  { to: "/api-testing", label: "API Explorer", icon: <Activity size={18} />, ownerOnly: true },
 ];
 
 export default function Sidebar({
@@ -33,6 +36,9 @@ export default function Sidebar({
 }: {
   onMobileClose?: () => void;
 }) {
+  const user = useAuthStore((state) => state.user);
+  const visibleItems = NAV_ITEMS.filter((item) => !item.ownerOnly || user?.role === "OWNER");
+
   return (
     <aside className="w-60 border-r h-screen flex flex-col bg-white shrink-0">
       {/* Logo */}
@@ -47,7 +53,7 @@ export default function Sidebar({
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

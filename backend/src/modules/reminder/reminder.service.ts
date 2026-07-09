@@ -36,9 +36,11 @@ export class ReminderService {
       type: ReminderType;
       priority: ReminderPriority;
       dueAt: Date;
+      repeatType?: ReminderRepeatType;
       leadId?: string;
       customerId?: string;
       projectId?: string;
+      paymentId?: string;
     },
   ) {
     return prisma.$transaction(async (tx) => {
@@ -77,12 +79,22 @@ export class ReminderService {
     });
   }
 
-  static async getMyReminders(userId: string, page: number, limit: number, projectId?: string) {
+  static async getMyReminders(
+    userId: string,
+    userRole: string,
+    page: number,
+    limit: number,
+    projectId?: string,
+  ) {
     const skip = (page - 1) * limit;
 
-    const where: Prisma.ReminderWhereInput = {
-      ...(projectId ? { projectId } : { userId }),
-    };
+    const where: Prisma.ReminderWhereInput = {};
+    if (userRole !== "OWNER") {
+      where.userId = userId;
+    }
+    if (projectId) {
+      where.projectId = projectId;
+    }
 
     const [items, total] = await Promise.all([
       prisma.reminder.findMany({
@@ -91,6 +103,43 @@ export class ReminderService {
         take: limit,
         orderBy: {
           dueAt: "asc",
+        },
+        include: {
+          lead: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          project: {
+            select: {
+              id: true,
+              projectName: true,
+            },
+          },
+          payment: {
+            select: {
+              id: true,
+              billNumber: true,
+              project: {
+                select: {
+                  projectName: true,
+                },
+              },
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       }),
       prisma.reminder.count({
@@ -121,11 +170,46 @@ export class ReminderService {
     });
   }
 
-  static async getById(id: string, userId: string) {
+  static async getById(id: string, userId: string, userRole: string) {
+    const where = userRole === "OWNER" ? { id } : { id, userId };
     const reminder = await prisma.reminder.findFirst({
-      where: {
-        id,
-        userId,
+      where,
+      include: {
+        lead: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            projectName: true,
+          },
+        },
+        payment: {
+          select: {
+            id: true,
+            billNumber: true,
+            project: {
+              select: {
+                projectName: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -139,19 +223,23 @@ export class ReminderService {
   static async update(
     id: string,
     userId: string,
+    userRole: string,
     data: {
       title?: string;
       description?: string | null;
       priority?: ReminderPriority;
       dueAt?: Date;
       repeatType?: ReminderRepeatType;
+      status?: ReminderStatus;
+      leadId?: string | null;
+      customerId?: string | null;
+      projectId?: string | null;
+      paymentId?: string | null;
     },
   ) {
+    const where = userRole === "OWNER" ? { id } : { id, userId };
     const reminder = await prisma.reminder.findFirst({
-      where: {
-        id,
-        userId,
-      },
+      where,
     });
 
     if (!reminder) {
@@ -172,12 +260,10 @@ export class ReminderService {
     });
   }
 
-  static async complete(id: string, userId: string) {
+  static async complete(id: string, userId: string, userRole: string) {
+    const where = userRole === "OWNER" ? { id } : { id, userId };
     const reminder = await prisma.reminder.findFirst({
-      where: {
-        id,
-        userId,
-      },
+      where,
     });
 
     if (!reminder) {
@@ -221,12 +307,10 @@ export class ReminderService {
     });
   }
 
-  static async delete(id: string, userId: string) {
+  static async delete(id: string, userId: string, userRole: string) {
+    const where = userRole === "OWNER" ? { id } : { id, userId };
     const reminder = await prisma.reminder.findFirst({
-      where: {
-        id,
-        userId,
-      },
+      where,
     });
 
     if (!reminder) {

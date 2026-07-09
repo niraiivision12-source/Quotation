@@ -19,6 +19,19 @@ export const updateProjectSchema = z.object({
   status: z.nativeEnum(ProjectStatus).optional(),
   startDate: z.coerce.date().optional().nullable(),
   expectedCompletion: z.coerce.date().optional().nullable(),
+  paymentDetails: z.object({
+    quotationId: z.string().uuid("Invalid quotation ID"),
+    billNumber: z.string().optional().default(""),
+    billDate: z.string().optional(),
+    totalBillAmount: z.coerce.number().positive("Total Bill Amount must be positive"),
+    initialAmountReceived: z.coerce.number().min(0, "Amount received cannot be negative").optional().default(0),
+    allowCredit: z.boolean().default(false),
+    dueDate: z.string().optional(),
+    remarks: z.string().optional(),
+    paymentMethod: z.string().optional().default("CASH"),
+    referenceNumber: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  }).optional(),
 });
 
 export const updateProjectPhaseSchema = z.object({

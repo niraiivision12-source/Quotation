@@ -96,7 +96,8 @@ class SettingsService {
                 leadSalesmanPercentages: data.leadSalesmanPercentages ?? undefined,
                 projectSalesmanPercentages: data.projectSalesmanPercentages ?? undefined,
                 projectPhaseAssignment: data.projectPhaseAssignment ?? undefined,
-                quotePdfHeaderFooter: data.quotePdfHeaderFooter ?? undefined,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                quotePdfHeaderFooter: data.quotePdfHeaderFooter,
                 rolePermissions: data.rolePermissions ?? undefined,
                 paymentAssignmentPercentages: data.paymentAssignmentPercentages ?? undefined,
                 paymentDefaultReminderSchedule: data.paymentDefaultReminderSchedule ?? undefined,
@@ -107,9 +108,11 @@ class SettingsService {
     static async exportSettings() {
         const settings = await this.getSettings();
         // Return settings excluding system fields
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id, createdAt, updatedAt, lastLeadAssignedUserId, ...exportable } = settings;
         return exportable;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     static async importSettings(data) {
         // Basic validation of import schema keys
         if (!data.companyName || !data.leadAssignmentMethod || !data.projectAssignmentMethod) {

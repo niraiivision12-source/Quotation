@@ -27,13 +27,33 @@ export class TaskController {
 
     const limit = Number(req.query.limit || 20);
 
-    const tasks = await TaskService.getAll(page, limit, {
-      status: req.query.status as TaskStatus,
+    const tasks = await TaskService.getAll(
+      page,
+      limit,
+      {
+        status: req.query.status as TaskStatus,
 
-      priority: req.query.priority as TaskPriority,
+        priority: req.query.priority as TaskPriority,
 
-      assignedToId: req.query.assignedToId as string,
-    });
+        assignedToId: req.query.assignedToId as string,
+
+        leadId: req.query.leadId as string,
+
+        customerId: req.query.customerId as string,
+
+        projectId: req.query.projectId as string,
+
+        paymentId: req.query.paymentId as string,
+
+        search: req.query.search as string,
+
+        sortBy: req.query.sortBy as string,
+
+        sortOrder: req.query.sortOrder as "asc" | "desc",
+      },
+      req.user!.id,
+      req.user!.role,
+    );
 
     return res.status(200).json({
       success: true,
@@ -81,6 +101,15 @@ export class TaskController {
       success: true,
       message: "Task cancelled",
       data: task,
+    });
+  }
+
+  static async remove(req: Request, res: Response) {
+    await TaskService.delete(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "Task deleted",
     });
   }
 }

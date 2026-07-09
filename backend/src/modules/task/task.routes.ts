@@ -22,4 +22,6 @@ router.patch("/:id/complete", asyncHandler(TaskController.complete));
 
 router.patch("/:id/cancel", asyncHandler(TaskController.cancel));
 
+router.delete("/:id", asyncHandler(TaskController.remove));
+
 export default router;

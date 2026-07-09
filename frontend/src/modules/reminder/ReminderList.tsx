@@ -43,6 +43,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Link } from "react-router-dom";
+import { useLeads } from "../lead/lead.query";
+import { useCustomers } from "../customer/customer.query";
+import { useProjects } from "../project/project.query";
+import { usePayments } from "../payment/payment.query";
 
 import {
   useCompleteReminder,
@@ -73,9 +78,10 @@ const TYPE_STYLES: Record<ReminderType, string> = {
   CUSTOMER: "bg-green-100 text-green-700",
   QUOTATION: "bg-orange-100 text-orange-700",
   TASK: "bg-gray-100 text-gray-600",
+  PAYMENT: "bg-teal-100 text-teal-700",
 };
 
-const TYPES: ReminderType[] = ["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK"];
+const TYPES: ReminderType[] = ["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK", "PAYMENT"];
 const PRIORITIES: ReminderPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const STATUSES: ReminderStatus[] = ["PENDING", "COMPLETED", "MISSED", "CANCELLED"];
 
@@ -104,9 +110,14 @@ function formatDue(dueAt: string) {
 const reminderSchema = z.object({
   title: z.string().min(2, "Title required"),
   description: z.string().optional(),
-  type: z.enum(["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK"]),
+  type: z.enum(["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK", "PAYMENT"]),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
   dueAt: z.string().min(1, "Due date required"),
+  repeatType: z.enum(["NONE", "DAILY", "WEEKLY", "MONTHLY"]).optional(),
+  leadId: z.string().optional(),
+  customerId: z.string().optional(),
+  projectId: z.string().optional(),
+  paymentId: z.string().optional(),
 });
 type ReminderFormData = z.infer<typeof reminderSchema>;
 
@@ -119,7 +130,10 @@ function CreateReminderForm({ onSuccess }: { onSuccess: () => void }) {
   });
 
   const submit = async (data: ReminderFormData) => {
-    await mutation.mutateAsync({ ...data, dueAt: new Date(data.dueAt).toISOString() });
+    await mutation.mutateAsync({
+      ...data,
+      dueAt: new Date(data.dueAt).toISOString(),
+    });
     form.reset({ type: "TASK", priority: "MEDIUM" });
     onSuccess();
   };
@@ -138,6 +152,11 @@ function EditReminderForm({ reminder, onSuccess }: { reminder: Reminder; onSucce
       type: reminder.type,
       priority: reminder.priority,
       dueAt: new Date(reminder.dueAt).toISOString().slice(0, 16),
+      repeatType: reminder.repeatType || "NONE",
+      leadId: reminder.leadId ?? "",
+      customerId: reminder.customerId ?? "",
+      projectId: reminder.projectId ?? "",
+      paymentId: reminder.paymentId ?? "",
     },
   });
 
@@ -148,11 +167,22 @@ function EditReminderForm({ reminder, onSuccess }: { reminder: Reminder; onSucce
       type: reminder.type,
       priority: reminder.priority,
       dueAt: new Date(reminder.dueAt).toISOString().slice(0, 16),
+      repeatType: reminder.repeatType || "NONE",
+      leadId: reminder.leadId ?? "",
+      customerId: reminder.customerId ?? "",
+      projectId: reminder.projectId ?? "",
+      paymentId: reminder.paymentId ?? "",
     });
   }, [reminder.id]);
 
   const submit = async (data: ReminderFormData) => {
-    await mutation.mutateAsync({ id: reminder.id, data: { ...data, dueAt: new Date(data.dueAt).toISOString() } });
+    await mutation.mutateAsync({
+      id: reminder.id,
+      data: {
+        ...data,
+        dueAt: new Date(data.dueAt).toISOString(),
+      },
+    });
     onSuccess();
   };
 
@@ -171,6 +201,13 @@ function ReminderFormFields({
   isPending: boolean;
   label: string;
 }) {
+  const selectedType = form.watch("type");
+
+  const { data: leadsData } = useLeads(1, "");
+  const { data: customersData } = useCustomers(1, "");
+  const { data: projectsData } = useProjects(1, "");
+  const { data: paymentsData } = usePayments({ page: 1, limit: 100 });
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div>
@@ -186,8 +223,14 @@ function ReminderFormFields({
         <div>
           <label className="text-xs font-medium text-muted-foreground">Type</label>
           <Select
-            defaultValue={form.getValues("type")}
-            onValueChange={(v) => form.setValue("type", v as ReminderFormData["type"])}
+            value={form.watch("type")}
+            onValueChange={(v) => {
+              form.setValue("type", v as ReminderFormData["type"]);
+              form.setValue("leadId", "");
+              form.setValue("customerId", "");
+              form.setValue("projectId", "");
+              form.setValue("paymentId", "");
+            }}
           >
             <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -199,7 +242,7 @@ function ReminderFormFields({
         <div>
           <label className="text-xs font-medium text-muted-foreground">Priority</label>
           <Select
-            defaultValue={form.getValues("priority")}
+            value={form.watch("priority")}
             onValueChange={(v) => form.setValue("priority", v as ReminderFormData["priority"])}
           >
             <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
@@ -210,13 +253,78 @@ function ReminderFormFields({
         </div>
       </div>
 
-      <div>
-        <label className="text-xs font-medium text-muted-foreground">Due Date & Time *</label>
-        <Input type="datetime-local" className="mt-1" {...form.register("dueAt")} />
-        {form.formState.errors.dueAt && (
-          <p className="text-xs text-red-500 mt-1">{form.formState.errors.dueAt.message}</p>
-        )}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Due Date & Time *</label>
+          <Input type="datetime-local" className="mt-1" {...form.register("dueAt")} />
+          {form.formState.errors.dueAt && (
+            <p className="text-xs text-red-500 mt-1">{form.formState.errors.dueAt.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Repeat Rule</label>
+          <Select
+            value={form.watch("repeatType") || "NONE"}
+            onValueChange={(v) => form.setValue("repeatType", v as any)}
+          >
+            <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NONE">None</SelectItem>
+              <SelectItem value="DAILY">Daily</SelectItem>
+              <SelectItem value="WEEKLY">Weekly</SelectItem>
+              <SelectItem value="MONTHLY">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {selectedType === "LEAD" && (
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Select Lead *</label>
+          <Select value={form.watch("leadId") || ""} onValueChange={(v) => form.setValue("leadId", v)}>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Select Lead" /></SelectTrigger>
+            <SelectContent>
+              {leadsData?.items.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {selectedType === "CUSTOMER" && (
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Select Customer *</label>
+          <Select value={form.watch("customerId") || ""} onValueChange={(v) => form.setValue("customerId", v)}>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Select Customer" /></SelectTrigger>
+            <SelectContent>
+              {customersData?.items.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {selectedType === "PROJECT" && (
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Select Project *</label>
+          <Select value={form.watch("projectId") || ""} onValueChange={(v) => form.setValue("projectId", v)}>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Select Project" /></SelectTrigger>
+            <SelectContent>
+              {projectsData?.items.map((p) => <SelectItem key={p.id} value={p.id}>{p.projectName}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {selectedType === "PAYMENT" && (
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Select Payment *</label>
+          <Select value={form.watch("paymentId") || ""} onValueChange={(v) => form.setValue("paymentId", v)}>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Select Payment" /></SelectTrigger>
+            <SelectContent>
+              {(paymentsData?.data?.items || paymentsData?.items || []).map((p: any) => (
+                <SelectItem key={p.id} value={p.id}>{p.billNumber} / {p.project?.projectName || "—"}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <Button type="submit" disabled={isPending} className="w-full">
         {isPending ? "Saving..." : label}
@@ -262,6 +370,39 @@ function ReminderActions({
 }
 
 // ─── Mobile card ──────────────────────────────────────────────────────────────
+function LinkedTo({ reminder }: { reminder: Reminder }) {
+  if (reminder.lead) {
+    return (
+      <Link to={`/leads/${reminder.lead.id}`} className="text-xs text-blue-600 hover:underline">
+        Lead: {reminder.lead.name}
+      </Link>
+    );
+  }
+  if (reminder.customer) {
+    return (
+      <Link to={`/customers/${reminder.customer.id}`} className="text-xs text-blue-600 hover:underline">
+        Customer: {reminder.customer.name}
+      </Link>
+    );
+  }
+  if (reminder.project) {
+    return (
+      <Link to={`/projects/${reminder.project.id}`} className="text-xs text-blue-600 hover:underline">
+        Project: {reminder.project.projectName}
+      </Link>
+    );
+  }
+  if (reminder.payment) {
+    const projName = reminder.payment.project?.projectName || "—";
+    return (
+      <Link to={`/payments?search=${reminder.payment.billNumber}`} className="text-xs text-blue-600 hover:underline">
+        Payment: {reminder.payment.billNumber} / {projName}
+      </Link>
+    );
+  }
+  return <span className="text-xs text-muted-foreground">—</span>;
+}
+
 function MobileReminderCard({
   reminder,
   onEdit,
@@ -303,9 +444,7 @@ function MobileReminderCard({
       </div>
 
       <div className="flex items-center justify-between text-xs">
-        {reminder.lead && (
-          <span className="text-muted-foreground truncate">Lead: {reminder.lead.name}</span>
-        )}
+        <LinkedTo reminder={reminder} />
         <span className={`ml-auto font-medium ${due.urgent ? "text-red-500" : "text-muted-foreground"}`}>
           {due.label} · {due.sub}
         </span>
@@ -504,11 +643,7 @@ export default function ReminderList() {
                     </TableCell>
 
                     <TableCell className="py-3">
-                      {r.lead ? (
-                        <span className="text-xs text-muted-foreground">Lead: {r.lead.name}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <LinkedTo reminder={r} />
                     </TableCell>
 
                     <TableCell className="py-3">

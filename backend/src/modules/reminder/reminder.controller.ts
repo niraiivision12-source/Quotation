@@ -27,6 +27,7 @@ export class ReminderController {
 
     const reminders = await ReminderService.getMyReminders(
       req.user!.id,
+      req.user!.role,
       page,
       limit,
       projectId,
@@ -51,6 +52,7 @@ export class ReminderController {
     const reminder = await ReminderService.getById(
       req.params.id as string,
       req.user!.id,
+      req.user!.role,
     );
 
     return res.status(200).json({
@@ -65,6 +67,7 @@ export class ReminderController {
     const reminder = await ReminderService.update(
       req.params.id as string,
       req.user!.id,
+      req.user!.role,
       data,
     );
 
@@ -79,6 +82,7 @@ export class ReminderController {
     const reminder = await ReminderService.complete(
       req.params.id as string,
       req.user!.id,
+      req.user!.role,
     );
 
     return res.status(200).json({
@@ -89,7 +93,11 @@ export class ReminderController {
   }
 
   static async remove(req: Request, res: Response) {
-    await ReminderService.delete(req.params.id as string, req.user!.id);
+    await ReminderService.delete(
+      req.params.id as string,
+      req.user!.id,
+      req.user!.role,
+    );
 
     return res.status(200).json({
       success: true,

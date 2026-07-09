@@ -469,16 +469,55 @@ class DashboardService {
             const attendants = await prisma_1.prisma.user.findMany({ where: { role: client_1.UserRole.ATTENDANT, isActive: true } });
             const salesmanPerformance = await Promise.all(salesmen.map(async (s, index) => {
                 const [leadsAssigned, leadsWon, leadsLost, activeProj, approvedQuotes, remindersPending, tasksPending] = await Promise.all([
-                    prisma_1.prisma.lead.count({ where: { assignedToId: s.id } }),
-                    prisma_1.prisma.lead.count({ where: { assignedToId: s.id, status: client_1.LeadStatus.WON } }),
-                    prisma_1.prisma.lead.count({ where: { assignedToId: s.id, status: client_1.LeadStatus.LOST } }),
-                    prisma_1.prisma.project.count({ where: { assignedToId: s.id, status: client_1.ProjectStatus.ACTIVE } }),
+                    prisma_1.prisma.lead.count({
+                        where: {
+                            assignedToId: s.id,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    }),
+                    prisma_1.prisma.lead.count({
+                        where: {
+                            assignedToId: s.id,
+                            status: client_1.LeadStatus.WON,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    }),
+                    prisma_1.prisma.lead.count({
+                        where: {
+                            assignedToId: s.id,
+                            status: client_1.LeadStatus.LOST,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    }),
+                    prisma_1.prisma.project.count({
+                        where: {
+                            assignedToId: s.id,
+                            status: client_1.ProjectStatus.ACTIVE,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    }),
                     prisma_1.prisma.quotation.aggregate({
                         _sum: { totalAmount: true },
-                        where: { createdById: s.id, status: client_1.QuotationStatus.APPROVED },
+                        where: {
+                            createdById: s.id,
+                            status: client_1.QuotationStatus.APPROVED,
+                            approvedAt: { gte: start, lte: end },
+                        },
                     }),
-                    prisma_1.prisma.reminder.count({ where: { userId: s.id, status: client_1.ReminderStatus.PENDING } }),
-                    prisma_1.prisma.task.count({ where: { assignedToId: s.id, status: client_1.TaskStatus.PENDING } }),
+                    prisma_1.prisma.reminder.count({
+                        where: {
+                            userId: s.id,
+                            status: client_1.ReminderStatus.PENDING,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    }),
+                    prisma_1.prisma.task.count({
+                        where: {
+                            assignedToId: s.id,
+                            status: client_1.TaskStatus.PENDING,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    }),
                 ]);
                 const convRate = leadsAssigned === 0 ? 0 : Number(((leadsWon / leadsAssigned) * 100).toFixed(1));
                 const revGen = Number(approvedQuotes._sum.totalAmount || 0);
@@ -515,18 +554,23 @@ class DashboardService {
                         where: {
                             createdById: a.id,
                             status: { in: [client_1.QuotationStatus.APPROVED, client_1.QuotationStatus.REJECTED, client_1.QuotationStatus.SENT] },
+                            createdAt: { gte: start, lte: end },
                         },
                     }),
                     prisma_1.prisma.quotation.findMany({
                         where: {
                             createdById: a.id,
                             status: client_1.QuotationStatus.APPROVED,
-                            approvedAt: { not: null },
+                            approvedAt: { gte: start, lte: end },
                         },
                         select: { createdAt: true, approvedAt: true },
                     }),
                     prisma_1.prisma.quotation.count({
-                        where: { createdById: a.id, status: client_1.QuotationStatus.DRAFT },
+                        where: {
+                            createdById: a.id,
+                            status: client_1.QuotationStatus.DRAFT,
+                            createdAt: { gte: start, lte: end },
+                        },
                     }),
                 ]);
                 const totalHours = approvedQuotes.reduce((sum, q) => {
@@ -544,9 +588,26 @@ class DashboardService {
             }));
             const attendantPerformance = await Promise.all(attendants.map(async (att) => {
                 const [assigned, completed, pending] = await Promise.all([
-                    prisma_1.prisma.task.count({ where: { assignedToId: att.id } }),
-                    prisma_1.prisma.task.count({ where: { assignedToId: att.id, status: client_1.TaskStatus.COMPLETED } }),
-                    prisma_1.prisma.task.count({ where: { assignedToId: att.id, status: client_1.TaskStatus.PENDING } }),
+                    prisma_1.prisma.task.count({
+                        where: {
+                            assignedToId: att.id,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    }),
+                    prisma_1.prisma.task.count({
+                        where: {
+                            assignedToId: att.id,
+                            status: client_1.TaskStatus.COMPLETED,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    }),
+                    prisma_1.prisma.task.count({
+                        where: {
+                            assignedToId: att.id,
+                            status: client_1.TaskStatus.PENDING,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    }),
                 ]);
                 return {
                     id: att.id,
@@ -825,6 +886,126 @@ class DashboardService {
                 overdueCollections: overdueCollectionsCount,
             };
         }
+        // --- SALES BY LOCATION ---
+        const approvedQuotesForLocation = await prisma_1.prisma.quotation.findMany({
+            where: {
+                status: client_1.QuotationStatus.APPROVED,
+                approvedAt: { gte: start, lte: end },
+                ...quotationWhere,
+            },
+            select: {
+                id: true,
+                totalAmount: true,
+                projectId: true,
+                customer: { select: { city: true } },
+                project: { select: { location: true } },
+                lead: { select: { city: true } }
+            }
+        });
+        const locationMap = new Map();
+        let totalRevenueSum = 0;
+        approvedQuotesForLocation.forEach(q => {
+            let loc = q.customer?.city || q.project?.location || q.lead?.city || "Unknown";
+            loc = loc.trim();
+            if (loc) {
+                loc = loc.charAt(0).toUpperCase() + loc.slice(1).toLowerCase();
+            }
+            else {
+                loc = "Unknown";
+            }
+            const revenue = Number(q.totalAmount);
+            totalRevenueSum += revenue;
+            const prev = locationMap.get(loc) || { totalRevenue: 0, totalSales: 0, projectIds: new Set() };
+            prev.totalRevenue += revenue;
+            prev.totalSales += 1;
+            if (q.projectId) {
+                prev.projectIds.add(q.projectId);
+            }
+            locationMap.set(loc, prev);
+        });
+        const salesByLocation = Array.from(locationMap.entries()).map(([location, stats]) => {
+            const revenuePercentage = totalRevenueSum === 0 ? 0 : Number(((stats.totalRevenue / totalRevenueSum) * 100).toFixed(1));
+            return {
+                location,
+                totalRevenue: stats.totalRevenue,
+                totalSales: stats.totalSales,
+                totalProjects: stats.projectIds.size,
+                revenuePercentage,
+            };
+        }).sort((a, b) => b.totalRevenue - a.totalRevenue);
+        // --- BRAND & CATEGORY PRODUCT ANALYTICS ---
+        const approvedQuoteItems = await prisma_1.prisma.quotationItem.findMany({
+            where: {
+                quotation: {
+                    status: client_1.QuotationStatus.APPROVED,
+                    approvedAt: { gte: start, lte: end },
+                    ...quotationWhere,
+                }
+            },
+            include: {
+                product: {
+                    select: {
+                        brand: true,
+                        category: true,
+                    }
+                }
+            }
+        });
+        const brandMap = new Map();
+        const categoryMap = new Map();
+        approvedQuoteItems.forEach(item => {
+            const brand = item.product?.brand || "Unknown";
+            const category = item.product?.category || "Unknown";
+            const revenue = Number(item.totalPrice);
+            const quantity = item.quantity;
+            const profit = revenue - (Number(item.costPrice) * quantity);
+            // Brand aggregation
+            const prevBrand = brandMap.get(brand) || { revenue: 0, quantity: 0, profit: 0 };
+            prevBrand.revenue += revenue;
+            prevBrand.quantity += quantity;
+            prevBrand.profit += profit;
+            brandMap.set(brand, prevBrand);
+            // Category aggregation
+            const prevCategory = categoryMap.get(category) || { revenue: 0, quantity: 0, profit: 0 };
+            prevCategory.revenue += revenue;
+            prevCategory.quantity += quantity;
+            prevCategory.profit += profit;
+            categoryMap.set(category, prevCategory);
+        });
+        const brandList = Array.from(brandMap.entries()).map(([brand, stats]) => ({
+            brand,
+            revenue: stats.revenue,
+            quantity: stats.quantity,
+            profit: stats.profit,
+        })).sort((a, b) => b.revenue - a.revenue);
+        let mostProfitableBrand = null;
+        let topSellingBrand = null;
+        if (brandList.length > 0) {
+            mostProfitableBrand = [...brandList].sort((a, b) => b.profit - a.profit)[0].brand;
+            topSellingBrand = [...brandList].sort((a, b) => b.quantity - a.quantity)[0].brand;
+        }
+        const brandAnalytics = {
+            brands: brandList,
+            mostProfitableBrand,
+            topSellingBrand,
+        };
+        const categoryList = Array.from(categoryMap.entries()).map(([category, stats]) => ({
+            category,
+            revenue: stats.revenue,
+            quantity: stats.quantity,
+            profit: stats.profit,
+        })).sort((a, b) => b.revenue - a.revenue);
+        let mostProfitableCategory = null;
+        let topSellingCategory = null;
+        if (categoryList.length > 0) {
+            mostProfitableCategory = [...categoryList].sort((a, b) => b.profit - a.profit)[0].category;
+            topSellingCategory = [...categoryList].sort((a, b) => b.quantity - a.quantity)[0].category;
+        }
+        const categoryAnalytics = {
+            categories: categoryList,
+            mostProfitableCategory,
+            topSellingCategory,
+        };
         return {
             kpiCards,
             salesAnalytics,
@@ -835,6 +1016,9 @@ class DashboardService {
             upcomingWork,
             recentActivityFeed,
             paymentAnalytics,
+            salesByLocation,
+            brandAnalytics,
+            categoryAnalytics,
         };
     }
     static getDateRange(period, startDateStr, endDateStr) {

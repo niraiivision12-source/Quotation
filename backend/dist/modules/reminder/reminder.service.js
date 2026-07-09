@@ -54,11 +54,15 @@ class ReminderService {
             return reminder;
         });
     }
-    static async getMyReminders(userId, page, limit, projectId) {
+    static async getMyReminders(userId, userRole, page, limit, projectId) {
         const skip = (page - 1) * limit;
-        const where = {
-            ...(projectId ? { projectId } : { userId }),
-        };
+        const where = {};
+        if (userRole !== "OWNER") {
+            where.userId = userId;
+        }
+        if (projectId) {
+            where.projectId = projectId;
+        }
         const [items, total] = await Promise.all([
             prisma_1.prisma.reminder.findMany({
                 where,
@@ -66,6 +70,43 @@ class ReminderService {
                 take: limit,
                 orderBy: {
                     dueAt: "asc",
+                },
+                include: {
+                    lead: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                    customer: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                    project: {
+                        select: {
+                            id: true,
+                            projectName: true,
+                        },
+                    },
+                    payment: {
+                        select: {
+                            id: true,
+                            billNumber: true,
+                            project: {
+                                select: {
+                                    projectName: true,
+                                },
+                            },
+                        },
+                    },
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
                 },
             }),
             prisma_1.prisma.reminder.count({
@@ -93,11 +134,46 @@ class ReminderService {
             },
         });
     }
-    static async getById(id, userId) {
+    static async getById(id, userId, userRole) {
+        const where = userRole === "OWNER" ? { id } : { id, userId };
         const reminder = await prisma_1.prisma.reminder.findFirst({
-            where: {
-                id,
-                userId,
+            where,
+            include: {
+                lead: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                customer: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                project: {
+                    select: {
+                        id: true,
+                        projectName: true,
+                    },
+                },
+                payment: {
+                    select: {
+                        id: true,
+                        billNumber: true,
+                        project: {
+                            select: {
+                                projectName: true,
+                            },
+                        },
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
             },
         });
         if (!reminder) {
@@ -105,12 +181,10 @@ class ReminderService {
         }
         return reminder;
     }
-    static async update(id, userId, data) {
+    static async update(id, userId, userRole, data) {
+        const where = userRole === "OWNER" ? { id } : { id, userId };
         const reminder = await prisma_1.prisma.reminder.findFirst({
-            where: {
-                id,
-                userId,
-            },
+            where,
         });
         if (!reminder) {
             throw new app_error_1.AppError("Reminder not found", 404);
@@ -126,12 +200,10 @@ class ReminderService {
             return updatedReminder;
         });
     }
-    static async complete(id, userId) {
+    static async complete(id, userId, userRole) {
+        const where = userRole === "OWNER" ? { id } : { id, userId };
         const reminder = await prisma_1.prisma.reminder.findFirst({
-            where: {
-                id,
-                userId,
-            },
+            where,
         });
         if (!reminder) {
             throw new app_error_1.AppError("Reminder not found", 404);
@@ -168,12 +240,10 @@ class ReminderService {
             return updatedReminder;
         });
     }
-    static async delete(id, userId) {
+    static async delete(id, userId, userRole) {
+        const where = userRole === "OWNER" ? { id } : { id, userId };
         const reminder = await prisma_1.prisma.reminder.findFirst({
-            where: {
-                id,
-                userId,
-            },
+            where,
         });
         if (!reminder) {
             throw new app_error_1.AppError("Reminder not found", 404);

@@ -233,7 +233,7 @@ class PaymentService {
                 const collector = await tx.user.findUnique({ where: { id: collectorId } });
                 const reminderTitle = `Payment Collection: Bill #${data.billNumber}`;
                 const reminderDesc = `Customer: ${customer.name}\nProject: ${project.projectName}\nPending Amount: ₹${pendingAmount.toLocaleString()}\nDue Date: ${dueDate.toLocaleDateString()}\nBill Number: ${data.billNumber}`;
-                const reminder = await tx.reminder.create({
+                await tx.reminder.create({
                     data: {
                         title: reminderTitle,
                         description: reminderDesc,
@@ -291,7 +291,7 @@ class PaymentService {
                 },
             });
             // Recalculate status
-            let newStatus = client_1.PaymentStatus.PENDING;
+            let newStatus;
             if (newPendingAmount <= 0) {
                 newStatus = client_1.PaymentStatus.FULLY_PAID;
             }
