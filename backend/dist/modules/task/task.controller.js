@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TaskController = void 0;
-const task_service_1 = require("@/modules/task/task.service");
-const task_validation_1 = require("@/modules/task/task.validation");
+const task_service_1 = require("./task.service");
+const task_validation_1 = require("./task.validation");
 class TaskController {
     static async create(req, res) {
         const data = task_validation_1.createTaskSchema.parse(req.body);

@@ -1,5 +1,5 @@
-import { prisma } from "@/config/prisma";
-import { AppError } from "@/utils/app-error";
+import { prisma } from "../../config/prisma";
+import { AppError } from "../../utils/app-error";
 
 import { LifecycleStatus, ProjectPhase, ProjectStatus, PaymentStatus, ReminderType } from "@prisma/client";
 

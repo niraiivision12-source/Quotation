@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 
-import { ReminderService } from "@/modules/reminder/reminder.service";
+import { ReminderService } from "./reminder.service";
 
 import {
   createReminderSchema,
   updateReminderSchema,
-} from "@/modules/reminder/reminder.validation";
+} from "./reminder.validation";
 
 export class ReminderController {
   static async create(req: Request, res: Response) {

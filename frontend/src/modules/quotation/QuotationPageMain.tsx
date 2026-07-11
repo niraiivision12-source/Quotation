@@ -3,18 +3,18 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { RotateCcw, SearchCheck } from "lucide-react";
 
-import PageHeader from "@/components/ui/PageHeader";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import PageHeader from "../../components/ui/PageHeader";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { api } from "@/lib/axios";
-import { useAuthStore } from "@/store/auth.store";
+} from "../../components/ui/select";
+import { api } from "../../lib/axios";
+import { useAuthStore } from "../../store/auth.store";
 
 import QuotationInfoCard from "./components/QuotationInfoCard";
 import QuotationItemsTable from "./components/QuotationItemsTable";

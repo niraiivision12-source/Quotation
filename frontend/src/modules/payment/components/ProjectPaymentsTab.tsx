@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { usePayments } from "../payment.query";
-import { useProjectQuotations } from "@/modules/quotation/quotation.query";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useProjectQuotations } from "../../quotation/quotation.query";
+import { Button } from "../../../components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
+import { Badge } from "../../../components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
 import RecordPaymentDialog from "./RecordPaymentDialog";
 import PaymentHistory from "./PaymentHistory";
 import { CreditCard, DollarSign, Receipt, AlertTriangle, Calendar } from "lucide-react";

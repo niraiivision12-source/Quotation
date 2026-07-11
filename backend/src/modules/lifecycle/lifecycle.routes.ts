@@ -1,9 +1,9 @@
 import { Router } from "express";
 
-import { authenticate } from "@/middlewares/auth.middleware";
-import { asyncHandler } from "@/utils/async-handler";
+import { authenticate } from "../../middlewares/auth.middleware";
+import { asyncHandler } from "../../utils/async-handler";
 
-import { LifecycleController } from "@/modules/lifecycle/lifecycle.controller";
+import { LifecycleController } from "./lifecycle.controller";
 
 const router = Router();
 

@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 
-import { CustomerService } from "@/modules/customer/customer.service";
+import { CustomerService } from "./customer.service";
 import {
   createCustomerSchema,
   updateCustomerSchema,
-} from "@/modules/customer/customer.validation";
+} from "./customer.validation";
 
 export class CustomerController {
   static async create(req: Request, res: Response) {

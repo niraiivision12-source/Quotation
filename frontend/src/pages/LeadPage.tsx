@@ -1,4 +1,4 @@
-import LeadList from "@/modules/lead/LeadList";
+import LeadList from "../modules/lead/LeadList";
 
 export default function LeadPage() {
   return <LeadList />;

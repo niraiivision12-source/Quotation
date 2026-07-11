@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api } from "../../lib/axios";
 import type { DashboardSummaryResponse, DashboardSummaryQuery } from "./dashboard.types";
 
 export const getDashboardSummary = async (

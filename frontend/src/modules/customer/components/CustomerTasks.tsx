@@ -1,24 +1,24 @@
 import { ListTodo, MoreVertical, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "../../../components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "../../../components/ui/dropdown-menu";
 
-import TaskForm from "@/modules/task/TaskForm";
-import { useCancelTask, useCompleteTask, useTasks } from "@/modules/task/task.query";
-import type { Task } from "@/modules/task/task.types";
+import TaskForm from "../../task/TaskForm";
+import { useCancelTask, useCompleteTask, useTasks } from "../../task/task.query";
+import type { Task } from "../../task/task.types";
 
 const PRIORITY_STYLES: Record<string, string> = {
   LOW: "bg-gray-100 text-gray-600",

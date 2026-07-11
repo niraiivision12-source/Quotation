@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { useEffect } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../components/ui/button";
 import type { QuotationItemForm } from "../quotation.types";
 import QuotationRow from "./QuotationRow";
 

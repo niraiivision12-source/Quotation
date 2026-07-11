@@ -1,6 +1,6 @@
-import { prisma } from "@/config/prisma";
-import { AppError } from "@/utils/app-error";
-import { SettingsService } from "@/modules/settings/settings.service";
+import { prisma } from "../../config/prisma";
+import { AppError } from "../../utils/app-error";
+import { SettingsService } from "../settings/settings.service";
 import {
   Prisma,
   ProjectPhase,

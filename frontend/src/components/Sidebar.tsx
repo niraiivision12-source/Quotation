@@ -11,7 +11,7 @@ import {
   Activity,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { useAuthStore } from "@/store/auth.store";
+import { useAuthStore } from "../store/auth.store";
 
 const NAV_ITEMS = [
   {

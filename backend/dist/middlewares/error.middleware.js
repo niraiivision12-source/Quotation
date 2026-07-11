@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.errorHandler = void 0;
 const zod_1 = require("zod");
-const app_error_1 = require("@/utils/app-error");
-const async_storage_1 = require("@/utils/async-storage");
+const app_error_1 = require("../utils/app-error");
+const async_storage_1 = require("../utils/async-storage");
 const errorHandler = (error, _req, res, _next) => {
     const store = async_storage_1.devLocalStorage.getStore();
     if (store) {

@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 
-import { LifecycleService } from "@/modules/lifecycle/lifecycle.service";
+import { LifecycleService } from "./lifecycle.service";
 
-import { updatePhaseSchema } from "@/modules/lifecycle/lifecycle.validation";
+import { updatePhaseSchema } from "./lifecycle.validation";
 
 export class LifecycleController {
   static async getProjectLifecycle(req: Request, res: Response) {

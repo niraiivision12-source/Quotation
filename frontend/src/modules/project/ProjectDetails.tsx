@@ -1,7 +1,7 @@
 import { ArrowLeft, Calendar, FileText, ListTodo, History, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 
 import ProjectLifecycle from "./components/ProjectLifecycle";
 import ProjectDetailsTab from "./components/ProjectDetailsTab";

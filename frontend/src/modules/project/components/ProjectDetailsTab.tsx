@@ -1,9 +1,9 @@
 import { useState, useEffect, startTransition } from "react";
 import { toast } from "sonner";
 import { useUpdateProject, useUpdateProjectPhase } from "../project.query";
-import { useUsers } from "@/modules/user/user.query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { useUsers } from "../../user/user.query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
+import { Input } from "../../../components/ui/input";
 import { User, MapPin, Layers, Calendar, Phone, Mail, FolderGit } from "lucide-react";
 import type { Project } from "../project.types";
 

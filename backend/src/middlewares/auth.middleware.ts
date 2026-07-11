@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-import { env } from "@/config/env";
-import { prisma } from "@/config/prisma";
+import { env } from "../config/env";
+import { prisma } from "../config/prisma";
 
 export const authenticate = async (
   req: Request,

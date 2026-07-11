@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { authenticate } from "@/middlewares/auth.middleware";
-import { authorize } from "@/middlewares/role.middleware";
-import { asyncHandler } from "@/utils/async-handler";
+import { authenticate } from "../../middlewares/auth.middleware";
+import { authorize } from "../../middlewares/role.middleware";
+import { asyncHandler } from "../../utils/async-handler";
 import { SettingsController } from "./settings.controller";
 import { UserRole } from "@prisma/client";
 

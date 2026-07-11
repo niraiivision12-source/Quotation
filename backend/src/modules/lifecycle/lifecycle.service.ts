@@ -1,7 +1,7 @@
 import { LifecycleStatus } from "@prisma/client";
 
-import { prisma } from "@/config/prisma";
-import { AppError } from "@/utils/app-error";
+import { prisma } from "../../config/prisma";
+import { AppError } from "../../utils/app-error";
 
 export class LifecycleService {
   static async getProjectLifecycle(projectId: string) {

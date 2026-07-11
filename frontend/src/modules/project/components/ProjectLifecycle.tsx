@@ -1,7 +1,7 @@
 import { Check, Lightbulb, SkipForward, Wind, Wrench, Zap, ToggleLeft, Lock } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../components/ui/button";
 import { useUpdatePhase } from "../project.query";
 
 type PhaseStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED";

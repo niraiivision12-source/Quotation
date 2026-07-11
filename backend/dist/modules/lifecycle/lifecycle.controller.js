@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LifecycleController = void 0;
-const lifecycle_service_1 = require("@/modules/lifecycle/lifecycle.service");
-const lifecycle_validation_1 = require("@/modules/lifecycle/lifecycle.validation");
+const lifecycle_service_1 = require("./lifecycle.service");
+const lifecycle_validation_1 = require("./lifecycle.validation");
 class LifecycleController {
     static async getProjectLifecycle(req, res) {
         const result = await lifecycle_service_1.LifecycleService.getProjectLifecycle(req.params.projectId);

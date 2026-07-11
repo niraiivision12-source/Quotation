@@ -1,10 +1,10 @@
 import { Router } from "express";
 
-import { authenticate } from "@/middlewares/auth.middleware";
+import { authenticate } from "../../middlewares/auth.middleware";
 
-import { asyncHandler } from "@/utils/async-handler";
+import { asyncHandler } from "../../utils/async-handler";
 
-import { TaskController } from "@/modules/task/task.controller";
+import { TaskController } from "./task.controller";
 
 const router = Router();
 

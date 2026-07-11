@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 
-import { LeadService } from "@/modules/lead/lead.service";
+import { LeadService } from "./lead.service";
 import {
   convertLeadSchema,
   createLeadSchema,
   updateLeadSchema,
-} from "@/modules/lead/lead.validation";
+} from "./lead.validation";
 
 export class LeadController {
   static async create(req: Request, res: Response) {

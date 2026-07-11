@@ -14,9 +14,9 @@ import {
   Lock,
   CreditCard,
 } from "lucide-react";
-import { api } from "@/lib/axios";
-import { useAuthStore } from "@/store/auth.store";
-import { Button } from "@/components/ui/button";
+import { api } from "../../lib/axios";
+import { useAuthStore } from "../../store/auth.store";
+import { Button } from "../../components/ui/button";
 
 interface User {
   id: string;

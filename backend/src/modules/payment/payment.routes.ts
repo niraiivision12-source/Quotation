@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { authenticate } from "@/middlewares/auth.middleware";
-import { asyncHandler } from "@/utils/async-handler";
-import { checkPermission } from "@/middlewares/permission.middleware";
+import { authenticate } from "../../middlewares/auth.middleware";
+import { asyncHandler } from "../../utils/async-handler";
+import { checkPermission } from "../../middlewares/permission.middleware";
 import { PaymentController } from "./payment.controller";
 
 const router = Router();

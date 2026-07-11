@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useAuthStore } from "@/store/auth.store";
-import { useDashboardSummary } from "@/modules/dashboard/dashboard.query";
-import { DashboardCards } from "@/modules/dashboard/DashboardCards";
-import { DashboardStats } from "@/modules/dashboard/DashboardStats";
-import { Skeleton } from "@/components/ui/skeleton";
-import PageHeader from "@/components/ui/PageHeader";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useAuthStore } from "../store/auth.store";
+import { useDashboardSummary } from "../modules/dashboard/dashboard.query";
+import { DashboardCards } from "../modules/dashboard/DashboardCards";
+import { DashboardStats } from "../modules/dashboard/DashboardStats";
+import { Skeleton } from "../components/ui/skeleton";
+import PageHeader from "../components/ui/PageHeader";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import {
   PlusCircle,
   FileText,

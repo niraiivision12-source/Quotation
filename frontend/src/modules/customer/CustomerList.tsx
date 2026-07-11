@@ -1,15 +1,15 @@
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import PageHeader from "@/components/ui/PageHeader";
+} from "../../components/ui/dialog";
+import { Input } from "../../components/ui/input";
+import PageHeader from "../../components/ui/PageHeader";
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "../../components/ui/table";
 import { Link } from "react-router-dom";
 import CreateCustomerDialog from "./CreateCustomerDialog";
 import { useCustomers, useDeleteCustomer } from "./customer.query";

@@ -1,9 +1,9 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-import { env } from "@/config/env";
-import { prisma } from "@/config/prisma";
-import { AppError } from "@/utils/app-error";
+import { env } from "../../config/env";
+import { prisma } from "../../config/prisma";
+import { AppError } from "../../utils/app-error";
 
 export class AuthService {
   static async login(email: string, password: string) {

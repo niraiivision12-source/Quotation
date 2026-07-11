@@ -1,10 +1,10 @@
 import { Router } from "express";
 
-import { authenticate } from "@/middlewares/auth.middleware";
-import { checkPermission } from "@/middlewares/permission.middleware";
-import { asyncHandler } from "@/utils/async-handler";
+import { authenticate } from "../../middlewares/auth.middleware";
+import { checkPermission } from "../../middlewares/permission.middleware";
+import { asyncHandler } from "../../utils/async-handler";
 
-import { ProductController } from "@/modules/product/product.controller";
+import { ProductController } from "./product.controller";
 
 const router = Router();
 

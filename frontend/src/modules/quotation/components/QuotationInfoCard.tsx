@@ -2,29 +2,29 @@ import { Pencil, Plus, Save, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from "../../../components/ui/dialog";
+import { Input } from "../../../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "../../../components/ui/select";
+import { Textarea } from "../../../components/ui/textarea";
 import {
   createCustomer,
   getCustomerById,
   updateCustomer,
-} from "@/modules/customer/customer.api";
-import { createLead, getLeadById, updateLead } from "@/modules/lead/lead.api";
+} from "../../customer/customer.api";
+import { createLead, getLeadById, updateLead } from "../../lead/lead.api";
 
 import { getCustomers, getLeads, getProjects } from "../quotation.api";
 

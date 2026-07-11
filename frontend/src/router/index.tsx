@@ -1,25 +1,25 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { useAuthStore } from "@/store/auth.store";
+import ProtectedRoute from "../components/ProtectedRoute";
+import { useAuthStore } from "../store/auth.store";
 
-import AppLayout from "@/layouts/AppLayout";
+import AppLayout from "../layouts/AppLayout";
 
-import CustomerDetailsPage from "@/pages/CustomerDetailsPage";
-import CustomerPage from "@/pages/CustomerPage";
-import DashboardPage from "@/pages/DashboardPage";
-import LeadDetailPage from "@/pages/LeadDetailPage";
-import LeadPage from "@/pages/LeadPage";
-import LoginPage from "@/pages/LoginPage";
-import ProjectDetailsPage from "@/pages/ProjectDetailsPage";
-import ProjectPage from "@/pages/ProjectPage";
-import QuotationPage from "@/pages/QuotationPage";
-import ReminderPage from "@/pages/ReminderPage";
-import TaskPage from "@/pages/TaskPage";
-import UserPage from "@/pages/UserPage";
-import SettingsPage from "@/pages/SettingsPage";
-import PaymentPage from "@/pages/PaymentPage";
-import ApiTestingPage from "@/pages/ApiTestingPage";
+import CustomerDetailsPage from "../pages/CustomerDetailsPage";
+import CustomerPage from "../pages/CustomerPage";
+import DashboardPage from "../pages/DashboardPage";
+import LeadDetailPage from "../pages/LeadDetailPage";
+import LeadPage from "../pages/LeadPage";
+import LoginPage from "../pages/LoginPage";
+import ProjectDetailsPage from "../pages/ProjectDetailsPage";
+import ProjectPage from "../pages/ProjectPage";
+import QuotationPage from "../pages/QuotationPage";
+import ReminderPage from "../pages/ReminderPage";
+import TaskPage from "../pages/TaskPage";
+import UserPage from "../pages/UserPage";
+import SettingsPage from "../pages/SettingsPage";
+import PaymentPage from "../pages/PaymentPage";
+import ApiTestingPage from "../pages/ApiTestingPage";
 
 function OwnerRoute({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);

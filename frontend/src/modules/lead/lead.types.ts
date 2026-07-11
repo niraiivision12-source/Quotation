@@ -1,4 +1,4 @@
-import type { Reminder } from "@/modules/reminder/reminder.types";
+import type { Reminder } from "../reminder/reminder.types";
 
 export type LeadStatus =
   | "NEW"

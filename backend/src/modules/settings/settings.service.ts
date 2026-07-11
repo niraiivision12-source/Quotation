@@ -1,4 +1,4 @@
-import { prisma } from "@/config/prisma";
+import { prisma } from "../../config/prisma";
 import { UserRole } from "@prisma/client";
 import { SystemSettingsDTO } from "./settings.types";
 

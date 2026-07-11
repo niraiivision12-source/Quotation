@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReminderController = void 0;
-const reminder_service_1 = require("@/modules/reminder/reminder.service");
-const reminder_validation_1 = require("@/modules/reminder/reminder.validation");
+const reminder_service_1 = require("./reminder.service");
+const reminder_validation_1 = require("./reminder.validation");
 class ReminderController {
     static async create(req, res) {
         const data = reminder_validation_1.createReminderSchema.parse(req.body);

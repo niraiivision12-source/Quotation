@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Pagination = void 0;
-const pagination_1 = require("@/constants/pagination");
+const pagination_1 = require("../constants/pagination");
 class Pagination {
     static get(page, limit) {
         const currentPage = Number(page) > 0 ? Number(page) : pagination_1.PAGINATION.DEFAULT_PAGE;

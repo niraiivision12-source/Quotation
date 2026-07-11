@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api } from "../../lib/axios";
 import type { CreatePaymentDTO, CreateTransactionDTO } from "./payment.types";
 
 export const getPayments = async (params?: any) => {

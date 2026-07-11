@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LeadNoteService = void 0;
-const prisma_1 = require("@/config/prisma");
-const app_error_1 = require("@/utils/app-error");
+const prisma_1 = require("../../config/prisma");
+const app_error_1 = require("../../utils/app-error");
 class LeadNoteService {
     static async addNote(leadId, note, userId) {
         const lead = await prisma_1.prisma.lead.findUnique({

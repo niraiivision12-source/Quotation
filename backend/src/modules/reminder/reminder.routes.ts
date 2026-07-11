@@ -1,9 +1,9 @@
 import { Router } from "express";
 
-import { authenticate } from "@/middlewares/auth.middleware";
-import { asyncHandler } from "@/utils/async-handler";
+import { authenticate } from "../../middlewares/auth.middleware";
+import { asyncHandler } from "../../utils/async-handler";
 
-import { ReminderController } from "@/modules/reminder/reminder.controller";
+import { ReminderController } from "./reminder.controller";
 
 const router = Router();
 

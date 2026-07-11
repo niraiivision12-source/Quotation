@@ -2,12 +2,12 @@ import { Request, Response } from "express";
 
 import { TaskPriority, TaskStatus } from "@prisma/client";
 
-import { TaskService } from "@/modules/task/task.service";
+import { TaskService } from "./task.service";
 
 import {
   createTaskSchema,
   updateTaskSchema,
-} from "@/modules/task/task.validation";
+} from "./task.validation";
 
 export class TaskController {
   static async create(req: Request, res: Response) {

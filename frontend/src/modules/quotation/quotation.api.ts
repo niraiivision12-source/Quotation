@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api } from "../../lib/axios";
 
 import type { CreateQuotationDTO, Quotation } from "./quotation.types";
 

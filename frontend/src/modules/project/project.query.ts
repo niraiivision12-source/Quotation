@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
-import { queryClient } from "@/lib/query-client";
+import { queryClient } from "../../lib/query-client";
 import { createProject, deleteProject, getProjectById, getProjects, updatePhase, updateProject, updateProjectPhase } from "./project.api";
 
 export const useProjects = (page: number, search: string, limit = 20) => {

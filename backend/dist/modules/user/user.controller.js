@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserController = void 0;
-const user_service_1 = require("@/modules/user/user.service");
-const user_validation_1 = require("@/modules/user/user.validation");
+const user_service_1 = require("./user.service");
+const user_validation_1 = require("./user.validation");
 class UserController {
     static async create(req, res) {
         const data = user_validation_1.createUserSchema.parse(req.body);

@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 
-import { ProjectService } from "@/modules/project/project.service";
+import { ProjectService } from "./project.service";
 import {
   createProjectSchema,
   updateProjectSchema,
   updateProjectPhaseSchema,
-} from "@/modules/project/project.validation";
+} from "./project.validation";
 
 export class ProjectController {
   static async create(req: Request, res: Response) {

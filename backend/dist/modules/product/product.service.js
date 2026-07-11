@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductService = void 0;
-const prisma_1 = require("@/config/prisma");
-const app_error_1 = require("@/utils/app-error");
+const prisma_1 = require("../../config/prisma");
+const app_error_1 = require("../../utils/app-error");
 class ProductService {
     static async getAll(page, limit, search) {
         const skip = (page - 1) * limit;

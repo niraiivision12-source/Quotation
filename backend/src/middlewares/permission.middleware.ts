@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { prisma } from "@/config/prisma";
+import { prisma } from "../config/prisma";
 import { UserRole } from "@prisma/client";
 
 export const checkPermission = (action: string) => {

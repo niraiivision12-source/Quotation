@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LeadController = void 0;
-const lead_service_1 = require("@/modules/lead/lead.service");
-const lead_validation_1 = require("@/modules/lead/lead.validation");
+const lead_service_1 = require("./lead.service");
+const lead_validation_1 = require("./lead.validation");
 class LeadController {
     static async create(req, res) {
         const data = lead_validation_1.createLeadSchema.parse(req.body);

@@ -14,48 +14,48 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
-import LeadStatusChangeModal from "@/modules/lead/LeadStatusChangeModal";
-import { Textarea } from "@/components/ui/textarea";
+import LeadStatusChangeModal from "../modules/lead/LeadStatusChangeModal";
+import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
-import LeadTasks from "@/modules/lead/components/LeadTasks";
+import LeadTasks from "../modules/lead/components/LeadTasks";
 import {
   useCreateReminder,
   useCompleteReminder,
   useUpdateReminder,
   useDeleteReminder,
-} from "@/modules/reminder/reminder.query";
+} from "../modules/reminder/reminder.query";
 
-import { CopyPhone } from "@/components/ui/CopyPhone";
-import { Button } from "@/components/ui/button";
+import { CopyPhone } from "../components/ui/CopyPhone";
+import { Button } from "../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useUsers } from "@/modules/user/user.query";
+} from "../components/ui/select";
+import { useUsers } from "../modules/user/user.query";
 import {
   useConvertLead,
   useLead,
   useUpdateLead,
-} from "@/modules/lead/lead.query";
-import { useQuotation } from "@/modules/quotation/quotation.query";
-import QuotationPreviewDialog from "@/modules/quotation/components/QuotationPreviewDialog";
+} from "../modules/lead/lead.query";
+import { useQuotation } from "../modules/quotation/quotation.query";
+import QuotationPreviewDialog from "../modules/quotation/components/QuotationPreviewDialog";
 import type {
   Lead,
   LeadActivity,
   LeadActivityType,
   LeadStatus,
-} from "@/modules/lead/lead.types";
+} from "../modules/lead/lead.types";
 
 // ─── Status config ──────────────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, string> = {

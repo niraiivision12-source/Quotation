@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 
-import { UserService } from "@/modules/user/user.service";
+import { UserService } from "./user.service";
 import {
   createUserSchema,
   updateUserSchema,
-} from "@/modules/user/user.validation";
+} from "./user.validation";
 
 export class UserController {
   static async create(req: Request, res: Response) {

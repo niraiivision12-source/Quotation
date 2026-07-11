@@ -1,4 +1,4 @@
-import PageHeader from "@/components/ui/PageHeader";
+import PageHeader from "../../components/ui/PageHeader";
 import PaymentList from "./components/PaymentList";
 
 export default function PaymentPageMain() {

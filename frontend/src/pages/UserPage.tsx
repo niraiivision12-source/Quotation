@@ -1,4 +1,4 @@
-import UserList from "@/modules/user/UserList";
+import UserList from "../modules/user/UserList";
 
 export default function UserPage() {
   return <UserList />;

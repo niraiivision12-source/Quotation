@@ -8,17 +8,17 @@ import {
   Download,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { api } from "@/lib/axios";
+import { api } from "../../../lib/axios";
 import { downloadQuotationPDF } from "../../quotation/quotation.pdf";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../components/ui/button";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "../../../components/ui/sheet";
 
 import { useProject } from "../project.query";
 

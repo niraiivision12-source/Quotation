@@ -1,6 +1,6 @@
-import { useMyReminders } from "@/modules/reminder/reminder.query";
-import { useTasks } from "@/modules/task/task.query";
-import { useAuthStore } from "@/store/auth.store";
+import { useMyReminders } from "../modules/reminder/reminder.query";
+import { useTasks } from "../modules/task/task.query";
+import { useAuthStore } from "../store/auth.store";
 import { Bell, CheckCircle, Clock, LogOut, Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";

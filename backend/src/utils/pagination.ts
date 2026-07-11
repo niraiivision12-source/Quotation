@@ -1,4 +1,4 @@
-import { PAGINATION } from "@/constants/pagination";
+import { PAGINATION } from "../constants/pagination";
 
 export class Pagination {
   static get(page?: number, limit?: number) {

@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectController = void 0;
-const project_service_1 = require("@/modules/project/project.service");
-const project_validation_1 = require("@/modules/project/project.validation");
+const project_service_1 = require("./project.service");
+const project_validation_1 = require("./project.validation");
 class ProjectController {
     static async create(req, res) {
         const data = project_validation_1.createProjectSchema.parse(req.body);

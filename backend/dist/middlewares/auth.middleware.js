@@ -5,8 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authenticate = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const env_1 = require("@/config/env");
-const prisma_1 = require("@/config/prisma");
+const env_1 = require("../config/env");
+const prisma_1 = require("../config/prisma");
 const authenticate = async (req, res, next) => {
     try {
         const header = req.headers.authorization;

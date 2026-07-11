@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/query-client";
+import { queryClient } from "../../lib/query-client";
 import {
   getPayments,
   getPaymentById,

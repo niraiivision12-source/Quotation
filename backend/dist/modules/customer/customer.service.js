@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomerService = void 0;
-const prisma_1 = require("@/config/prisma");
-const app_error_1 = require("@/utils/app-error");
+const prisma_1 = require("../../config/prisma");
+const app_error_1 = require("../../utils/app-error");
 class CustomerService {
     static async create(data) {
         const exists = await prisma_1.prisma.customer.findUnique({

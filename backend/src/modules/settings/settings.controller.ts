@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { SettingsService } from "./settings.service";
 import { updateSettingsSchema } from "./settings.validation";
-import { AppError } from "@/utils/app-error";
+import { AppError } from "../../utils/app-error";
 
 export class SettingsController {
   static async get(_req: Request, res: Response) {

@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SettingsController = void 0;
 const settings_service_1 = require("./settings.service");
 const settings_validation_1 = require("./settings.validation");
-const app_error_1 = require("@/utils/app-error");
+const app_error_1 = require("../../utils/app-error");
 class SettingsController {
     static async get(_req, res) {
         const settings = await settings_service_1.SettingsService.getSettings();

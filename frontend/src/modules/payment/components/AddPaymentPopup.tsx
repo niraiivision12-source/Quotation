@@ -5,12 +5,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+} from "../../../components/ui/dialog";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Textarea } from "../../../components/ui/textarea";
 import { AlertCircle, CalendarRange, CheckCircle2, ShieldAlert } from "lucide-react";
-import { api } from "@/lib/axios";
+import { api } from "../../../lib/axios";
 
 interface Props {
   open: boolean;

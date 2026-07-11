@@ -12,7 +12,7 @@ import {
   ArrowDownRight,
   Minus,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "../../components/ui/card";
 import type { KPICardData } from "./dashboard.types";
 
 interface DashboardCardsProps {

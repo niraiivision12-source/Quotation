@@ -1,6 +1,6 @@
-import { prisma } from "@/config/prisma";
+import { prisma } from "../../config/prisma";
 
-import { AppError } from "@/utils/app-error";
+import { AppError } from "../../utils/app-error";
 
 import { TaskPriority, TaskStatus, UserRole } from "@prisma/client";
 

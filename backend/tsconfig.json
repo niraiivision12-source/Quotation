@@ -4,11 +4,6 @@
     "module": "CommonJS",
     "rootDir": "./src",
     "outDir": "./dist",
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    },
     "strict": false,
     "noImplicitAny": false,
     "esModuleInterop": true,

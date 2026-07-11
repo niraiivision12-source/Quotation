@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 
-import { ProductService } from "@/modules/product/product.service";
+import { ProductService } from "./product.service";
 
 import {
   createProductSchema,
   updateProductSchema,
-} from "@/modules/product/product.validation";
+} from "./product.validation";
 
 export class ProductController {
   static async create(req: Request, res: Response) {

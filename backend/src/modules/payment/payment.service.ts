@@ -1,5 +1,5 @@
-import { prisma } from "@/config/prisma";
-import { AppError } from "@/utils/app-error";
+import { prisma } from "../../config/prisma";
+import { AppError } from "../../utils/app-error";
 import { PaymentStatus, ReminderStatus, ReminderType, Prisma } from "@prisma/client";
 import { CreatePaymentDTO, CreateTransactionDTO, PaymentFilterQuery } from "./payment.types";
 

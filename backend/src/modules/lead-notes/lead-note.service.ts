@@ -1,5 +1,5 @@
-import { prisma } from "@/config/prisma";
-import { AppError } from "@/utils/app-error";
+import { prisma } from "../../config/prisma";
+import { AppError } from "../../utils/app-error";
 
 export class LeadNoteService {
   static async addNote(leadId: string, note: string, userId?: string) {

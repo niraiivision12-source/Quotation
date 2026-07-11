@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { createPortal } from "react-dom";
 
-import { useProducts } from "@/modules/product/product.query";
+import { useProducts } from "../../product/product.query";
 
-import type { Product } from "@/modules/product/product.types";
+import type { Product } from "../../product/product.types";
 
 import type { QuotationItemForm } from "../quotation.types";
 

@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QuotationController = void 0;
-const quotation_service_1 = require("@/modules/quotation/quotation.service");
-const quotation_validation_1 = require("@/modules/quotation/quotation.validation");
+const quotation_service_1 = require("./quotation.service");
+const quotation_validation_1 = require("./quotation.validation");
 class QuotationController {
     static async create(req, res) {
         const data = quotation_validation_1.createQuotationSchema.parse(req.body);

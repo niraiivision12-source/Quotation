@@ -3,15 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Download, ChevronDown, ChevronUp, Eye } from "lucide-react";
 
-import { api } from "@/lib/axios";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { api } from "../../../lib/axios";
+import { Button } from "../../../components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { useProjectQuotations, useUpdateQuotationStatus, useQuotation } from "../../quotation/quotation.query";
-import { useUsers } from "@/modules/user/user.query";
+import { useUsers } from "../../user/user.query";
 import { downloadQuotationPDF } from "../../quotation/quotation.pdf";
 import QuotationPreviewDialog from "../../quotation/components/QuotationPreviewDialog";
 import PaymentCollectionPopup from "../../payment/components/PaymentCollectionPopup";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "../../../components/ui/badge";
 
 interface Props {
   projectId: string;

@@ -14,14 +14,14 @@ import {
 } from "lucide-react";
 
 import { useUpdateProject, useUpdateProjectPhase } from "../project.query";
-import { useUsers } from "@/modules/user/user.query";
-import { useProjectQuotations } from "@/modules/quotation/quotation.query";
-import AddPaymentPopup from "@/modules/payment/components/AddPaymentPopup";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/lib/axios";
+import { useUsers } from "../../user/user.query";
+import { useProjectQuotations } from "../../quotation/quotation.query";
+import AddPaymentPopup from "../../payment/components/AddPaymentPopup";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
+import { Input } from "../../../components/ui/input";
+import { Button } from "../../../components/ui/button";
+import { Textarea } from "../../../components/ui/textarea";
+import { api } from "../../../lib/axios";
 import type { Project } from "../project.types";
 import { useEffect } from "react";
 

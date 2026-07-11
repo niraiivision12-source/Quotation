@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LeadService = void 0;
-const prisma_1 = require("@/config/prisma");
-const app_error_1 = require("@/utils/app-error");
+const prisma_1 = require("../../config/prisma");
+const app_error_1 = require("../../utils/app-error");
 const client_1 = require("@prisma/client");
 async function updateLeadNextFollowUp(tx, leadId) {
     const nextReminder = await tx.reminder.findFirst({

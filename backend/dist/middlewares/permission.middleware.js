@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkPermission = void 0;
-const prisma_1 = require("@/config/prisma");
+const prisma_1 = require("../config/prisma");
 const client_1 = require("@prisma/client");
 const checkPermission = (action) => {
-    return async (req, res, next) => {
+    const middleware = async (req, res, next) => {
         try {
             if (!req.user) {
                 return res.status(401).json({
@@ -43,6 +43,8 @@ const checkPermission = (action) => {
             next(error);
         }
     };
+    middleware.permissionAction = action;
+    return middleware;
 };
 exports.checkPermission = checkPermission;
 //# sourceMappingURL=permission.middleware.js.map

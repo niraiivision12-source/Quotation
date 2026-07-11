@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import axios from "axios";
-import { api } from "@/lib/axios";
+import { api } from "../lib/axios";
 
 // Typings
 export interface ApiEndpoint {

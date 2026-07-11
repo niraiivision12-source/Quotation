@@ -6,9 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const env_1 = require("@/config/env");
-const prisma_1 = require("@/config/prisma");
-const app_error_1 = require("@/utils/app-error");
+const env_1 = require("../../config/env");
+const prisma_1 = require("../../config/prisma");
+const app_error_1 = require("../../utils/app-error");
 class AuthService {
     static async login(email, password) {
         const user = await prisma_1.prisma.user.findUnique({

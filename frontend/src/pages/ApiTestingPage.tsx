@@ -22,16 +22,12 @@ import {
   Shield,
   Sun,
   Moon,
-  Terminal,
-  Database,
-  Clock,
   Sparkles,
   RotateCcw,
-  Check,
 } from "lucide-react";
-import type { ApiEndpoint, TestCase, HistoryEntry } from "@/store/api.store";
-import { useApiStore } from "@/store/api.store";
-import { api } from "@/lib/axios";
+import type { ApiEndpoint, TestCase } from "../store/api.store";
+import { useApiStore } from "../store/api.store";
+import { api } from "../lib/axios";
 import axios from "axios";
 import { toast } from "sonner";
 

@@ -1,9 +1,9 @@
 import bcrypt from "bcrypt";
 
-import { prisma } from "@/config/prisma";
+import { prisma } from "../../config/prisma";
 import { UserRole } from "@prisma/client";
 
-import { AppError } from "@/utils/app-error";
+import { AppError } from "../../utils/app-error";
 
 export class UserService {
   static async create(data: {

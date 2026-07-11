@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 
-import { QuotationService } from "@/modules/quotation/quotation.service";
+import { QuotationService } from "./quotation.service";
 
 import {
   createQuotationSchema,
   createRevisionSchema,
   updateQuotationStatusSchema,
-} from "@/modules/quotation/quotation.validation";
+} from "./quotation.validation";
 
 export class QuotationController {
   static async create(req: Request, res: Response) {

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authorize = void 0;
 const authorize = (...roles) => {
-    return (req, res, next) => {
+    const middleware = (req, res, next) => {
         if (!req.user) {
             return res.status(401).json({
                 success: false,
@@ -17,6 +17,8 @@ const authorize = (...roles) => {
         }
         next();
     };
+    middleware.requiredRoles = roles;
+    return middleware;
 };
 exports.authorize = authorize;
 //# sourceMappingURL=role.middleware.js.map

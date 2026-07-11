@@ -3,10 +3,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
-import { Input } from "@/components/ui/input";
-import PageHeader from "@/components/ui/PageHeader";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Input } from "../../components/ui/input";
+import PageHeader from "../../components/ui/PageHeader";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { Button } from "../../components/ui/button";
 
 import { useLeads } from "../lead/lead.query";
 import type { Lead } from "../lead/lead.types";

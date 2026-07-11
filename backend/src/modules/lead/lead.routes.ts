@@ -1,11 +1,11 @@
 import { Router } from "express";
 
-import { authenticate } from "@/middlewares/auth.middleware";
-import { checkPermission } from "@/middlewares/permission.middleware";
-import { asyncHandler } from "@/utils/async-handler";
+import { authenticate } from "../../middlewares/auth.middleware";
+import { checkPermission } from "../../middlewares/permission.middleware";
+import { asyncHandler } from "../../utils/async-handler";
 
-import { LeadNoteController } from "@/modules/lead-notes/lead-note.controller";
-import { LeadController } from "@/modules/lead/lead.controller";
+import { LeadNoteController } from "../lead-notes/lead-note.controller";
+import { LeadController } from "./lead.controller";
 
 const router = Router();
 

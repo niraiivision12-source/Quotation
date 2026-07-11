@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LifecycleService = void 0;
 const client_1 = require("@prisma/client");
-const prisma_1 = require("@/config/prisma");
-const app_error_1 = require("@/utils/app-error");
+const prisma_1 = require("../../config/prisma");
+const app_error_1 = require("../../utils/app-error");
 class LifecycleService {
     static async getProjectLifecycle(projectId) {
         return prisma_1.prisma.projectPhaseTracking.findMany({

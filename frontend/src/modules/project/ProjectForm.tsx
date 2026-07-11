@@ -4,9 +4,9 @@ import { z } from "zod";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Input } from "@/components/ui/input";
+import { Input } from "../../components/ui/input";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 
 import {
   Select,
@@ -14,7 +14,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../../components/ui/select";
 import { useCustomerOptions } from "../customer/customer.query";
 import { useCreateProject } from "./project.query";
 

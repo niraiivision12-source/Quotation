@@ -1,9 +1,9 @@
 import { Router } from "express";
 
-import { authenticate } from "@/middlewares/auth.middleware";
-import { asyncHandler } from "@/utils/async-handler";
+import { authenticate } from "../../middlewares/auth.middleware";
+import { asyncHandler } from "../../utils/async-handler";
 
-import { QuotationController } from "@/modules/quotation/quotation.controller";
+import { QuotationController } from "./quotation.controller";
 
 const router = Router();
 
