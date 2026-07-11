@@ -1,16 +1,14 @@
 import { Router } from 'express';
-import { authenticate } from '../../middlewares/auth.middleware';
-import { checkPermission } from '../../middlewares/permission.middleware';
+import { syncApiKeyMiddleware } from '../../middlewares/syncApiKey.middleware';
 import { asyncHandler } from '../../utils/async-handler';
 import { syncController } from './sync.controller';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(syncApiKeyMiddleware);
 
-// Since sync involves managing products/system, 'manageProducts' permission seems appropriate.
-router.post('/stock-groups', checkPermission('manageProducts'), asyncHandler(syncController.syncStockGroups));
-router.post('/units', checkPermission('manageProducts'), asyncHandler(syncController.syncUnits));
-router.post('/products', checkPermission('manageProducts'), asyncHandler(syncController.syncProducts));
+router.post('/stock-groups', asyncHandler(syncController.syncStockGroups));
+router.post('/units', asyncHandler(syncController.syncUnits));
+router.post('/products', asyncHandler(syncController.syncProducts));
 
 export default router;
