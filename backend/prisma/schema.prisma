@@ -8,29 +8,29 @@ datasource db {
 }
 
 model User {
-  id                String                 @id @default(uuid())
-  name              String
-  email             String                 @unique
-  password          String
-  role              UserRole
-  isActive          Boolean                @default(true)
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  assignedCustomers Customer[]
-  leads             Lead[]
-  leadActivities    LeadActivity[]
-  leadNotes         LeadNote[]
-  assignedProjects  Project[]
-  projectActivities ProjectActivity[]
-  assignedPhases    ProjectPhaseTracking[]
-  quotations        Quotation[]
-  reminders         Reminder[]
-  assignedTasks     Task[]                 @relation("AssignedTasks")
-  createdTasks      Task[]                 @relation("CreatedTasks")
-  salesmanPayments  Payment[]              @relation("PaymentSalesman")
-  accountantPayments Payment[]             @relation("PaymentAccountant")
-  collectorPayments Payment[]              @relation("PaymentCollector")
-  updatedTransactions PaymentTransaction[] @relation("TransactionUpdatedBy")
+  id                  String                 @id @default(uuid())
+  name                String
+  email               String                 @unique
+  password            String
+  role                UserRole
+  isActive            Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  assignedCustomers   Customer[]
+  leads               Lead[]
+  leadActivities      LeadActivity[]
+  leadNotes           LeadNote[]
+  assignedProjects    Project[]
+  projectActivities   ProjectActivity[]
+  assignedPhases      ProjectPhaseTracking[]
+  quotations          Quotation[]
+  reminders           Reminder[]
+  assignedTasks       Task[]                 @relation("AssignedTasks")
+  createdTasks        Task[]                 @relation("CreatedTasks")
+  salesmanPayments    Payment[]              @relation("PaymentSalesman")
+  accountantPayments  Payment[]              @relation("PaymentAccountant")
+  collectorPayments   Payment[]              @relation("PaymentCollector")
+  updatedTransactions PaymentTransaction[]   @relation("TransactionUpdatedBy")
 }
 
 model LeadNote {
@@ -49,19 +49,30 @@ model LeadNote {
 }
 
 model Product {
-  id             String          @id @default(uuid())
-  sku            String          @unique
+  id             String    @id @default(uuid())
+  sku            String    @unique
   name           String
   brand          String?
   category       String?
-  costPrice      Decimal         @db.Decimal(12, 2)
-  stockQty       Int             @default(0)
-  isActive       Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  tallyStockQty  Int             @default(0)
+  costPrice      Decimal   @db.Decimal(12, 2)
+  stockQty       Int       @default(0)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  tallyStockQty  Int       @default(0)
   tallyUpdatedAt DateTime?
   unit           String?
+
+  // Tally Sync Fields
+  tallyMasterId String? @unique
+  tallyGuid     String? @unique
+  tallyAlterId  Int?
+  stockGroupId  String?
+  unitId        String?
+
+  stockGroup StockGroup? @relation(fields: [stockGroupId], references: [tallyMasterId])
+  tallyUnit  Unit?       @relation(fields: [unitId], references: [tallyMasterId])
+
   ProductMargin  ProductMargin[]
   quotationItems QuotationItem[]
 
@@ -134,27 +145,27 @@ model LeadActivity {
 }
 
 model Customer {
-  id           String             @id @default(uuid())
-  name         String
-  mobile       String             @unique
-  email        String?
-  address      String?
-  isActive     Boolean            @default(true)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  assignedToId String?
-  city         String?
-  notes        String?
-  referralDate DateTime?
-  source       String?
-  leadId       String?            @unique
-  assignedTo   User?              @relation(fields: [assignedToId], references: [id])
-  lead         Lead?              @relation(fields: [leadId], references: [id])
-  activities   CustomerActivity[]
-  projects     Project[]
-  quotations   Quotation[]
-  reminders    Reminder[]
-  tasks        Task[]
+  id                String             @id @default(uuid())
+  name              String
+  mobile            String             @unique
+  email             String?
+  address           String?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  assignedToId      String?
+  city              String?
+  notes             String?
+  referralDate      DateTime?
+  source            String?
+  leadId            String?            @unique
+  assignedTo        User?              @relation(fields: [assignedToId], references: [id])
+  lead              Lead?              @relation(fields: [leadId], references: [id])
+  activities        CustomerActivity[]
+  projects          Project[]
+  quotations        Quotation[]
+  reminders         Reminder[]
+  tasks             Task[]
   creditAllowed     Boolean            @default(false)
   defaultCreditDays Int                @default(0)
   maxCreditAmount   Decimal            @default(0.00) @db.Decimal(12, 2)
@@ -381,57 +392,57 @@ model QuotationItem {
 }
 
 model SystemSettings {
-  id                           String   @id @default("default")
-  companyName                  String   @default("")
-  companyLogo                  String?
-  companyGst                   String   @default("")
-  companyAddress               String   @default("")
-  companyPhone                 String   @default("")
-  companyEmail                 String   @default("")
-  companyWebsite               String   @default("")
-  bankName                     String   @default("")
-  bankAccountNo                String   @default("")
-  bankIfsc                     String   @default("")
-  bankBranch                   String   @default("")
-  upiId                        String   @default("")
-  termsAndConditions           String   @default("")
-  authorizedSignature          String?
-  footerText                   String   @default("")
-  leadAssignmentMethod         String   @default("MANUAL")
-  leadSalesmanPercentages      Json     @default("{}")
-  lastLeadAssignedUserId       String?
-  projectAssignmentMethod      String   @default("MANUAL")
-  projectSalesmanPercentages   Json     @default("{}")
-  projectPhaseAssignment       Json     @default("{}")
-  quoteValidityDays            Int      @default(30)
-  quoteDefaultNotes            String   @default("")
-  quoteDefaultDiscount         Decimal  @default(0.00) @db.Decimal(5, 2)
-  quoteCurrencySymbol          String   @default("₹")
-  quoteNumberFormat            String   @default("QTN-{YYYY}-{NNN}")
-  quoteTaxDisplay              String   @default("GST_BREAKUP")
-  quotePdfHeaderFooter         Json     @default("{}")
-  notificationReminderTime     String   @default("09:00")
-  notificationReminderPriority String   @default("MEDIUM")
-  notificationBrowserEnabled   Boolean  @default(true)
-  notificationEmailEnabled     Boolean  @default(true)
-  generalTimezone              String   @default("Asia/Kolkata")
-  generalDateFormat            String   @default("DD/MM/YYYY")
-  generalTheme                 String   @default("light")
-  generalDefaultDashboard      String   @default("dashboard")
-  rolePermissions              Json     @default("{}")
-  pricingDefaultMargin         Decimal  @default(10.00) @db.Decimal(5, 2)
-  pricingAllowMarginOverride   Boolean  @default(true)
-  pricingMinMargin             Decimal  @default(0.00) @db.Decimal(5, 2)
-  pricingMaxDiscount           Decimal  @default(100.00) @db.Decimal(5, 2)
-  paymentAssignmentMethod      String   @default("PERCENTAGE")
-  paymentAssignmentPercentages Json     @default("{}")
-  paymentDefaultCreditDays      Int      @default(30)
+  id                             String   @id @default("default")
+  companyName                    String   @default("")
+  companyLogo                    String?
+  companyGst                     String   @default("")
+  companyAddress                 String   @default("")
+  companyPhone                   String   @default("")
+  companyEmail                   String   @default("")
+  companyWebsite                 String   @default("")
+  bankName                       String   @default("")
+  bankAccountNo                  String   @default("")
+  bankIfsc                       String   @default("")
+  bankBranch                     String   @default("")
+  upiId                          String   @default("")
+  termsAndConditions             String   @default("")
+  authorizedSignature            String?
+  footerText                     String   @default("")
+  leadAssignmentMethod           String   @default("MANUAL")
+  leadSalesmanPercentages        Json     @default("{}")
+  lastLeadAssignedUserId         String?
+  projectAssignmentMethod        String   @default("MANUAL")
+  projectSalesmanPercentages     Json     @default("{}")
+  projectPhaseAssignment         Json     @default("{}")
+  quoteValidityDays              Int      @default(30)
+  quoteDefaultNotes              String   @default("")
+  quoteDefaultDiscount           Decimal  @default(0.00) @db.Decimal(5, 2)
+  quoteCurrencySymbol            String   @default("₹")
+  quoteNumberFormat              String   @default("QTN-{YYYY}-{NNN}")
+  quoteTaxDisplay                String   @default("GST_BREAKUP")
+  quotePdfHeaderFooter           Json     @default("{}")
+  notificationReminderTime       String   @default("09:00")
+  notificationReminderPriority   String   @default("MEDIUM")
+  notificationBrowserEnabled     Boolean  @default(true)
+  notificationEmailEnabled       Boolean  @default(true)
+  generalTimezone                String   @default("Asia/Kolkata")
+  generalDateFormat              String   @default("DD/MM/YYYY")
+  generalTheme                   String   @default("light")
+  generalDefaultDashboard        String   @default("dashboard")
+  rolePermissions                Json     @default("{}")
+  pricingDefaultMargin           Decimal  @default(10.00) @db.Decimal(5, 2)
+  pricingAllowMarginOverride     Boolean  @default(true)
+  pricingMinMargin               Decimal  @default(0.00) @db.Decimal(5, 2)
+  pricingMaxDiscount             Decimal  @default(100.00) @db.Decimal(5, 2)
+  paymentAssignmentMethod        String   @default("PERCENTAGE")
+  paymentAssignmentPercentages   Json     @default("{}")
+  paymentDefaultCreditDays       Int      @default(30)
   paymentDefaultReminderSchedule Json     @default("[0]")
-  paymentReminderFrequency     String   @default("DAILY")
-  paymentOverdueGracePeriod    Int      @default(0)
-  paymentDefaultMethods        Json     @default("[\"CASH\",\"BANK_TRANSFER\",\"UPI\",\"CHEQUE\"]")
-  createdAt                    DateTime @default(now())
-  updatedAt                    DateTime @updatedAt
+  paymentReminderFrequency       String   @default("DAILY")
+  paymentOverdueGracePeriod      Int      @default(0)
+  paymentDefaultMethods          Json     @default("[\"CASH\",\"BANK_TRANSFER\",\"UPI\",\"CHEQUE\"]")
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
 }
 
 enum UserRole {
@@ -571,34 +582,34 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id              String               @id @default(uuid())
+  id              String        @id @default(uuid())
   customerId      String
   projectId       String
-  quotationId     String               @unique
+  quotationId     String        @unique
   salesmanId      String
   accountantId    String?
   collectorId     String
   billNumber      String
   billDate        DateTime
-  totalBillAmount Decimal              @db.Decimal(12, 2)
-  amountReceived  Decimal              @default(0.00) @db.Decimal(12, 2)
-  pendingAmount   Decimal              @db.Decimal(12, 2)
-  status          PaymentStatus        @default(PENDING)
+  totalBillAmount Decimal       @db.Decimal(12, 2)
+  amountReceived  Decimal       @default(0.00) @db.Decimal(12, 2)
+  pendingAmount   Decimal       @db.Decimal(12, 2)
+  status          PaymentStatus @default(PENDING)
   dueDate         DateTime
-  creditPeriod    Int                  @default(0)
+  creditPeriod    Int           @default(0)
   remarks         String?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  customer        Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  project         Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  quotation       Quotation            @relation(fields: [quotationId], references: [id], onDelete: Cascade)
-  salesman        User                 @relation("PaymentSalesman", fields: [salesmanId], references: [id])
-  accountant      User?                @relation("PaymentAccountant", fields: [accountantId], references: [id])
-  collector       User                 @relation("PaymentCollector", fields: [collectorId], references: [id])
-  transactions    PaymentTransaction[]
-  reminders       Reminder[]
-  tasks           Task[]
+  customer     Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  quotation    Quotation            @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  salesman     User                 @relation("PaymentSalesman", fields: [salesmanId], references: [id])
+  accountant   User?                @relation("PaymentAccountant", fields: [accountantId], references: [id])
+  collector    User                 @relation("PaymentCollector", fields: [collectorId], references: [id])
+  transactions PaymentTransaction[]
+  reminders    Reminder[]
+  tasks        Task[]
 
   @@index([customerId])
   @@index([projectId])
@@ -609,21 +620,48 @@ model Payment {
 }
 
 model PaymentTransaction {
-  id              String        @id @default(uuid())
+  id              String   @id @default(uuid())
   paymentId       String
-  date            DateTime      @default(now())
-  amount          Decimal       @db.Decimal(12, 2)
+  date            DateTime @default(now())
+  amount          Decimal  @db.Decimal(12, 2)
   paymentMethod   String
   referenceNumber String?
   notes           String?
   updatedById     String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  payment         Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  updatedBy       User          @relation("TransactionUpdatedBy", fields: [updatedById], references: [id])
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  updatedBy User    @relation("TransactionUpdatedBy", fields: [updatedById], references: [id])
 
   @@index([paymentId])
   @@index([updatedById])
 }
 
+model StockGroup {
+  id            String   @id @default(uuid())
+  tallyMasterId String   @unique
+  tallyGuid     String?  @unique
+  tallyAlterId  Int?
+  name          String
+  parentName    String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  products Product[]
+}
+
+model Unit {
+  id            String   @id @default(uuid())
+  tallyMasterId String   @unique
+  tallyGuid     String?  @unique
+  tallyAlterId  Int?
+  name          String
+  symbol        String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  products Product[]
+}

@@ -17,6 +17,7 @@ import taskRoutes from "../modules/task/task.routes";
 import userRoutes from "../modules/user/user.routes";
 import settingsRoutes from "../modules/settings/settings.routes";
 import paymentRoutes from "../modules/payment/payment.routes";
+import syncRoutes from "../modules/sync/sync.routes";
 import devRoutes from "./dev.routes";
 
 const router = Router();
@@ -41,6 +42,7 @@ router.use("/lifecycle", lifecycleRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/sync", syncRoutes);
 
 // Dev Explorer routes, restricted to OWNER role
 router.use("/dev", authenticate, authorize(UserRole.OWNER), devRoutes);
