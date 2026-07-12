@@ -1,3 +1,4 @@
+import { generateUUID } from "../../utils/uuid.utils";
 import type { QuotationItemForm } from "./quotation.types";
 
 export function calculateSellingPrice(
@@ -13,7 +14,7 @@ export function calculateTotal(sellingPrice: number, quantity: number) {
 
 export function createEmptyQuotationRow(): QuotationItemForm {
   return {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
 
     quantity: 1,
 

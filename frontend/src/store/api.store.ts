@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 import { api } from "../lib/axios";
+import { generateUUID } from "../utils/uuid.utils";
 
 // Typings
 export interface ApiEndpoint {
@@ -402,7 +403,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
   executePlaygroundRequest: async (endpoint) => {
     set({ executing: true, activeResponse: null });
     const startTime = Date.now();
-    const playgroundRequestId = crypto.randomUUID();
+    const playgroundRequestId = generateUUID();
 
     // 1. Build URL path with parameters replaced
     let finalPath = endpoint.route;

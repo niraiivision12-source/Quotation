@@ -30,6 +30,7 @@ import { useApiStore } from "../store/api.store";
 import { api } from "../lib/axios";
 import axios from "axios";
 import { toast } from "sonner";
+import { generateUUID } from "../utils/uuid.utils";
 
 const getBaseUrl = () => {
   return import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -62,7 +63,7 @@ function JsonTreeNode({ data, label, isLast = true, depth = 0 }: JsonTreeViewerP
   if (!isObject) {
     let valColor = "text-amber-600 dark:text-amber-400";
     let valStr = JSON.stringify(data);
-    
+
     if (typeof data === "number") {
       valColor = "text-blue-600 dark:text-blue-400";
     } else if (typeof data === "boolean") {
@@ -86,8 +87,8 @@ function JsonTreeNode({ data, label, isLast = true, depth = 0 }: JsonTreeViewerP
 
   return (
     <div className="pl-4 font-mono text-[11px] leading-relaxed">
-      <div 
-        className="flex items-center gap-1 cursor-pointer select-none text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400" 
+      <div
+        className="flex items-center gap-1 cursor-pointer select-none text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400"
         onClick={() => setCollapsed(!collapsed)}
       >
         <span className="text-gray-400 dark:text-gray-500 text-[9px] w-3 text-center">
@@ -158,7 +159,7 @@ export default function ApiTestingPage() {
     activeResponse,
     comparisonLeft,
     comparisonRight,
-    
+
     // Actions
     fetchEndpoints,
     fetchDemoUsers,
@@ -257,11 +258,11 @@ export default function ApiTestingPage() {
   // Modules list grouped & filtered
   const groupedEndpoints = useMemo(() => {
     const groups: Record<string, ApiEndpoint[]> = {};
-    
+
     // Auto-create category structure with 0 default endpoints
     const categoriesList = [
-      "Authentication", "Dashboard", "Users", "Products", "Leads", "Customers", "Projects", 
-      "Pipeline", "Project Details", "Quotations", "Payments", "Reminders", "Tasks", 
+      "Authentication", "Dashboard", "Users", "Products", "Leads", "Customers", "Projects",
+      "Pipeline", "Project Details", "Quotations", "Payments", "Reminders", "Tasks",
       "Settings", "Reports", "Search", "Notifications", "API Testing", "Unknown"
     ];
     categoriesList.forEach((c) => {
@@ -302,7 +303,7 @@ export default function ApiTestingPage() {
   // Dynamic test cases generation when none exist
   const resolvedTestCases = useMemo(() => {
     if (!activeEndpoint) return [];
-    
+
     // Filter actual saved test cases from DB first
     const saved = testCases.filter((tc) => tc.endpointId === activeEndpoint.id);
     if (saved.length > 0) return saved;
@@ -434,7 +435,7 @@ export default function ApiTestingPage() {
           const endpointId = `${method} ${path}`;
 
           importedTestCases.push({
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             endpointId,
             name: item.name || "Postman Test",
             description: req.description || "Imported from Postman",
@@ -527,7 +528,7 @@ export default function ApiTestingPage() {
 
     toast.info(`Running test case: ${tc.name}`);
     await executePlaygroundRequest(targetEndpoint);
-    
+
     const response = useApiStore.getState().activeResponse;
     if (response) {
       const passed = response.status === tc.expectedStatus;
@@ -542,7 +543,7 @@ export default function ApiTestingPage() {
   const handleRunSuite = async (scope: "all" | "module" | "collection", targetId?: string) => {
     setSuiteResult({ running: true, total: 0, passed: 0, failed: 0, executionTime: 0, details: [] });
     const startTime = Date.now();
-    
+
     let targetTests: TestCase[] = [];
     if (scope === "all") {
       targetTests = testCases;
@@ -758,9 +759,8 @@ export default function ApiTestingPage() {
   };
 
   return (
-    <div className={`flex flex-col h-[calc(100vh-100px)] min-h-[600px] border shadow-2xl overflow-hidden font-sans rounded-2xl ${
-      explorerTheme === "dark" ? "dark bg-slate-950 text-slate-100 border-slate-900" : "bg-white text-gray-900 border-gray-200"
-    }`}>
+    <div className={`flex flex-col h-[calc(100vh-100px)] min-h-[600px] border shadow-2xl overflow-hidden font-sans rounded-2xl ${explorerTheme === "dark" ? "dark bg-slate-950 text-slate-100 border-slate-900" : "bg-white text-gray-900 border-gray-200"
+      }`}>
       {/* ================= HEADER BAR ================= */}
       <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 text-white shrink-0 shadow-md">
         <div className="flex items-center gap-3">
@@ -787,11 +787,10 @@ export default function ApiTestingPage() {
               <button
                 key={env}
                 onClick={() => setEnvironment(env)}
-                className={`px-3 py-1 rounded-lg text-xxs transition-all uppercase font-bold ${
-                  environment === env
+                className={`px-3 py-1 rounded-lg text-xxs transition-all uppercase font-bold ${environment === env
                     ? "bg-blue-600 text-white shadow-md"
                     : "text-slate-400 hover:text-slate-200"
-                }`}
+                  }`}
               >
                 {env.substring(0, 3)}
               </button>
@@ -828,10 +827,10 @@ export default function ApiTestingPage() {
 
       {/* ================= WORKSPACE ================= */}
       <div className="flex-1 flex overflow-hidden bg-slate-50/50 dark:bg-slate-900/20">
-        
+
         {/* ================= LEFT PANEL ================= */}
-        <div 
-          style={{ width: `${leftWidth}px` }} 
+        <div
+          style={{ width: `${leftWidth}px` }}
           className="border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col shrink-0 overflow-y-auto"
         >
           {/* Search controls */}
@@ -859,8 +858,8 @@ export default function ApiTestingPage() {
                 <option value="PATCH">PATCH</option>
                 <option value="DELETE">DELETE</option>
               </select>
-              
-              <button 
+
+              <button
                 onClick={() => {
                   setSearchTerm("");
                   setFilterMethod("ALL");
@@ -930,16 +929,14 @@ export default function ApiTestingPage() {
                                 setActiveEndpointId(ep.id);
                                 setCenterTab("builder");
                               }}
-                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-xs transition border ${
-                                isActive
+                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-xs transition border ${isActive
                                   ? "bg-blue-50/70 dark:bg-blue-950/20 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200 font-medium"
                                   : "border-transparent text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-900/50 hover:text-gray-900 dark:hover:text-white"
-                              }`}
+                                }`}
                             >
                               <span
-                                className={`px-1.5 py-0.2 text-[9px] font-extrabold rounded border uppercase shrink-0 font-mono ${
-                                  methodColors[ep.method] || "bg-gray-100 text-gray-700"
-                                }`}
+                                className={`px-1.5 py-0.2 text-[9px] font-extrabold rounded border uppercase shrink-0 font-mono ${methodColors[ep.method] || "bg-gray-100 text-gray-700"
+                                  }`}
                               >
                                 {ep.method}
                               </span>
@@ -1109,7 +1106,7 @@ export default function ApiTestingPage() {
         <div className="flex-1 flex flex-col bg-white dark:bg-slate-950 overflow-y-auto">
           {activeEndpoint ? (
             <div className="flex-1 flex flex-col min-w-0">
-              
+
               {/* HTTP Action bar */}
               <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50 flex items-center gap-3 shrink-0">
                 <span className="px-3 py-1.5 text-xxs font-extrabold font-mono rounded bg-slate-900 dark:bg-slate-950 text-white shadow-sm border dark:border-slate-800">
@@ -1121,7 +1118,7 @@ export default function ApiTestingPage() {
                   value={`${getBaseUrl()}${activeEndpoint.route}`}
                   className="flex-1 px-3 py-1.5 border dark:border-slate-800 rounded-lg text-xs font-mono bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300 outline-none select-all"
                 />
-                
+
                 <button
                   onClick={handleResetRequest}
                   className="px-2.5 py-1.5 border dark:border-slate-800 rounded-lg text-[10px] font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition"
@@ -1154,31 +1151,28 @@ export default function ApiTestingPage() {
               <div className="flex border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/40 text-xs font-semibold shrink-0">
                 <button
                   onClick={() => setCenterTab("builder")}
-                  className={`px-5 py-3 border-b-2 transition ${
-                    centerTab === "builder"
+                  className={`px-5 py-3 border-b-2 transition ${centerTab === "builder"
                       ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-950"
                       : "border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   Request Builder
                 </button>
                 <button
                   onClick={() => setCenterTab("docs")}
-                  className={`px-5 py-3 border-b-2 transition ${
-                    centerTab === "docs"
+                  className={`px-5 py-3 border-b-2 transition ${centerTab === "docs"
                       ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-950"
                       : "border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   Documentation
                 </button>
                 <button
                   onClick={() => setCenterTab("tests")}
-                  className={`px-5 py-3 border-b-2 transition ${
-                    centerTab === "tests"
+                  className={`px-5 py-3 border-b-2 transition ${centerTab === "tests"
                       ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-950"
                       : "border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   Test Cases ({resolvedTestCases.length})
                 </button>
@@ -1186,7 +1180,7 @@ export default function ApiTestingPage() {
 
               {/* Tabs Content */}
               <div className="flex-1 p-5 overflow-y-auto">
-                
+
                 {/* Center Tab: Request Builder */}
                 {centerTab === "builder" && (
                   <div className="space-y-4">
@@ -1195,11 +1189,10 @@ export default function ApiTestingPage() {
                         <button
                           key={tab}
                           onClick={() => setBuilderSubTab(tab)}
-                          className={`px-3 py-1.5 rounded-lg capitalize font-bold text-xxs transition ${
-                            builderSubTab === tab
+                          className={`px-3 py-1.5 rounded-lg capitalize font-bold text-xxs transition ${builderSubTab === tab
                               ? "bg-slate-900 dark:bg-slate-800 text-white"
                               : "text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-900"
-                          }`}
+                            }`}
                         >
                           {tab === "params" ? "Parameters" : tab}
                         </button>
@@ -1532,11 +1525,10 @@ export default function ApiTestingPage() {
                                 <button
                                   key={role}
                                   onClick={() => loginAsDemoUser(role)}
-                                  className={`flex items-center justify-between px-4 py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                                    isActive
+                                  className={`flex items-center justify-between px-4 py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${isActive
                                       ? "bg-blue-600 text-white border-blue-600 shadow-md"
                                       : "bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-800"
-                                  }`}
+                                    }`}
                                 >
                                   <span>{role}</span>
                                   <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${isActive ? "bg-blue-800 text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500"}`}>
@@ -1783,23 +1775,22 @@ export default function ApiTestingPage() {
         />
 
         {/* ================= RIGHT PANEL (RESPONSE VIEWER & SQL) ================= */}
-        <div 
-          style={{ width: `${rightWidth}px` }} 
+        <div
+          style={{ width: `${rightWidth}px` }}
           className="bg-white dark:bg-slate-950 flex flex-col shrink-0 overflow-y-auto"
         >
           {activeResponse ? (
             <div className="flex-1 flex flex-col min-w-0">
-              
+
               {/* Output status bar */}
               <div className="px-5 py-3 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <span className={`px-2.5 py-1 text-xxs font-extrabold rounded-lg border shadow-sm ${
-                    activeResponse.status < 300
+                  <span className={`px-2.5 py-1 text-xxs font-extrabold rounded-lg border shadow-sm ${activeResponse.status < 300
                       ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
                       : activeResponse.status < 400
-                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
-                      : "bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
-                  }`}>
+                        ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+                        : "bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
+                    }`}>
                     {activeResponse.status} {activeResponse.statusText}
                   </span>
                   <span className="text-[11px] font-bold text-gray-400 font-mono">
@@ -1824,11 +1815,10 @@ export default function ApiTestingPage() {
                   <button
                     key={t}
                     onClick={() => setRightTab(t)}
-                    className={`flex-1 py-3 text-center border-b-2 transition ${
-                      rightTab === t
+                    className={`flex-1 py-3 text-center border-b-2 transition ${rightTab === t
                         ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-950"
                         : "border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
-                    }`}
+                      }`}
                   >
                     {t}
                   </button>
@@ -1837,13 +1827,13 @@ export default function ApiTestingPage() {
 
               {/* Content Panels */}
               <div className="flex-1 p-4 overflow-y-auto">
-                
+
                 {/* 1. Tab: Response body */}
                 {rightTab === "response" && (
                   <div className="h-full flex flex-col space-y-2">
                     <span className="text-xxs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Collapsible Json Tree</span>
                     <JsonTreeViewer data={activeResponse.body} />
-                    
+
                     <span className="text-xxs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider pt-2">Raw View</span>
                     <pre className="p-3 border dark:border-slate-800 rounded-xl bg-gray-950 text-emerald-400 text-[10px] font-mono overflow-auto whitespace-pre max-h-[200px]">
                       {prettyPrint(activeResponse.body)}
@@ -1880,9 +1870,8 @@ export default function ApiTestingPage() {
                           {activeResponse.sqlQueries.map((q, idx) => {
                             const isSlow = q.duration > 50;
                             return (
-                              <div key={idx} className={`p-3 rounded-lg border text-[10px] space-y-1 font-mono ${
-                                isSlow ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900" : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800"
-                              }`}>
+                              <div key={idx} className={`p-3 rounded-lg border text-[10px] space-y-1 font-mono ${isSlow ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900" : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800"
+                                }`}>
                                 <div className="flex justify-between font-bold text-gray-400 dark:text-slate-500 text-[8px]">
                                   <span>QUERY #{idx + 1}</span>
                                   <span className={isSlow ? "text-red-500 font-extrabold" : "text-blue-500"}>
@@ -1909,7 +1898,7 @@ export default function ApiTestingPage() {
                   <div className="space-y-4">
                     <div className="space-y-3 border dark:border-slate-800 rounded-xl p-4 bg-gray-50/50 dark:bg-slate-900/20">
                       <h3 className="text-xs font-bold text-gray-800 dark:text-slate-300">Automated Playbook Assertions</h3>
-                      
+
                       <div className="flex items-center justify-between border-b dark:border-slate-850 pb-2 text-xs">
                         <span className="font-semibold text-gray-600 dark:text-slate-400">Status assertion (2xx Response)</span>
                         {activeResponse.validationResults.statusPass ? (
