@@ -8,12 +8,14 @@
     "noImplicitAny": false,
     "esModuleInterop": true,
     "types": [
-      "node"
+      "node",
+      "jest"
     ],
     "skipLibCheck": true,
     "sourceMap": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "tests/**/*"
   ]
 }

@@ -54,7 +54,15 @@ export class SyncService {
       }
     });
 
-    return { success: true, inserted, updated, attached, failed };
+    return {
+      success: true,
+      message: "Processed successfully",
+      count: inserted + updated + attached,
+      inserted,
+      updated,
+      attached,
+      failed
+    };
   }
 
   async syncUnits(data: unknown) {
@@ -103,41 +111,19 @@ export class SyncService {
       }
     });
 
-    return { success: true, inserted, updated, attached, failed };
+    return {
+      success: true,
+      message: "Processed successfully",
+      count: inserted + updated + attached,
+      inserted,
+      updated,
+      attached,
+      failed
+    };
   }
 
   async syncProducts(data: unknown) {
     const parsed = syncProductsPayloadSchema.parse(data);
-
-    // Verify relations exist before processing
-    const stockGroupIds = Array.from(new Set(parsed.map(p => p.stockGroupId).filter(Boolean))) as string[];
-    const unitIds = Array.from(new Set(parsed.map(p => p.unitId).filter(Boolean))) as string[];
-
-    if (stockGroupIds.length > 0) {
-      const existingGroups = await prisma.stockGroup.findMany({
-        where: { tallyMasterId: { in: stockGroupIds } },
-        select: { tallyMasterId: true }
-      });
-      const existingIds = new Set(existingGroups.map(g => g.tallyMasterId));
-      for (const id of stockGroupIds) {
-        if (!existingIds.has(id)) {
-          throw new AppError(`Validation Error: StockGroup with tallyMasterId ${id} does not exist.`, 400);
-        }
-      }
-    }
-
-    if (unitIds.length > 0) {
-      const existingUnits = await prisma.unit.findMany({
-        where: { tallyMasterId: { in: unitIds } },
-        select: { tallyMasterId: true }
-      });
-      const existingIds = new Set(existingUnits.map(u => u.tallyMasterId));
-      for (const id of unitIds) {
-        if (!existingIds.has(id)) {
-          throw new AppError(`Validation Error: Unit with tallyMasterId ${id} does not exist.`, 400);
-        }
-      }
-    }
 
     let inserted = 0;
     let updated = 0;
@@ -147,6 +133,39 @@ export class SyncService {
     await prisma.$transaction(async (tx) => {
       for (const product of parsed) {
         try {
+          // Resolve stockGroupId (which is name or tallyMasterId in the payload)
+          let resolvedStockGroupId: string | null = null;
+          if (product.stockGroupId) {
+            const sg = await tx.stockGroup.findFirst({
+              where: {
+                OR: [
+                  { tallyMasterId: product.stockGroupId },
+                  { name: product.stockGroupId }
+                ]
+              }
+            });
+            if (sg) {
+              resolvedStockGroupId = sg.tallyMasterId;
+            }
+          }
+
+          // Resolve unitId (which is name or symbol or tallyMasterId in the payload)
+          let resolvedUnitId: string | null = null;
+          if (product.unitId) {
+            const u = await tx.unit.findFirst({
+              where: {
+                OR: [
+                  { tallyMasterId: product.unitId },
+                  { name: product.unitId },
+                  { symbol: product.unitId }
+                ]
+              }
+            });
+            if (u) {
+              resolvedUnitId = u.tallyMasterId;
+            }
+          }
+
           const existingByTally = await tx.product.findUnique({
             where: { tallyMasterId: product.tallyMasterId }
           });
@@ -157,8 +176,8 @@ export class SyncService {
               data: {
                 tallyGuid: product.tallyGuid,
                 tallyAlterId: product.tallyAlterId,
-                stockGroupId: product.stockGroupId,
-                unitId: product.unitId,
+                stockGroupId: resolvedStockGroupId,
+                unitId: resolvedUnitId,
                 name: product.name,
                 brand: product.brand,
                 category: product.category,
@@ -184,8 +203,8 @@ export class SyncService {
                     tallyMasterId: product.tallyMasterId,
                     tallyGuid: product.tallyGuid,
                     tallyAlterId: product.tallyAlterId,
-                    stockGroupId: product.stockGroupId,
-                    unitId: product.unitId,
+                    stockGroupId: resolvedStockGroupId,
+                    unitId: resolvedUnitId,
                     name: product.name,
                     brand: product.brand,
                     category: product.category,
@@ -208,8 +227,8 @@ export class SyncService {
                   tallyMasterId: product.tallyMasterId,
                   tallyGuid: product.tallyGuid,
                   tallyAlterId: product.tallyAlterId,
-                  stockGroupId: product.stockGroupId,
-                  unitId: product.unitId,
+                  stockGroupId: resolvedStockGroupId,
+                  unitId: resolvedUnitId,
                   sku: product.sku,
                   name: product.name,
                   brand: product.brand,
@@ -230,7 +249,15 @@ export class SyncService {
       }
     });
 
-    return { success: true, inserted, updated, attached, failed };
+    return {
+      success: true,
+      message: "Processed successfully",
+      count: inserted + updated + attached,
+      inserted,
+      updated,
+      attached,
+      failed
+    };
   }
 }
 

@@ -11,7 +11,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "db:seed": "tsx prisma/seeds/demo.seed.ts"
+    "db:seed": "tsx prisma/seeds/demo.seed.ts",
+    "test": "jest tests/audit/sync.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seeds/demo.seed.ts"

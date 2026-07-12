@@ -91060,6 +91060,1862 @@
       },
       "id": "18dad361-22e2-4cc7-99f6-d2737fe28ef0",
       "timestamp": "2026-07-11T06:37:22.591Z"
+    },
+    {
+      "endpoint": "/api/leads/",
+      "method": "POST",
+      "status": 401,
+      "duration": 6,
+      "requestHeaders": {
+        "host": "127.0.0.1:51635",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "35",
+        "connection": "close"
+      },
+      "requestPayload": {
+        "name": "Test Lead",
+        "source": "Web"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "43",
+        "etag": "W/\"2b-KdS1TpljvydXz3pImdPuLHCdSq8\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid token"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "04ce3887-3e93-4fa1-8b1f-0b6ff8120572",
+      "timestamp": "2026-07-12T09:45:27.343Z"
+    },
+    {
+      "endpoint": "/api/sync/stock-groups",
+      "method": "POST",
+      "status": 401,
+      "duration": 6,
+      "requestHeaders": {
+        "host": "127.0.0.1:51641",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "content-length": "2",
+        "connection": "close"
+      },
+      "requestPayload": [],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "58",
+        "etag": "W/\"3a-no5PsedC76Dx38oXVoG1G6K58hQ\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Missing Authorization header"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "9e4549a0-8061-48cf-8f8e-5b1e3b1b6614",
+      "timestamp": "2026-07-12T09:45:27.543Z"
+    },
+    {
+      "endpoint": "/api/quotations/",
+      "method": "POST",
+      "status": 401,
+      "duration": 1,
+      "requestHeaders": {
+        "host": "127.0.0.1:51645",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "39",
+        "connection": "close"
+      },
+      "requestPayload": {
+        "title": "Initial Quote",
+        "amount": 1000
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "43",
+        "etag": "W/\"2b-KdS1TpljvydXz3pImdPuLHCdSq8\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid token"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "5aa95201-5b17-4296-b7de-940731c9a767",
+      "timestamp": "2026-07-12T09:45:27.615Z"
+    },
+    {
+      "endpoint": "/api/quotations/undefined",
+      "method": "PATCH",
+      "status": 401,
+      "duration": 1,
+      "requestHeaders": {
+        "host": "127.0.0.1:51651",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "15",
+        "connection": "close"
+      },
+      "requestPayload": {
+        "amount": 1200
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "43",
+        "etag": "W/\"2b-KdS1TpljvydXz3pImdPuLHCdSq8\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid token"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "12d5aae7-0d19-4e6f-84f6-674238ac2b75",
+      "timestamp": "2026-07-12T09:45:27.737Z"
+    },
+    {
+      "endpoint": "/api/quotations/undefined/approve",
+      "method": "POST",
+      "status": 401,
+      "duration": 1,
+      "requestHeaders": {
+        "host": "127.0.0.1:51658",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer test-token-owner",
+        "connection": "close",
+        "content-length": "0"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "43",
+        "etag": "W/\"2b-KdS1TpljvydXz3pImdPuLHCdSq8\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid token"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "075cd3f2-fa5d-4dea-9370-1892bcc351b7",
+      "timestamp": "2026-07-12T09:45:27.859Z"
+    },
+    {
+      "endpoint": "/api/payments/",
+      "method": "POST",
+      "status": 401,
+      "duration": 1,
+      "requestHeaders": {
+        "host": "127.0.0.1:51660",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "22",
+        "connection": "close"
+      },
+      "requestPayload": {
+        "amountReceived": 600
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "43",
+        "etag": "W/\"2b-KdS1TpljvydXz3pImdPuLHCdSq8\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid token"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "603213f3-5473-4b9e-8cf7-0284d31179f9",
+      "timestamp": "2026-07-12T09:45:27.984Z"
+    },
+    {
+      "endpoint": "/api/payments/undefined/mark-overdue",
+      "method": "POST",
+      "status": 401,
+      "duration": 1,
+      "requestHeaders": {
+        "host": "127.0.0.1:51664",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer test-token-owner",
+        "connection": "close",
+        "content-length": "0"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "43",
+        "etag": "W/\"2b-KdS1TpljvydXz3pImdPuLHCdSq8\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid token"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "06c74178-fa96-4d35-a76f-930c08a3d50f",
+      "timestamp": "2026-07-12T09:45:28.105Z"
+    },
+    {
+      "endpoint": "/api/payments/undefined/complete",
+      "method": "POST",
+      "status": 401,
+      "duration": 1,
+      "requestHeaders": {
+        "host": "127.0.0.1:51668",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer test-token-owner",
+        "connection": "close",
+        "content-length": "0"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "43",
+        "etag": "W/\"2b-KdS1TpljvydXz3pImdPuLHCdSq8\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid token"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "49ecaaaa-f9d0-4c4b-ba38-99246237478a",
+      "timestamp": "2026-07-12T09:45:28.228Z"
+    },
+    {
+      "endpoint": "/api/projects/",
+      "method": "POST",
+      "status": 401,
+      "duration": 1,
+      "requestHeaders": {
+        "host": "127.0.0.1:51672",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "2",
+        "connection": "close"
+      },
+      "requestPayload": {},
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "43",
+        "etag": "W/\"2b-KdS1TpljvydXz3pImdPuLHCdSq8\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid token"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "7c771187-09e5-468e-8cc5-2fa1f71664e8",
+      "timestamp": "2026-07-12T09:45:28.349Z"
+    },
+    {
+      "endpoint": "/api/dashboard/",
+      "method": "GET",
+      "status": 401,
+      "duration": 1,
+      "requestHeaders": {
+        "host": "127.0.0.1:51676",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer test-token-owner",
+        "connection": "close"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "43",
+        "etag": "W/\"2b-KdS1TpljvydXz3pImdPuLHCdSq8\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid token"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "ea8bc37d-d3ac-4280-b6eb-59f7ab7c5186",
+      "timestamp": "2026-07-12T09:45:28.469Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 19,
+      "requestHeaders": {
+        "host": "127.0.0.1:51678",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "281",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-1111",
+          "tallyGuid": "item-guid-1111",
+          "tallyAlterId": 3001,
+          "sku": "item-guid-1111",
+          "name": "iPhone 15 Pro",
+          "brand": null,
+          "category": "Mobile Phones",
+          "costPrice": 0,
+          "stockQty": 0,
+          "tallyStockQty": 8,
+          "stockGroupId": "Mobile Phones",
+          "unitId": "Pieces",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "ce813669-a873-4653-bf4c-c61122f70394",
+      "timestamp": "2026-07-12T09:45:28.595Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 132,
+      "requestHeaders": {
+        "host": "127.0.0.1:51681",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "267",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-1111",
+          "tallyGuid": "item-guid-1111",
+          "tallyAlterId": 3001,
+          "sku": "item-guid-1111",
+          "name": "iPhone 15 Pro",
+          "brand": null,
+          "category": "Mobile Phones",
+          "costPrice": 0,
+          "stockQty": 0,
+          "tallyStockQty": 8,
+          "stockGroupId": null,
+          "unitId": "Pcs",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "e7ad9d84-6f25-4036-b4c4-38839be2e381",
+      "timestamp": "2026-07-12T09:45:28.930Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 9,
+      "requestHeaders": {
+        "host": "127.0.0.1:51683",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "273",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-2222",
+          "tallyGuid": "item-guid-2222",
+          "tallyAlterId": 3002,
+          "sku": "item-guid-2222",
+          "name": "USB-C Cable",
+          "brand": null,
+          "category": "Electronics",
+          "costPrice": 0,
+          "stockQty": 0,
+          "tallyStockQty": 50,
+          "stockGroupId": "Electronics",
+          "unitId": "Box",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "3140bc19-85e9-41d4-956a-0163d4bc0c2b",
+      "timestamp": "2026-07-12T09:45:29.061Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 8,
+      "requestHeaders": {
+        "host": "127.0.0.1:51685",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "272",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-3333",
+          "tallyGuid": "item-guid-3333",
+          "tallyAlterId": 3003,
+          "sku": "sku-manual-123",
+          "name": "Manual Product Updated",
+          "brand": null,
+          "category": "Hardware",
+          "costPrice": 90,
+          "stockQty": 0,
+          "tallyStockQty": 15,
+          "stockGroupId": null,
+          "unitId": null,
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-qigjvB6lKSRooG07qamKG7fqf24\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 0,
+        "updated": 0,
+        "attached": 1,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "1ee26799-161f-43b5-83f4-a3fa5a53dc84",
+      "timestamp": "2026-07-12T09:45:29.190Z"
+    },
+    {
+      "endpoint": "/api/leads",
+      "method": "POST",
+      "status": 400,
+      "duration": 129,
+      "requestHeaders": {
+        "host": "127.0.0.1:51699",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "35",
+        "connection": "close"
+      },
+      "requestPayload": {
+        "name": "Test Lead",
+        "source": "Web"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "183",
+        "etag": "W/\"b7-8cAkjtoPNGgLlopFTDZVeJ6Eo3o\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Validation failed",
+        "errors": [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "mobile"
+            ],
+            "message": "Invalid input: expected string, received undefined"
+          }
+        ]
+      },
+      "sqlQueries": [],
+      "error": {
+        "message": "[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"mobile\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]",
+        "name": "ZodError",
+        "stack": "ZodError: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"mobile\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]\n    at create (/Users/saidushyant/code/Quotation/backend/src/modules/lead/lead.controller.ts:12:35)\n    at wrapped (/Users/saidushyant/code/Quotation/backend/src/utils/async-handler.ts:6:23)\n    at Layer.handleRequest (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/layer.js:152:17)\n    at next (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/route.js:157:13)\n    at middleware (/Users/saidushyant/code/Quotation/backend/src/middlewares/permission.middleware.ts:19:16)\n    at Layer.handleRequest (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/layer.js:152:17)\n    at next (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/route.js:157:13)\n    at Route.dispatch (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/route.js:117:3)\n    at handle (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:435:11)\n    at Layer.handleRequest (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/layer.js:152:17)\n    at /Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:295:15\n    at processParams (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:582:12)\n    at next (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:291:5)\n    at authenticate (/Users/saidushyant/code/Quotation/backend/src/middlewares/auth.middleware.ts:45:14)"
+      },
+      "user": {
+        "id": "test-user-id-owner",
+        "name": "Test OWNER",
+        "email": "owner@test.com",
+        "role": "OWNER"
+      },
+      "id": "5e89ea85-34f5-4d96-b966-103cf49717fd",
+      "timestamp": "2026-07-12T09:45:55.642Z"
+    },
+    {
+      "endpoint": "/api/leads/undefined/convert",
+      "method": "POST",
+      "status": 400,
+      "duration": 5,
+      "requestHeaders": {
+        "host": "127.0.0.1:51708",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "39",
+        "connection": "close"
+      },
+      "requestPayload": {
+        "name": "Acme Corp",
+        "mobile": "5551234"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "410",
+        "etag": "W/\"19a-SA6eftjmCKFLrLz7UAORS0uVdb4\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Validation failed",
+        "errors": [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "projectName"
+            ],
+            "message": "Invalid input: expected string, received undefined"
+          },
+          {
+            "code": "invalid_value",
+            "values": [
+              "PIPES",
+              "WIRING",
+              "SWITCHES",
+              "LIGHTS",
+              "FANS",
+              "OTHERS"
+            ],
+            "path": [
+              "currentPhase"
+            ],
+            "message": "Invalid option: expected one of \"PIPES\"|\"WIRING\"|\"SWITCHES\"|\"LIGHTS\"|\"FANS\"|\"OTHERS\""
+          }
+        ]
+      },
+      "sqlQueries": [],
+      "error": {
+        "message": "[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"projectName\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"PIPES\",\n      \"WIRING\",\n      \"SWITCHES\",\n      \"LIGHTS\",\n      \"FANS\",\n      \"OTHERS\"\n    ],\n    \"path\": [\n      \"currentPhase\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"PIPES\\\"|\\\"WIRING\\\"|\\\"SWITCHES\\\"|\\\"LIGHTS\\\"|\\\"FANS\\\"|\\\"OTHERS\\\"\"\n  }\n]",
+        "name": "ZodError",
+        "stack": "ZodError: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"projectName\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"PIPES\",\n      \"WIRING\",\n      \"SWITCHES\",\n      \"LIGHTS\",\n      \"FANS\",\n      \"OTHERS\"\n    ],\n    \"path\": [\n      \"currentPhase\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"PIPES\\\"|\\\"WIRING\\\"|\\\"SWITCHES\\\"|\\\"LIGHTS\\\"|\\\"FANS\\\"|\\\"OTHERS\\\"\"\n  }\n]\n    at convert (/Users/saidushyant/code/Quotation/backend/src/modules/lead/lead.controller.ts:63:36)\n    at wrapped (/Users/saidushyant/code/Quotation/backend/src/utils/async-handler.ts:6:23)\n    at Layer.handleRequest (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/layer.js:152:17)\n    at next (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/route.js:157:13)\n    at Route.dispatch (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/route.js:117:3)\n    at handle (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:435:11)\n    at Layer.handleRequest (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/layer.js:152:17)\n    at /Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:295:15\n    at param (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:600:14)\n    at param (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:610:14)\n    at processParams (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:664:3)\n    at next (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:291:5)\n    at authenticate (/Users/saidushyant/code/Quotation/backend/src/middlewares/auth.middleware.ts:45:14)"
+      },
+      "user": {
+        "id": "test-user-id-owner",
+        "name": "Test OWNER",
+        "email": "owner@test.com",
+        "role": "OWNER"
+      },
+      "id": "5ed09808-ee6d-42b9-a6d6-3d481255657f",
+      "timestamp": "2026-07-12T09:45:55.775Z"
+    },
+    {
+      "endpoint": "/api/quotations",
+      "method": "POST",
+      "status": 400,
+      "duration": 8,
+      "requestHeaders": {
+        "host": "127.0.0.1:51714",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "39",
+        "connection": "close"
+      },
+      "requestPayload": {
+        "title": "Initial Quote",
+        "amount": 1000
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "180",
+        "etag": "W/\"b4-C7IHcbp2ILhHazxzgdXuhHLhxSU\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Validation failed",
+        "errors": [
+          {
+            "expected": "array",
+            "code": "invalid_type",
+            "path": [
+              "items"
+            ],
+            "message": "Invalid input: expected array, received undefined"
+          }
+        ]
+      },
+      "sqlQueries": [],
+      "error": {
+        "message": "[\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"items\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  }\n]",
+        "name": "ZodError",
+        "stack": "ZodError: [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"items\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  }\n]\n    at create (/Users/saidushyant/code/Quotation/backend/src/modules/quotation/quotation.controller.ts:13:40)\n    at wrapped (/Users/saidushyant/code/Quotation/backend/src/utils/async-handler.ts:6:23)\n    at Layer.handleRequest (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/layer.js:152:17)\n    at next (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/route.js:157:13)\n    at Route.dispatch (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/route.js:117:3)\n    at handle (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:435:11)\n    at Layer.handleRequest (/Users/saidushyant/code/Quotation/backend/node_modules/router/lib/layer.js:152:17)\n    at /Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:295:15\n    at processParams (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:582:12)\n    at next (/Users/saidushyant/code/Quotation/backend/node_modules/router/index.js:291:5)\n    at authenticate (/Users/saidushyant/code/Quotation/backend/src/middlewares/auth.middleware.ts:45:14)"
+      },
+      "user": {
+        "id": "test-user-id-owner",
+        "name": "Test OWNER",
+        "email": "owner@test.com",
+        "role": "OWNER"
+      },
+      "id": "43aea186-8eeb-4474-bb55-73a8bdaf3432",
+      "timestamp": "2026-07-12T09:45:55.910Z"
+    },
+    {
+      "endpoint": "/api/customers",
+      "method": "POST",
+      "status": 409,
+      "duration": 13,
+      "requestHeaders": {
+        "host": "127.0.0.1:51719",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "44",
+        "connection": "close"
+      },
+      "requestPayload": {
+        "name": "Acme Corp 2",
+        "mobile": "1234567890"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "53",
+        "etag": "W/\"35-WW5DyuLs+hrfxJaslTi41LSEF8c\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Customer already exists"
+      },
+      "sqlQueries": [],
+      "error": {
+        "message": "Customer already exists",
+        "name": "Error",
+        "stack": "Error: Customer already exists\n    at Function.create (/Users/saidushyant/code/Quotation/backend/src/modules/customer/customer.service.ts:19:13)\n    at create (/Users/saidushyant/code/Quotation/backend/src/modules/customer/customer.controller.ts:13:22)"
+      },
+      "user": {
+        "id": "test-user-id-owner",
+        "name": "Test OWNER",
+        "email": "owner@test.com",
+        "role": "OWNER"
+      },
+      "id": "3bab98e2-2b6e-45d0-8343-4c8cb3a1cc33",
+      "timestamp": "2026-07-12T09:45:56.056Z"
+    },
+    {
+      "endpoint": "/api/quotations/undefined/approve",
+      "method": "POST",
+      "status": 404,
+      "duration": 4,
+      "requestHeaders": {
+        "host": "127.0.0.1:51723",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer test-token-owner",
+        "connection": "close",
+        "content-length": "0"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'none'",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "text/html; charset=utf-8",
+        "content-length": 172
+      },
+      "responsePayload": null,
+      "sqlQueries": [],
+      "error": null,
+      "user": {
+        "id": "test-user-id-owner",
+        "name": "Test OWNER",
+        "email": "owner@test.com",
+        "role": "OWNER"
+      },
+      "id": "0bf32a4a-576c-42b6-babe-dd36937e5f6c",
+      "timestamp": "2026-07-12T09:45:56.182Z"
+    },
+    {
+      "endpoint": "/api/payments",
+      "method": "POST",
+      "status": 404,
+      "duration": 3,
+      "requestHeaders": {
+        "host": "127.0.0.1:51729",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "authorization": "Bearer test-token-owner",
+        "content-length": "22",
+        "connection": "close"
+      },
+      "requestPayload": {
+        "amountReceived": 600
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'none'",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "text/html; charset=utf-8",
+        "content-length": 152
+      },
+      "responsePayload": null,
+      "sqlQueries": [],
+      "error": null,
+      "user": {
+        "id": "test-user-id-owner",
+        "name": "Test OWNER",
+        "email": "owner@test.com",
+        "role": "OWNER"
+      },
+      "id": "54c23315-ab06-436b-b36a-8484671d6ab3",
+      "timestamp": "2026-07-12T09:45:56.279Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 14,
+      "requestHeaders": {
+        "host": "127.0.0.1:51741",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "281",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-1111",
+          "tallyGuid": "item-guid-1111",
+          "tallyAlterId": 3001,
+          "sku": "item-guid-1111",
+          "name": "iPhone 15 Pro",
+          "brand": null,
+          "category": "Mobile Phones",
+          "costPrice": 0,
+          "stockQty": 0,
+          "tallyStockQty": 8,
+          "stockGroupId": "Mobile Phones",
+          "unitId": "Pieces",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "1ee79e24-8a8b-4a1a-901a-53738bd58b52",
+      "timestamp": "2026-07-12T09:45:56.416Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 8,
+      "requestHeaders": {
+        "host": "127.0.0.1:51745",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "267",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-1111",
+          "tallyGuid": "item-guid-1111",
+          "tallyAlterId": 3001,
+          "sku": "item-guid-1111",
+          "name": "iPhone 15 Pro",
+          "brand": null,
+          "category": "Mobile Phones",
+          "costPrice": 0,
+          "stockQty": 0,
+          "tallyStockQty": 8,
+          "stockGroupId": null,
+          "unitId": "Pcs",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "ede54a26-9eb0-428a-b2bf-55236c2caf1a",
+      "timestamp": "2026-07-12T09:45:56.561Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 10,
+      "requestHeaders": {
+        "host": "127.0.0.1:51749",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "273",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-2222",
+          "tallyGuid": "item-guid-2222",
+          "tallyAlterId": 3002,
+          "sku": "item-guid-2222",
+          "name": "USB-C Cable",
+          "brand": null,
+          "category": "Electronics",
+          "costPrice": 0,
+          "stockQty": 0,
+          "tallyStockQty": 50,
+          "stockGroupId": "Electronics",
+          "unitId": "Box",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "2f6a2098-5214-4180-9ffe-c6f67fcfaf73",
+      "timestamp": "2026-07-12T09:45:56.696Z"
+    },
+    {
+      "endpoint": "/api/dashboard",
+      "method": "GET",
+      "status": 404,
+      "duration": 3,
+      "requestHeaders": {
+        "host": "127.0.0.1:51747",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer test-token-owner",
+        "connection": "close"
+      },
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'none'",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "text/html; charset=utf-8",
+        "content-length": 152
+      },
+      "responsePayload": null,
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "f5ffab68-8f8a-4442-87fe-625e0dfe64b9",
+      "timestamp": "2026-07-12T09:45:56.857Z"
+    },
+    {
+      "endpoint": "/api/sync/stock-groups",
+      "method": "POST",
+      "status": 401,
+      "duration": 5,
+      "requestHeaders": {
+        "host": "127.0.0.1:51768",
+        "accept-encoding": "gzip, deflate",
+        "content-type": "application/json",
+        "content-length": "2",
+        "connection": "close"
+      },
+      "requestPayload": [],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "58",
+        "etag": "W/\"3a-no5PsedC76Dx38oXVoG1G6K58hQ\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Missing Authorization header"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "1661b688-63a5-469a-a270-3edf8ca94c71",
+      "timestamp": "2026-07-12T09:46:49.368Z"
+    },
+    {
+      "endpoint": "/api/sync/stock-groups",
+      "method": "POST",
+      "status": 401,
+      "duration": 11,
+      "requestHeaders": {
+        "host": "127.0.0.1:51770",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer invalid_key",
+        "content-type": "application/json",
+        "content-length": "2",
+        "connection": "close"
+      },
+      "requestPayload": [],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "45",
+        "etag": "W/\"2d-hiF2+MHrIDyr+ectatGiu3iJ7uo\""
+      },
+      "responsePayload": {
+        "success": false,
+        "message": "Invalid API key"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "6843d05e-cee7-4cf9-8d56-2e709d269cca",
+      "timestamp": "2026-07-12T09:46:49.506Z"
+    },
+    {
+      "endpoint": "/api/sync/stock-groups",
+      "method": "POST",
+      "status": 200,
+      "duration": 114,
+      "requestHeaders": {
+        "host": "127.0.0.1:51772",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "282",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "sg-guid-1111",
+          "tallyGuid": "sg-guid-1111",
+          "tallyAlterId": 1001,
+          "name": "Electronics",
+          "parentName": null,
+          "isActive": true
+        },
+        {
+          "tallyMasterId": "sg-guid-2222",
+          "tallyGuid": "sg-guid-2222",
+          "tallyAlterId": 1002,
+          "name": "Mobile Phones",
+          "parentName": "Electronics",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-zjSd/isOJYSAPAXe5PETxGPtf3E\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 2,
+        "inserted": 2,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "2d069384-6ef2-41b8-8cd0-4937e0d51a99",
+      "timestamp": "2026-07-12T09:46:49.739Z"
+    },
+    {
+      "endpoint": "/api/sync/stock-groups",
+      "method": "POST",
+      "status": 200,
+      "duration": 6,
+      "requestHeaders": {
+        "host": "127.0.0.1:51775",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "136",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "sg-guid-1111",
+          "tallyGuid": "sg-guid-1111",
+          "tallyAlterId": 1001,
+          "name": "Electronics",
+          "parentName": null,
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "7add66f1-9fbe-48d2-85b3-9549f51f8359",
+      "timestamp": "2026-07-12T09:46:49.902Z"
+    },
+    {
+      "endpoint": "/api/sync/stock-groups",
+      "method": "POST",
+      "status": 200,
+      "duration": 7,
+      "requestHeaders": {
+        "host": "127.0.0.1:51777",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "146",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "sg-guid-1111",
+          "tallyGuid": "sg-guid-1111",
+          "tallyAlterId": 1002,
+          "name": "Electronics & Gadgets",
+          "parentName": null,
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-UjUWUCO7sW9H+4OJC5kQjNBdEws\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 0,
+        "updated": 1,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "3cb272a3-fa55-476e-8f91-f47c29b69a20",
+      "timestamp": "2026-07-12T09:46:50.023Z"
+    },
+    {
+      "endpoint": "/api/sync/stock-groups",
+      "method": "POST",
+      "status": 400,
+      "duration": 2,
+      "requestHeaders": {
+        "host": "127.0.0.1:51779",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "30",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyGuid": "sg-guid-1111"
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "174",
+        "etag": "W/\"ae-d3fznB6AFtiFEs9MR80WM9FDcHU\""
+      },
+      "responsePayload": {
+        "success": false,
+        "error": "Validation failed: 0.tallyMasterId: Invalid input: expected string, received undefined, 0.name: Invalid input: expected string, received undefined"
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "13372f63-6618-49b1-8f64-fdcc4fd4095f",
+      "timestamp": "2026-07-12T09:46:50.143Z"
+    },
+    {
+      "endpoint": "/api/sync/units",
+      "method": "POST",
+      "status": 200,
+      "duration": 6,
+      "requestHeaders": {
+        "host": "127.0.0.1:51781",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "132",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "unit-guid-1111",
+          "tallyGuid": "unit-guid-1111",
+          "tallyAlterId": 2001,
+          "name": "Pieces",
+          "symbol": "Pcs",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "090d617d-66b1-44a8-bb33-de70bc549e1f",
+      "timestamp": "2026-07-12T09:46:50.267Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 13,
+      "requestHeaders": {
+        "host": "127.0.0.1:51783",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "281",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-1111",
+          "tallyGuid": "item-guid-1111",
+          "tallyAlterId": 3001,
+          "sku": "item-guid-1111",
+          "name": "iPhone 15 Pro",
+          "brand": null,
+          "category": "Mobile Phones",
+          "costPrice": 0,
+          "stockQty": 0,
+          "tallyStockQty": 8,
+          "stockGroupId": "Mobile Phones",
+          "unitId": "Pieces",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "a8fd21af-e7b0-43db-8bf6-7caa6e36c0dc",
+      "timestamp": "2026-07-12T09:46:50.402Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 7,
+      "requestHeaders": {
+        "host": "127.0.0.1:51785",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "267",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-1111",
+          "tallyGuid": "item-guid-1111",
+          "tallyAlterId": 3001,
+          "sku": "item-guid-1111",
+          "name": "iPhone 15 Pro",
+          "brand": null,
+          "category": "Mobile Phones",
+          "costPrice": 0,
+          "stockQty": 0,
+          "tallyStockQty": 8,
+          "stockGroupId": null,
+          "unitId": "Pcs",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "430c7945-d6b7-4c21-9069-6c4aee7154be",
+      "timestamp": "2026-07-12T09:46:50.530Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 9,
+      "requestHeaders": {
+        "host": "127.0.0.1:51787",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "273",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-2222",
+          "tallyGuid": "item-guid-2222",
+          "tallyAlterId": 3002,
+          "sku": "item-guid-2222",
+          "name": "USB-C Cable",
+          "brand": null,
+          "category": "Electronics",
+          "costPrice": 0,
+          "stockQty": 0,
+          "tallyStockQty": 50,
+          "stockGroupId": "Electronics",
+          "unitId": "Box",
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-ZqWez33KmRvlnA63f8rIG6AcE2o\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 1,
+        "updated": 0,
+        "attached": 0,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "cb471964-c4a1-4d41-b0ba-d9691b36b83e",
+      "timestamp": "2026-07-12T09:46:50.658Z"
+    },
+    {
+      "endpoint": "/api/sync/products",
+      "method": "POST",
+      "status": 200,
+      "duration": 7,
+      "requestHeaders": {
+        "host": "127.0.0.1:51789",
+        "accept-encoding": "gzip, deflate",
+        "authorization": "Bearer d65f2faf60a0a9e62735c90df386be1c1271c1e5041a698ffc35aba292380b1d",
+        "content-type": "application/json",
+        "content-length": "272",
+        "connection": "close"
+      },
+      "requestPayload": [
+        {
+          "tallyMasterId": "item-guid-3333",
+          "tallyGuid": "item-guid-3333",
+          "tallyAlterId": 3003,
+          "sku": "sku-manual-123",
+          "name": "Manual Product Updated",
+          "brand": null,
+          "category": "Hardware",
+          "costPrice": 90,
+          "stockQty": 0,
+          "tallyStockQty": 15,
+          "stockGroupId": null,
+          "unitId": null,
+          "isActive": true
+        }
+      ],
+      "responseHeaders": {
+        "access-control-allow-origin": "*",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "110",
+        "etag": "W/\"6e-qigjvB6lKSRooG07qamKG7fqf24\""
+      },
+      "responsePayload": {
+        "success": true,
+        "message": "Processed successfully",
+        "count": 1,
+        "inserted": 0,
+        "updated": 0,
+        "attached": 1,
+        "failed": 0
+      },
+      "sqlQueries": [],
+      "error": null,
+      "user": null,
+      "id": "9206707c-4eb5-4f01-8a3c-1dc36330e63e",
+      "timestamp": "2026-07-12T09:46:50.793Z"
     }
   ]
 }

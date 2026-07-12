@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { app } from '../../src/app';
+import app from '../../src/app';
 
 /**
  * Workflow integration tests covering the full chain:
@@ -15,7 +15,7 @@ describe('Full Business Workflow', () => {
 
   test('Create Lead', async () => {
     const res = await request(app)
-      .post('/leads')
+      .post('/api/leads')
       .send({ name: 'Test Lead', source: 'Web' })
       .set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(201);
@@ -24,8 +24,8 @@ describe('Full Business Workflow', () => {
 
   test('Convert Lead to Customer', async () => {
     const res = await request(app)
-      .post(`/leads/${leadId}/convert`)
-      .send({ name: 'Acme Corp', phone: '5551234' })
+      .post(`/api/leads/${leadId}/convert`)
+      .send({ name: 'Acme Corp', mobile: '5551234' })
       .set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(200);
     customerId = res.body.customerId;
@@ -33,7 +33,7 @@ describe('Full Business Workflow', () => {
 
   test('Create Quotation for Customer', async () => {
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .send({ title: 'Initial Quote', amount: 1000, customerId })
       .set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(201);
@@ -42,7 +42,7 @@ describe('Full Business Workflow', () => {
 
   test('Edit Quotation (V2)', async () => {
     const res = await request(app)
-      .patch(`/quotations/${quotationId}`)
+      .patch(`/api/quotations/${quotationId}`)
       .send({ amount: 1200 })
       .set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(200);
@@ -51,14 +51,14 @@ describe('Full Business Workflow', () => {
 
   test('Approve Quotation', async () => {
     const res = await request(app)
-      .post(`/quotations/${quotationId}/approve`)
+      .post(`/api/quotations/${quotationId}/approve`)
       .set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(200);
   });
 
   test('Create Payment', async () => {
     const res = await request(app)
-      .post('/payments')
+      .post('/api/payments')
       .send({ quotationId, amountReceived: 600 })
       .set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(201);
@@ -68,21 +68,21 @@ describe('Full Business Workflow', () => {
   test('Partial Payment leads to Overdue status after due date simulation', async () => {
     // Simulate time passage by updating payment due date (implementation‑specific)
     const res = await request(app)
-      .post(`/payments/${paymentId}/mark-overdue`)
+      .post(`/api/payments/${paymentId}/mark-overdue`)
       .set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(200);
   });
 
   test('Complete Payment and close Quotation', async () => {
     const res = await request(app)
-      .post(`/payments/${paymentId}/complete`)
+      .post(`/api/payments/${paymentId}/complete`)
       .set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(200);
   });
 
   test('Create Project from Completed Quotation', async () => {
     const res = await request(app)
-      .post('/projects')
+      .post('/api/projects')
       .send({ quotationId })
       .set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(201);
@@ -90,7 +90,7 @@ describe('Full Business Workflow', () => {
   });
 
   test('Verify cross‑module effects (dashboard analytics)', async () => {
-    const res = await request(app).get('/dashboard').set('Authorization', 'Bearer test-token-owner');
+    const res = await request(app).get('/api/dashboard').set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(200);
     // Expect analytics to reflect the payment and project
     expect(res.body.totalRevenueCollected).toBeGreaterThanOrEqual(600);
