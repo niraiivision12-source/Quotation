@@ -11,11 +11,13 @@ const envSchema = zod_1.z.object({
     PORT: zod_1.z.string(),
     DATABASE_URL: zod_1.z.string().min(1),
     JWT_SECRET: zod_1.z.string().min(10),
+    SYNC_API_KEY: zod_1.z.string().min(1),
 });
 const parsed = envSchema.parse(process.env);
 exports.env = {
     PORT: Number(parsed.PORT),
     DATABASE_URL: parsed.DATABASE_URL,
     JWT_SECRET: parsed.JWT_SECRET,
+    SYNC_API_KEY: parsed.SYNC_API_KEY,
 };
 //# sourceMappingURL=env.js.map

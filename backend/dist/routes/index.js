@@ -20,6 +20,7 @@ const task_routes_1 = __importDefault(require("../modules/task/task.routes"));
 const user_routes_1 = __importDefault(require("../modules/user/user.routes"));
 const settings_routes_1 = __importDefault(require("../modules/settings/settings.routes"));
 const payment_routes_1 = __importDefault(require("../modules/payment/payment.routes"));
+const sync_routes_1 = __importDefault(require("../modules/sync/sync.routes"));
 const dev_routes_1 = __importDefault(require("./dev.routes"));
 const router = (0, express_1.Router)();
 router.get("/health", (_req, res) => {
@@ -41,6 +42,7 @@ router.use("/lifecycle", lifecycle_routes_1.default);
 router.use("/dashboard", dashboard_routes_1.default);
 router.use("/settings", settings_routes_1.default);
 router.use("/payments", payment_routes_1.default);
+router.use("/sync", sync_routes_1.default);
 // Dev Explorer routes, restricted to OWNER role
 router.use("/dev", auth_middleware_1.authenticate, (0, role_middleware_1.authorize)(client_1.UserRole.OWNER), dev_routes_1.default);
 exports.default = router;

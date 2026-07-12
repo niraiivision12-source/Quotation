@@ -130,50 +130,116 @@ export class SyncService {
     let attached = 0;
     let failed = 0;
 
-    await prisma.$transaction(async (tx) => {
-      for (const product of parsed) {
-        try {
-          // Resolve stockGroupId (which is name or tallyMasterId in the payload)
-          let resolvedStockGroupId: string | null = null;
-          if (product.stockGroupId) {
-            const sg = await tx.stockGroup.findFirst({
-              where: {
-                OR: [
-                  { tallyMasterId: product.stockGroupId },
-                  { name: product.stockGroupId }
-                ]
-              }
-            });
-            if (sg) {
-              resolvedStockGroupId = sg.tallyMasterId;
-            }
+    // Load lookup data once
+    const stockGroups = await prisma.stockGroup.findMany({
+      select: {
+        id: true,
+        tallyMasterId: true,
+        name: true
+      }
+    });
+
+    const units = await prisma.unit.findMany({
+      select: {
+        id: true,
+        tallyMasterId: true,
+        name: true,
+        symbol: true
+      }
+    });
+
+    const products = await prisma.product.findMany({
+      select: {
+        id: true,
+        tallyMasterId: true,
+        sku: true
+      }
+    });
+
+    // Create lookup maps
+    const stockGroupByTallyMap = new Map<string, string>();
+    const stockGroupByNameMap = new Map<string, string>();
+    for (const sg of stockGroups) {
+      stockGroupByTallyMap.set(sg.tallyMasterId, sg.tallyMasterId);
+      stockGroupByNameMap.set(sg.name, sg.tallyMasterId);
+    }
+
+    const unitByTallyMap = new Map<string, string>();
+    const unitByNameMap = new Map<string, string>();
+    const unitBySymbolMap = new Map<string, string>();
+    for (const u of units) {
+      unitByTallyMap.set(u.tallyMasterId, u.tallyMasterId);
+      unitByNameMap.set(u.name, u.tallyMasterId);
+      unitBySymbolMap.set(u.symbol, u.tallyMasterId);
+    }
+
+    interface ProductLookup {
+      id: string;
+      tallyMasterId: string | null;
+      sku: string;
+    }
+
+    let productByTallyMap = new Map<string, ProductLookup>();
+    let productBySkuMap = new Map<string, ProductLookup>();
+    for (const p of products) {
+      if (p.tallyMasterId) {
+        productByTallyMap.set(p.tallyMasterId, p);
+      }
+      if (p.sku) {
+        productBySkuMap.set(p.sku, p);
+      }
+    }
+
+    // Helper to process a single product inside a transaction
+    const processSingleProduct = async (tx: any, product: typeof parsed[number]) => {
+      // Resolve stockGroupId using lookup Maps
+      let resolvedStockGroupId: string | null = null;
+      if (product.stockGroupId) {
+        resolvedStockGroupId = stockGroupByTallyMap.get(product.stockGroupId) ||
+                               stockGroupByNameMap.get(product.stockGroupId) ||
+                               null;
+      }
+
+      // Resolve unitId using lookup Maps
+      let resolvedUnitId: string | null = null;
+      if (product.unitId) {
+        resolvedUnitId = unitByTallyMap.get(product.unitId) ||
+                         unitByNameMap.get(product.unitId) ||
+                         unitBySymbolMap.get(product.unitId) ||
+                         null;
+      }
+
+      const existingByTally = productByTallyMap.get(product.tallyMasterId);
+
+      if (existingByTally) {
+        const updatedProduct = await tx.product.update({
+          where: { id: existingByTally.id },
+          data: {
+            tallyGuid: product.tallyGuid,
+            tallyAlterId: product.tallyAlterId,
+            stockGroupId: resolvedStockGroupId,
+            unitId: resolvedUnitId,
+            name: product.name,
+            brand: product.brand,
+            category: product.category,
+            costPrice: product.costPrice,
+            stockQty: product.tallyStockQty, // Tally is the source of truth for stock
+            tallyStockQty: product.tallyStockQty,
+            isActive: product.isActive,
+            tallyUpdatedAt: new Date(),
           }
+        });
+        return { action: 'update', product: updatedProduct };
+      } else {
+        const existingBySku = productBySkuMap.get(product.sku);
 
-          // Resolve unitId (which is name or symbol or tallyMasterId in the payload)
-          let resolvedUnitId: string | null = null;
-          if (product.unitId) {
-            const u = await tx.unit.findFirst({
-              where: {
-                OR: [
-                  { tallyMasterId: product.unitId },
-                  { name: product.unitId },
-                  { symbol: product.unitId }
-                ]
-              }
-            });
-            if (u) {
-              resolvedUnitId = u.tallyMasterId;
-            }
-          }
-
-          const existingByTally = await tx.product.findUnique({
-            where: { tallyMasterId: product.tallyMasterId }
-          });
-
-          if (existingByTally) {
-            await tx.product.update({
-              where: { id: existingByTally.id },
+        if (existingBySku) {
+          if (existingBySku.tallyMasterId === null) {
+            // Attach Tally identity to existing product
+            const updatedProduct = await tx.product.update({
+              where: { id: existingBySku.id },
               data: {
+                tallyMasterId: product.tallyMasterId,
                 tallyGuid: product.tallyGuid,
                 tallyAlterId: product.tallyAlterId,
                 stockGroupId: resolvedStockGroupId,
@@ -182,72 +248,128 @@ export class SyncService {
                 brand: product.brand,
                 category: product.category,
                 costPrice: product.costPrice,
-                stockQty: product.tallyStockQty, // Tally is the source of truth for stock
+                stockQty: product.tallyStockQty, // Update stock as well
                 tallyStockQty: product.tallyStockQty,
                 isActive: product.isActive,
                 tallyUpdatedAt: new Date(),
               }
             });
-            updated++;
+            return { action: 'attach', product: updatedProduct };
           } else {
-            const existingBySku = await tx.product.findUnique({
-              where: { sku: product.sku }
-            });
-
-            if (existingBySku) {
-              if (existingBySku.tallyMasterId === null) {
-                // Attach Tally identity to existing product
-                await tx.product.update({
-                  where: { id: existingBySku.id },
-                  data: {
-                    tallyMasterId: product.tallyMasterId,
-                    tallyGuid: product.tallyGuid,
-                    tallyAlterId: product.tallyAlterId,
-                    stockGroupId: resolvedStockGroupId,
-                    unitId: resolvedUnitId,
-                    name: product.name,
-                    brand: product.brand,
-                    category: product.category,
-                    costPrice: product.costPrice,
-                    stockQty: product.tallyStockQty, // Update stock as well
-                    tallyStockQty: product.tallyStockQty,
-                    isActive: product.isActive,
-                    tallyUpdatedAt: new Date(),
-                  }
-                });
-                attached++;
-              } else {
-                // SKU exists but already attached to another Tally Master ID
-                failed++;
-              }
-            } else {
-              // Create new product
-              await tx.product.create({
-                data: {
-                  tallyMasterId: product.tallyMasterId,
-                  tallyGuid: product.tallyGuid,
-                  tallyAlterId: product.tallyAlterId,
-                  stockGroupId: resolvedStockGroupId,
-                  unitId: resolvedUnitId,
-                  sku: product.sku,
-                  name: product.name,
-                  brand: product.brand,
-                  category: product.category,
-                  costPrice: product.costPrice,
-                  stockQty: product.stockQty,
-                  tallyStockQty: product.tallyStockQty,
-                  isActive: product.isActive,
-                  tallyUpdatedAt: new Date(),
-                }
-              });
-              inserted++;
-            }
+            // SKU exists but already attached to another Tally Master ID
+            throw new Error(`SKU ${product.sku} is already attached to another Tally Master ID`);
           }
-        } catch (error) {
-          failed++;
+        } else {
+          // Create new product
+          const createdProduct = await tx.product.create({
+            data: {
+              tallyMasterId: product.tallyMasterId,
+              tallyGuid: product.tallyGuid,
+              tallyAlterId: product.tallyAlterId,
+              stockGroupId: resolvedStockGroupId,
+              unitId: resolvedUnitId,
+              sku: product.sku,
+              name: product.name,
+              brand: product.brand,
+              category: product.category,
+              costPrice: product.costPrice,
+              stockQty: product.stockQty,
+              tallyStockQty: product.tallyStockQty,
+              isActive: product.isActive,
+              tallyUpdatedAt: new Date(),
+            }
+          });
+          return { action: 'insert', product: createdProduct };
         }
       }
-    });
+    };
+
+    // Split products into batches (Batch size: 500)
+    const BATCH_SIZE = 500;
+
+    for (let i = 0; i < parsed.length; i += BATCH_SIZE) {
+      const batch = parsed.slice(i, i + BATCH_SIZE);
+
+      // Clone maps in case the transaction rolls back
+      const backupProductByTallyMap = new Map(productByTallyMap);
+      const backupProductBySkuMap = new Map(productBySkuMap);
+
+      let batchInserted = 0;
+      let batchUpdated = 0;
+      let batchAttached = 0;
+
+      try {
+        await prisma.$transaction(async (tx) => {
+          let localInserted = 0;
+          let localUpdated = 0;
+          let localAttached = 0;
+
+          for (const product of batch) {
+            const res = await processSingleProduct(tx, product);
+            if (res.action === 'insert') {
+              localInserted++;
+            } else if (res.action === 'update') {
+              localUpdated++;
+            } else if (res.action === 'attach') {
+              localAttached++;
+            }
+
+            // Update lookup maps immediately for subsequent products in the same batch
+            const lookupItem: ProductLookup = {
+              id: res.product.id,
+              tallyMasterId: res.product.tallyMasterId,
+              sku: res.product.sku,
+            };
+            if (lookupItem.tallyMasterId) {
+              productByTallyMap.set(lookupItem.tallyMasterId, lookupItem);
+            }
+            productBySkuMap.set(lookupItem.sku, lookupItem);
+          }
+
+          batchInserted = localInserted;
+          batchUpdated = localUpdated;
+          batchAttached = localAttached;
+        });
+
+        inserted += batchInserted;
+        updated += batchUpdated;
+        attached += batchAttached;
+
+      } catch (transactionError) {
+        // Rollback lookup maps to pre-batch state
+        productByTallyMap = backupProductByTallyMap;
+        productBySkuMap = backupProductBySkuMap;
+
+        // Fallback: process this batch one-by-one
+        for (const product of batch) {
+          try {
+            await prisma.$transaction(async (tx) => {
+              const res = await processSingleProduct(tx, product);
+              if (res.action === 'insert') {
+                inserted++;
+              } else if (res.action === 'update') {
+                updated++;
+              } else if (res.action === 'attach') {
+                attached++;
+              }
+
+              // Update lookup maps immediately for subsequent fallback items
+              const lookupItem: ProductLookup = {
+                id: res.product.id,
+                tallyMasterId: res.product.tallyMasterId,
+                sku: res.product.sku,
+              };
+              if (lookupItem.tallyMasterId) {
+                productByTallyMap.set(lookupItem.tallyMasterId, lookupItem);
+              }
+              productBySkuMap.set(lookupItem.sku, lookupItem);
+            });
+          } catch (singleError) {
+            failed++;
+          }
+        }
+      }
+    }
 
     return {
       success: true,
