@@ -521,5 +521,498 @@ export const ENDPOINT_METADATA: Record<string, EndpointMetadata> = {
         { id: "user-1", name: "Suresh Patel", role: "SALESMAN" }
       ]
     }
+  },
+  "GET /api/health": {
+    module: "System",
+    description: "Check the health status of the backend API.",
+    authRequired: false,
+    controller: "N/A",
+    serviceMethod: "N/A",
+    exampleResponse: {
+      success: true,
+      message: "API Running"
+    }
+  },
+  "POST /api/sync/stock-groups": {
+    module: "Inventory",
+    description: "Synchronize stock groups payload from Tally Prime.",
+    authRequired: true,
+    controller: "SyncController.syncStockGroups",
+    serviceMethod: "SyncService.syncStockGroups",
+    headers: [
+      { name: "Authorization", type: "string", required: true, description: "Bearer <SYNC_API_KEY>" }
+    ],
+    exampleRequest: [
+      {
+        tallyMasterId: "grp-100",
+        tallyGuid: "guid-group-100",
+        tallyAlterId: 1,
+        name: "Cables",
+        parentName: "Wiring",
+        isActive: true
+      }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Processed successfully",
+      count: 1,
+      inserted: 1,
+      updated: 0,
+      attached: 0,
+      failed: 0
+    }
+  },
+  "POST /api/sync/units": {
+    module: "Inventory",
+    description: "Synchronize units payload from Tally Prime.",
+    authRequired: true,
+    controller: "SyncController.syncUnits",
+    serviceMethod: "SyncService.syncUnits",
+    headers: [
+      { name: "Authorization", type: "string", required: true, description: "Bearer <SYNC_API_KEY>" }
+    ],
+    exampleRequest: [
+      {
+        tallyMasterId: "unit-200",
+        tallyGuid: "guid-unit-200",
+        tallyAlterId: 1,
+        name: "Meters",
+        symbol: "Mtr",
+        isActive: true
+      }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Processed successfully",
+      count: 1,
+      inserted: 1,
+      updated: 0,
+      attached: 0,
+      failed: 0
+    }
+  },
+  "POST /api/sync/products": {
+    module: "Inventory",
+    description: "Synchronize products (stock items) payload from Tally Prime.",
+    authRequired: true,
+    controller: "SyncController.syncProducts",
+    serviceMethod: "SyncService.syncProducts",
+    headers: [
+      { name: "Authorization", type: "string", required: true, description: "Bearer <SYNC_API_KEY>" }
+    ],
+    exampleRequest: [
+      {
+        tallyMasterId: "prod-300",
+        tallyGuid: "guid-prod-300",
+        tallyAlterId: 1,
+        stockGroupId: "grp-100",
+        unitId: "unit-200",
+        sku: "CAB-COP-10M",
+        name: "Copper Cable 10m",
+        brand: "Finolex",
+        category: "WIRING",
+        costPrice: 550,
+        stockQty: 100,
+        tallyStockQty: 100,
+        isActive: true
+      }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Processed successfully",
+      count: 1,
+      inserted: 1,
+      updated: 0,
+      attached: 0,
+      failed: 0
+    }
+  },
+  "PATCH /api/users/:id/deactivate": {
+    module: "Users",
+    description: "Deactivate a user account to block system access.",
+    authRequired: true,
+    requiredRoles: ["OWNER"],
+    controller: "UserController.deactivate",
+    serviceMethod: "UserService.deactivate",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "User ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "User deactivated successfully"
+    }
+  },
+  "PATCH /api/products/:id/deactivate": {
+    module: "Products",
+    description: "Deactivate a product listing from the catalogue.",
+    authRequired: true,
+    controller: "ProductController.deactivate",
+    serviceMethod: "ProductService.deactivate",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Product ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Product deactivated"
+    }
+  },
+  "POST /api/products/sync": {
+    module: "Products",
+    description: "Manually trigger standard products cache synchronizations.",
+    authRequired: true,
+    controller: "ProductController.sync",
+    serviceMethod: "ProductService.sync",
+    exampleResponse: {
+      success: true,
+      message: "Sync triggered"
+    }
+  },
+  "PATCH /api/customers/:id/deactivate": {
+    module: "Customers",
+    description: "Deactivate a customer registry file.",
+    authRequired: true,
+    controller: "CustomerController.deactivate",
+    serviceMethod: "CustomerService.deactivate",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Customer ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Customer deactivated"
+    }
+  },
+  "PATCH /api/projects/:id/phase": {
+    module: "Projects",
+    description: "Update the pipeline execution phase of a customer installation project.",
+    authRequired: true,
+    controller: "ProjectController.updatePhase",
+    serviceMethod: "ProjectService.updatePhase",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Project ID" }
+    ],
+    exampleRequest: {
+      phase: "WIRING"
+    },
+    exampleResponse: {
+      success: true,
+      message: "Project phase updated"
+    }
+  },
+  "PATCH /api/projects/:id/deactivate": {
+    module: "Projects",
+    description: "Deactivate a project record.",
+    authRequired: true,
+    controller: "ProjectController.deactivate",
+    serviceMethod: "ProjectService.deactivate",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Project ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Project deactivated"
+    }
+  },
+  "POST /api/projects/:id/notes": {
+    module: "Projects",
+    description: "Append a timeline comment or field update note to a project.",
+    authRequired: true,
+    controller: "ProjectController.addNote",
+    serviceMethod: "ProjectService.addNote",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Project ID" }
+    ],
+    exampleRequest: {
+      note: "Inspection passed for conduit pipes."
+    },
+    exampleResponse: {
+      success: true,
+      message: "Note added to project timeline"
+    }
+  },
+  "PATCH /api/leads/:id/deactivate": {
+    module: "Leads",
+    description: "Deactivate a sales lead file.",
+    authRequired: true,
+    controller: "LeadController.deactivate",
+    serviceMethod: "LeadService.deactivate",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Lead ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Lead deactivated"
+    }
+  },
+  "POST /api/leads/:id/notes": {
+    module: "Leads",
+    description: "Append a customer update note to the sales lead timeline.",
+    authRequired: true,
+    controller: "LeadNoteController.addNote",
+    serviceMethod: "LeadNoteService.addNote",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Lead ID" }
+    ],
+    exampleRequest: {
+      note: "Customer requested pricing details for 2BHK flat wiring."
+    },
+    exampleResponse: {
+      success: true,
+      message: "Note added successfully"
+    }
+  },
+  "GET /api/leads/:id/notes": {
+    module: "Leads",
+    description: "Retrieve all notes and logs attached to a lead.",
+    authRequired: true,
+    controller: "LeadNoteController.getNotes",
+    serviceMethod: "LeadNoteService.getNotes",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Lead ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      data: [
+        { id: "note-1", note: "Customer contacted via phone", createdAt: "2026-07-15T09:00:00Z" }
+      ]
+    }
+  },
+  "GET /api/reminders/overdue": {
+    module: "Reminders",
+    description: "Retrieve current user's overdue reminders list.",
+    authRequired: true,
+    controller: "ReminderController.overdue",
+    serviceMethod: "ReminderService.overdue",
+    exampleResponse: {
+      success: true,
+      data: [
+        { id: "rem-1", title: "Overdue quote follow up", dueAt: "2026-07-10T10:00:00Z" }
+      ]
+    }
+  },
+  "PATCH /api/reminders/:id/complete": {
+    module: "Reminders",
+    description: "Mark a reminder as completed.",
+    authRequired: true,
+    controller: "ReminderController.complete",
+    serviceMethod: "ReminderService.complete",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Reminder ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Reminder completed"
+    }
+  },
+  "PATCH /api/tasks/:id/complete": {
+    module: "Tasks",
+    description: "Mark an assigned task as completed.",
+    authRequired: true,
+    controller: "TaskController.complete",
+    serviceMethod: "TaskService.complete",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Task ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Task completed"
+    }
+  },
+  "PATCH /api/tasks/:id/cancel": {
+    module: "Tasks",
+    description: "Cancel an assigned task.",
+    authRequired: true,
+    controller: "TaskController.cancel",
+    serviceMethod: "TaskService.cancel",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Task ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Task cancelled"
+    }
+  },
+  "GET /api/quotations/project/:projectId": {
+    module: "Quotations",
+    description: "Retrieve all quotations associated with a specific project.",
+    authRequired: true,
+    controller: "QuotationController.getProjectQuotations",
+    serviceMethod: "QuotationService.getProjectQuotations",
+    pathParams: [
+      { name: "projectId", type: "string", required: true, description: "Project ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      data: [
+        { id: "qtn-1", quotationNumber: "QTN-2026-0001", totalAmount: 45000.00 }
+      ]
+    }
+  },
+  "POST /api/quotations/:id/revision": {
+    module: "Quotations",
+    description: "Create a new revision of an existing quotation.",
+    authRequired: true,
+    controller: "QuotationController.createRevision",
+    serviceMethod: "QuotationService.createRevision",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Quotation ID" }
+    ],
+    exampleRequest: {
+      items: [
+        { productId: "prod-uuid-1", quantity: 12, marginPercent: 15 }
+      ]
+    },
+    exampleResponse: {
+      success: true,
+      message: "Revision created successfully"
+    }
+  },
+  "PATCH /api/quotations/:id/status": {
+    module: "Quotations",
+    description: "Update the status of a quotation (e.g., SENT, APPROVED, REJECTED).",
+    authRequired: true,
+    controller: "QuotationController.updateStatus",
+    serviceMethod: "QuotationService.updateStatus",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Quotation ID" }
+    ],
+    exampleRequest: {
+      status: "APPROVED"
+    },
+    exampleResponse: {
+      success: true,
+      message: "Quotation status updated"
+    }
+  },
+  "GET /api/quotations/:id/history": {
+    module: "Quotations",
+    description: "Retrieve revision history for a quotation.",
+    authRequired: true,
+    controller: "QuotationController.getHistory",
+    serviceMethod: "QuotationService.getHistory",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Quotation ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      data: []
+    }
+  },
+  "GET /api/lifecycle/project/:projectId": {
+    module: "Pipeline",
+    description: "Retrieve phase execution lifecycle history for a project.",
+    authRequired: true,
+    controller: "LifecycleController.getProjectLifecycle",
+    serviceMethod: "LifecycleService.getProjectLifecycle",
+    pathParams: [
+      { name: "projectId", type: "string", required: true, description: "Project ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      data: []
+    }
+  },
+  "PATCH /api/lifecycle/:id": {
+    module: "Pipeline",
+    description: "Update a lifecycle pipeline entry status.",
+    authRequired: true,
+    controller: "LifecycleController.updatePhase",
+    serviceMethod: "LifecycleService.updatePhase",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Lifecycle Entry ID" }
+    ],
+    exampleRequest: {
+      status: "COMPLETED"
+    },
+    exampleResponse: {
+      success: true,
+      message: "Phase entry updated"
+    }
+  },
+  "PUT /api/settings": {
+    module: "Settings",
+    description: "Update system settings (Owner only).",
+    authRequired: true,
+    requiredRoles: ["OWNER"],
+    controller: "SettingsController.update",
+    serviceMethod: "SettingsService.updateSettings",
+    exampleRequest: {
+      companyName: "Antigravity Electrical Systems Pvt Ltd",
+      gstRate: 18.0
+    },
+    exampleResponse: {
+      success: true,
+      message: "Settings updated successfully"
+    }
+  },
+  "GET /api/settings/export": {
+    module: "Settings",
+    description: "Export the full system configuration and data snapshot.",
+    authRequired: true,
+    requiredRoles: ["OWNER"],
+    controller: "SettingsController.export",
+    serviceMethod: "SettingsService.exportSettings",
+    exampleResponse: {
+      success: true,
+      data: {}
+    }
+  },
+  "POST /api/settings/import": {
+    module: "Settings",
+    description: "Import configuration snapshot into the system.",
+    authRequired: true,
+    requiredRoles: ["OWNER"],
+    controller: "SettingsController.import",
+    serviceMethod: "SettingsService.importSettings",
+    exampleResponse: {
+      success: true,
+      message: "Settings imported successfully"
+    }
+  },
+  "POST /api/payments/:id/transactions": {
+    module: "Payments",
+    description: "Record a payment transaction against a linked bill.",
+    authRequired: true,
+    controller: "PaymentController.recordTransaction",
+    serviceMethod: "PaymentService.recordTransaction",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Payment ID" }
+    ],
+    exampleRequest: {
+      amount: 15000.0,
+      paymentMode: "CASH",
+      referenceNumber: "TXN12345"
+    },
+    exampleResponse: {
+      success: true,
+      message: "Transaction recorded successfully"
+    }
+  },
+  "POST /api/payments/:id/cancel": {
+    module: "Payments",
+    description: "Cancel a payment record.",
+    authRequired: true,
+    controller: "PaymentController.cancelPayment",
+    serviceMethod: "PaymentService.cancelPayment",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Payment ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      message: "Payment tracking cancelled"
+    }
+  },
+  "GET /api/payments/:id": {
+    module: "Payments",
+    description: "Get detailed tracking status of a customer bill payment.",
+    authRequired: true,
+    controller: "PaymentController.getById",
+    serviceMethod: "PaymentService.getById",
+    pathParams: [
+      { name: "id", type: "string", required: true, description: "Payment ID" }
+    ],
+    exampleResponse: {
+      success: true,
+      data: {}
+    }
   }
 };

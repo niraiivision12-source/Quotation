@@ -318,7 +318,17 @@ export const useApiStore = create<ApiState>((set, get) => ({
     });
   },
 
-  setPlayToken: (token, role) => set({ playToken: token, playUserRole: role }),
+  setPlayToken: (token, role) => {
+    set({ playToken: token, playUserRole: role });
+    // Update Authorization header in request builder
+    const headers = get().headersInput.map((h) => {
+      if (h.key === "Authorization") {
+        return { ...h, value: token ? `Bearer ${token}` : "" };
+      }
+      return h;
+    });
+    set({ headersInput: headers });
+  },
 
   loginAsDemoUser: async (role) => {
     try {

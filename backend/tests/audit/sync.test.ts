@@ -9,6 +9,7 @@ describe('Sync Module Integration Tests', () => {
 
   beforeEach(async () => {
     // Clean products, units, stock groups
+    await prisma.quotationItem.deleteMany({});
     await prisma.product.deleteMany({});
     await prisma.unit.deleteMany({});
     await prisma.stockGroup.deleteMany({});

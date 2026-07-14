@@ -57,6 +57,7 @@ const dashboard_controller_1 = require("../modules/dashboard/dashboard.controlle
 const auth_controller_1 = require("../modules/auth/auth.controller");
 const lifecycle_controller_1 = require("../modules/lifecycle/lifecycle.controller");
 const lead_note_controller_1 = require("../modules/lead-notes/lead-note.controller");
+const sync_controller_1 = require("../modules/sync/sync.controller");
 const authVal = __importStar(require("../modules/auth/auth.validation"));
 const userVal = __importStar(require("../modules/user/user.validation"));
 const productVal = __importStar(require("../modules/product/product.validation"));
@@ -70,6 +71,8 @@ const lifecycleVal = __importStar(require("../modules/lifecycle/lifecycle.valida
 const settingsVal = __importStar(require("../modules/settings/settings.validation"));
 const paymentVal = __importStar(require("../modules/payment/payment.validation"));
 const leadNoteVal = __importStar(require("../modules/lead-notes/lead-note.validation"));
+const syncVal = __importStar(require("../modules/sync/sync.validation"));
+const zod_1 = require("zod");
 const router = (0, express_1.Router)();
 const CONTROLLERS = [
     lead_controller_1.LeadController,
@@ -85,7 +88,8 @@ const CONTROLLERS = [
     dashboard_controller_1.DashboardController,
     auth_controller_1.AuthController,
     lifecycle_controller_1.LifecycleController,
-    lead_note_controller_1.LeadNoteController
+    lead_note_controller_1.LeadNoteController,
+    sync_controller_1.SyncController
 ];
 // Helper to recursively walk the Express router stack and collect endpoints with handlers
 function walkExpressRouter(routerObj, prefix = "", inheritedMiddlewares = []) {
@@ -392,6 +396,10 @@ function resolveSchema(controllerName, handlerName) {
             return projectVal.createProjectSchema;
         if (handlerName === "update")
             return projectVal.updateProjectSchema;
+        if (handlerName === "updatePhase")
+            return projectVal.updateProjectPhaseSchema;
+        if (handlerName === "addNote")
+            return zod_1.z.object({ note: zod_1.z.string() });
     }
     if (controllerName === "LeadController") {
         if (handlerName === "create")
@@ -405,15 +413,21 @@ function resolveSchema(controllerName, handlerName) {
         if (handlerName === "create")
             return reminderVal.createReminderSchema;
         if (handlerName === "update")
-            return reminderVal.createReminderSchema;
+            return reminderVal.updateReminderSchema;
     }
     if (controllerName === "TaskController") {
         if (handlerName === "create")
             return taskVal.createTaskSchema;
+        if (handlerName === "update")
+            return taskVal.updateTaskSchema;
     }
     if (controllerName === "QuotationController") {
         if (handlerName === "create")
             return quotationVal.createQuotationSchema;
+        if (handlerName === "updateStatus")
+            return quotationVal.updateQuotationStatusSchema;
+        if (handlerName === "createRevision")
+            return quotationVal.createRevisionSchema;
     }
     if (controllerName === "PaymentController") {
         if (handlerName === "linkBill")
@@ -432,6 +446,14 @@ function resolveSchema(controllerName, handlerName) {
     if (controllerName === "LeadNoteController") {
         if (handlerName === "addNote")
             return leadNoteVal.addLeadNoteSchema;
+    }
+    if (controllerName === "SyncController") {
+        if (handlerName === "syncStockGroups")
+            return syncVal.syncStockGroupsPayloadSchema;
+        if (handlerName === "syncUnits")
+            return syncVal.syncUnitsPayloadSchema;
+        if (handlerName === "syncProducts")
+            return syncVal.syncProductsPayloadSchema;
     }
     return null;
 }
@@ -452,6 +474,8 @@ function getModuleFromPath(path) {
         case "quotations": return "Quotations";
         case "payments": return "Payments";
         case "settings": return "Settings";
+        case "sync": return "Inventory";
+        case "health": return "System";
         default: return "Unknown";
     }
 }
@@ -487,7 +511,7 @@ router.get("/endpoints", async (req, res, next) => {
             let handlerName = "unknown";
             let actualFn = null;
             item.handlers.forEach((h) => {
-                if (h.name === "authenticate") {
+                if (h.name === "authenticate" || h.name === "syncApiKeyMiddleware") {
                     authRequired = true;
                 }
                 if (h.requiredRoles) {
@@ -610,6 +634,26 @@ router.get("/demo-users", async (req, res, next) => {
 router.post("/auth/token-as", async (req, res, next) => {
     try {
         const { role, email } = req.body;
+        if (role === "SYNC") {
+            if (!env_1.env.SYNC_API_KEY) {
+                return res.status(500).json({
+                    success: false,
+                    message: "SYNC_API_KEY is not configured on the server.",
+                });
+            }
+            return res.status(200).json({
+                success: true,
+                data: {
+                    token: env_1.env.SYNC_API_KEY,
+                    user: {
+                        id: "sync-agent-uuid",
+                        name: "Tally Sync Agent",
+                        email: "sync@system.com",
+                        role: "SYNC",
+                    },
+                },
+            });
+        }
         let user;
         if (email) {
             user = await prisma_1.prisma.user.findUnique({ where: { email } });

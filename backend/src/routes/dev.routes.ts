@@ -20,6 +20,7 @@ import { DashboardController } from "../modules/dashboard/dashboard.controller";
 import { AuthController } from "../modules/auth/auth.controller";
 import { LifecycleController } from "../modules/lifecycle/lifecycle.controller";
 import { LeadNoteController } from "../modules/lead-notes/lead-note.controller";
+import { SyncController } from "../modules/sync/sync.controller";
 
 import * as authVal from "../modules/auth/auth.validation";
 import * as userVal from "../modules/user/user.validation";
@@ -34,6 +35,8 @@ import * as lifecycleVal from "../modules/lifecycle/lifecycle.validation";
 import * as settingsVal from "../modules/settings/settings.validation";
 import * as paymentVal from "../modules/payment/payment.validation";
 import * as leadNoteVal from "../modules/lead-notes/lead-note.validation";
+import * as syncVal from "../modules/sync/sync.validation";
+import { z } from "zod";
 
 const router = Router();
 
@@ -51,7 +54,8 @@ const CONTROLLERS = [
   DashboardController,
   AuthController,
   LifecycleController,
-  LeadNoteController
+  LeadNoteController,
+  SyncController
 ];
 
 // Helper to recursively walk the Express router stack and collect endpoints with handlers
@@ -346,6 +350,8 @@ function resolveSchema(controllerName: string, handlerName: string): any {
   if (controllerName === "ProjectController") {
     if (handlerName === "create") return projectVal.createProjectSchema;
     if (handlerName === "update") return projectVal.updateProjectSchema;
+    if (handlerName === "updatePhase") return projectVal.updateProjectPhaseSchema;
+    if (handlerName === "addNote") return z.object({ note: z.string() });
   }
   if (controllerName === "LeadController") {
     if (handlerName === "create") return leadVal.createLeadSchema;
@@ -354,13 +360,16 @@ function resolveSchema(controllerName: string, handlerName: string): any {
   }
   if (controllerName === "ReminderController") {
     if (handlerName === "create") return reminderVal.createReminderSchema;
-    if (handlerName === "update") return reminderVal.createReminderSchema;
+    if (handlerName === "update") return reminderVal.updateReminderSchema;
   }
   if (controllerName === "TaskController") {
     if (handlerName === "create") return taskVal.createTaskSchema;
+    if (handlerName === "update") return taskVal.updateTaskSchema;
   }
   if (controllerName === "QuotationController") {
     if (handlerName === "create") return quotationVal.createQuotationSchema;
+    if (handlerName === "updateStatus") return quotationVal.updateQuotationStatusSchema;
+    if (handlerName === "createRevision") return quotationVal.createRevisionSchema;
   }
   if (controllerName === "PaymentController") {
     if (handlerName === "linkBill") return paymentVal.createPaymentSchema;
@@ -374,6 +383,11 @@ function resolveSchema(controllerName: string, handlerName: string): any {
   }
   if (controllerName === "LeadNoteController") {
     if (handlerName === "addNote") return leadNoteVal.addLeadNoteSchema;
+  }
+  if (controllerName === "SyncController") {
+    if (handlerName === "syncStockGroups") return syncVal.syncStockGroupsPayloadSchema;
+    if (handlerName === "syncUnits") return syncVal.syncUnitsPayloadSchema;
+    if (handlerName === "syncProducts") return syncVal.syncProductsPayloadSchema;
   }
   return null;
 }
@@ -395,6 +409,8 @@ function getModuleFromPath(path: string): string {
     case "quotations": return "Quotations";
     case "payments": return "Payments";
     case "settings": return "Settings";
+    case "sync": return "Inventory";
+    case "health": return "System";
     default: return "Unknown";
   }
 }
@@ -437,7 +453,7 @@ router.get("/endpoints", async (req: Request, res: Response, next: NextFunction)
         let actualFn: any = null;
 
         item.handlers.forEach((h: any) => {
-          if (h.name === "authenticate") {
+          if (h.name === "authenticate" || h.name === "syncApiKeyMiddleware") {
             authRequired = true;
           }
           if (h.requiredRoles) {
@@ -568,6 +584,27 @@ router.get("/demo-users", async (req: Request, res: Response, next: NextFunction
 router.post("/auth/token-as", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { role, email } = req.body;
+
+    if (role === "SYNC") {
+      if (!env.SYNC_API_KEY) {
+        return res.status(500).json({
+          success: false,
+          message: "SYNC_API_KEY is not configured on the server.",
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        data: {
+          token: env.SYNC_API_KEY,
+          user: {
+            id: "sync-agent-uuid",
+            name: "Tally Sync Agent",
+            email: "sync@system.com",
+            role: "SYNC",
+          },
+        },
+      });
+    }
 
     let user;
     if (email) {

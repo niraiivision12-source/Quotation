@@ -1519,7 +1519,7 @@ export default function ApiTestingPage() {
                         <div className="space-y-2">
                           <span className="text-xs font-bold text-gray-700 dark:text-slate-300">Select Role Account</span>
                           <div className="grid grid-cols-2 gap-3">
-                            {(["OWNER", "SALESMAN", "ACCOUNTANT", "ATTENDANT"] as const).map((role) => {
+                            {(["OWNER", "SALESMAN", "ACCOUNTANT", "ATTENDANT", "SYNC"] as const).map((role) => {
                               const isActive = playUserRole === role;
                               return (
                                 <button
@@ -1530,7 +1530,7 @@ export default function ApiTestingPage() {
                                       : "bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-800"
                                     }`}
                                 >
-                                  <span>{role}</span>
+                                  <span>{role === "SYNC" ? "TALLY SYNC" : role}</span>
                                   <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${isActive ? "bg-blue-800 text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500"}`}>
                                     Impersonate
                                   </span>
@@ -1553,10 +1553,11 @@ export default function ApiTestingPage() {
                             </div>
                           </div>
                           <textarea
-                            readOnly
-                            value={playToken || "No authorization token active"}
+                            value={playToken || ""}
+                            onChange={(e) => setPlayToken(e.target.value || null, "CUSTOM")}
+                            placeholder="Paste or edit authorization token here..."
                             rows={3}
-                            className="w-full p-3 border dark:border-slate-800 rounded-xl text-xxs font-mono bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-slate-400 focus:outline-none"
+                            className="w-full p-3 border dark:border-slate-800 rounded-xl text-xxs font-mono bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
                       </div>
