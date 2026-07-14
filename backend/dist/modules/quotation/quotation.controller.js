@@ -32,6 +32,13 @@ class QuotationController {
             data: result,
         });
     }
+    static async getHistory(req, res) {
+        const result = await quotation_service_1.QuotationService.getHistory(req.params.id);
+        return res.status(200).json({
+            success: true,
+            data: result,
+        });
+    }
     static async getProjectQuotations(req, res) {
         const result = await quotation_service_1.QuotationService.getProjectQuotations(req.params.projectId);
         return res.status(200).json({

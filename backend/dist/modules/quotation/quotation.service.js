@@ -298,6 +298,8 @@ class QuotationService {
                     status: true,
                     totalAmount: true,
                     createdAt: true,
+                    parentQuotationId: true,
+                    revisionReason: true,
                     walkInName: true,
                     walkInMobile: true,
                     walkInEmail: true,
@@ -347,7 +349,14 @@ class QuotationService {
                 lead: true,
                 customer: true,
                 project: true,
-                createdBy: true,
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true,
+                    },
+                },
                 payment: {
                     include: {
                         transactions: {
@@ -368,6 +377,79 @@ class QuotationService {
             throw new app_error_1.AppError("Quotation not found", 404);
         }
         return quotation;
+    }
+    /**
+     * Returns every version in a quotation's revision chain, oldest first.
+     *
+     * `getById` only exposes the immediate parent and children, so it cannot
+     * answer "show me the history" for a quote sitting in the middle of a
+     * v1 -> v2 -> v3 chain. This walks up to the root, then collects the whole
+     * tree back down.
+     */
+    static async getHistory(id) {
+        const quotation = await prisma_1.prisma.quotation.findUnique({
+            where: { id },
+            select: { id: true, parentQuotationId: true },
+        });
+        if (!quotation) {
+            throw new app_error_1.AppError("Quotation not found", 404);
+        }
+        // Walk up to the root. `seen` guards against a parent cycle turning this
+        // into an infinite loop — nothing enforces acyclicity at the DB level.
+        const seen = new Set([quotation.id]);
+        let root = quotation;
+        while (root.parentQuotationId && !seen.has(root.parentQuotationId)) {
+            const parent = await prisma_1.prisma.quotation.findUnique({
+                where: { id: root.parentQuotationId },
+                select: { id: true, parentQuotationId: true },
+            });
+            if (!parent)
+                break;
+            seen.add(parent.id);
+            root = parent;
+        }
+        // Collect the chain back down from the root, level by level.
+        const chainIds = [root.id];
+        let frontier = [root.id];
+        while (frontier.length > 0) {
+            const children = await prisma_1.prisma.quotation.findMany({
+                where: { parentQuotationId: { in: frontier } },
+                select: { id: true },
+            });
+            frontier = children
+                .map((child) => child.id)
+                .filter((childId) => !chainIds.includes(childId));
+            chainIds.push(...frontier);
+        }
+        return prisma_1.prisma.quotation.findMany({
+            where: { id: { in: chainIds } },
+            orderBy: { version: "asc" },
+            select: {
+                id: true,
+                quotationNumber: true,
+                version: true,
+                status: true,
+                phase: true,
+                subtotal: true,
+                discountAmount: true,
+                totalAmount: true,
+                revisionReason: true,
+                parentQuotationId: true,
+                notes: true,
+                validUntil: true,
+                createdAt: true,
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                        role: true,
+                    },
+                },
+                _count: {
+                    select: { items: true },
+                },
+            },
+        });
     }
     static async getProjectQuotations(projectId) {
         return prisma_1.prisma.quotation.findMany({

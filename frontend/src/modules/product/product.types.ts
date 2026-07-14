@@ -14,6 +14,17 @@ export interface Product {
   category?: string;
 
   unit?: string;
+
+  isActive?: boolean;
+
+  /** Stock last pulled from Tally; 0 until a sync has run. */
+  tallyStockQty?: number;
+
+  tallyUpdatedAt?: string | null;
+
+  createdAt?: string;
+
+  updatedAt?: string;
 }
 
 export interface ProductListResponse {

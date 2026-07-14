@@ -11,6 +11,7 @@ router.get("/", (0, async_handler_1.asyncHandler)(quotation_controller_1.Quotati
 router.get("/project/:projectId", (0, async_handler_1.asyncHandler)(quotation_controller_1.QuotationController.getProjectQuotations));
 router.post("/:id/revision", (0, async_handler_1.asyncHandler)(quotation_controller_1.QuotationController.createRevision));
 router.patch("/:id/status", (0, async_handler_1.asyncHandler)(quotation_controller_1.QuotationController.updateStatus));
+router.get("/:id/history", (0, async_handler_1.asyncHandler)(quotation_controller_1.QuotationController.getHistory));
 router.get("/:id", (0, async_handler_1.asyncHandler)(quotation_controller_1.QuotationController.getById));
 exports.default = router;
 //# sourceMappingURL=quotation.routes.js.map

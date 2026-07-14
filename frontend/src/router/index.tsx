@@ -13,6 +13,9 @@ import LeadPage from "../pages/LeadPage";
 import LoginPage from "../pages/LoginPage";
 import ProjectDetailsPage from "../pages/ProjectDetailsPage";
 import ProjectPage from "../pages/ProjectPage";
+import ProductPage from "../pages/ProductPage";
+import QuotationHistoryListPage from "../pages/QuotationHistoryListPage";
+import QuotationHistoryPage from "../pages/QuotationHistoryPage";
 import QuotationPage from "../pages/QuotationPage";
 import ReminderPage from "../pages/ReminderPage";
 import TaskPage from "../pages/TaskPage";
@@ -58,7 +61,19 @@ export default function AppRouter() {
 
           <Route path="/reminders" element={<ReminderPage />} />
 
+          <Route path="/products" element={<ProductPage />} />
+
           <Route path="/quotations" element={<QuotationPage />} />
+
+          <Route
+            path="/quotations/history"
+            element={<QuotationHistoryListPage />}
+          />
+
+          <Route
+            path="/quotations/:id/history"
+            element={<QuotationHistoryPage />}
+          />
 
           <Route path="/tasks" element={<TaskPage />} />
 

@@ -123,6 +123,72 @@ export interface Quotation {
   project?: any;
 }
 
+/** A row from `GET /quotations` — a lean projection, not the full Quotation. */
+export interface QuotationListItem {
+  id: string;
+
+  quotationNumber: string;
+
+  type: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
+
+  phase?: ProjectPhase | null;
+
+  version: number;
+
+  status: QuotationStatus;
+
+  totalAmount: number | string;
+
+  createdAt: string;
+
+  parentQuotationId?: string | null;
+
+  revisionReason?: string | null;
+
+  walkInName?: string;
+
+  walkInMobile?: string;
+
+  lead?: { id: string; name: string; mobile: string } | null;
+
+  customer?: { id: string; name: string; mobile: string } | null;
+
+  project?: { id: string; projectName: string } | null;
+}
+
+/** One entry in a revision chain, from `GET /quotations/:id/history`. */
+export interface QuotationVersion {
+  id: string;
+
+  quotationNumber: string;
+
+  version: number;
+
+  status: QuotationStatus;
+
+  phase?: ProjectPhase | null;
+
+  subtotal: number | string;
+
+  discountAmount?: number | string | null;
+
+  totalAmount: number | string;
+
+  revisionReason?: string | null;
+
+  parentQuotationId?: string | null;
+
+  notes?: string | null;
+
+  validUntil?: string | null;
+
+  createdAt: string;
+
+  createdBy?: { id: string; name: string; role: string } | null;
+
+  _count?: { items: number };
+}
+
 export interface QuotationTotals {
   subtotal: number;
   totalAmount: number;

@@ -22,6 +22,8 @@ router.post("/:id/revision", asyncHandler(QuotationController.createRevision));
 
 router.patch("/:id/status", asyncHandler(QuotationController.updateStatus));
 
+router.get("/:id/history", asyncHandler(QuotationController.getHistory));
+
 router.get("/:id", asyncHandler(QuotationController.getById));
 
 export default router;

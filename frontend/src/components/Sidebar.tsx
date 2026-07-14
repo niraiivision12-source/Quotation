@@ -1,8 +1,10 @@
 import {
   Bell,
   Briefcase,
+  History,
   LayoutDashboard,
   ListTodo,
+  Package,
   ScrollText,
   UserRound,
   Users,
@@ -23,7 +25,19 @@ const NAV_ITEMS = [
   { to: "/projects", label: "Pipelines", icon: <Briefcase size={18} /> },
   { to: "/leads", label: "Leads", icon: <Users size={18} /> },
   { to: "/reminders", label: "Reminders", icon: <Bell size={18} /> },
-  { to: "/quotations", label: "Quotations", icon: <ScrollText size={18} /> },
+  { to: "/products", label: "Products", icon: <Package size={18} /> },
+  // `exact` so this stays unlit while /quotations/history is open.
+  {
+    to: "/quotations",
+    label: "Quotations",
+    icon: <ScrollText size={18} />,
+    exact: true,
+  },
+  {
+    to: "/quotations/history",
+    label: "Quotation History",
+    icon: <History size={18} />,
+  },
   { to: "/payments", label: "Payments", icon: <CreditCard size={18} /> },
   { to: "/tasks", label: "Tasks", icon: <ListTodo size={18} /> },
   { to: "/users", label: "Users", icon: <UserRound size={18} /> },

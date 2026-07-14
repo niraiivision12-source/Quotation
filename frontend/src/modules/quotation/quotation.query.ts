@@ -4,6 +4,7 @@ import {
   createQuotation,
   createRevision,
   getQuotation,
+  getQuotationHistory,
   getQuotations,
   updateQuotationStatus,
   getProjectQuotations,
@@ -23,6 +24,15 @@ export function useQuotation(id?: string) {
     enabled: !!id,
   });
 }
+
+export function useQuotationHistory(id?: string) {
+  return useQuery({
+    queryKey: ["quotation", id, "history"],
+    queryFn: () => getQuotationHistory(id!),
+    enabled: !!id,
+  });
+}
+
 
 export function useCreateQuotation() {
   const qc = useQueryClient();

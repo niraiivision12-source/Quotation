@@ -1,6 +1,10 @@
 import { api } from "../../lib/axios";
 
-import type { CreateQuotationDTO, Quotation } from "./quotation.types";
+import type {
+  CreateQuotationDTO,
+  Quotation,
+  QuotationVersion,
+} from "./quotation.types";
 
 export const createQuotation = async (data: CreateQuotationDTO) => {
   const response = await api.post("/quotations", data);
@@ -24,6 +28,15 @@ export const getQuotation = async (id: string): Promise<Quotation> => {
 
   return response.data.data;
 };
+
+export const getQuotationHistory = async (
+  id: string,
+): Promise<QuotationVersion[]> => {
+  const response = await api.get(`/quotations/${id}/history`);
+
+  return response.data.data;
+};
+
 
 export const updateQuotationStatus = async (id: string, status: string) => {
   const response = await api.patch(`/quotations/${id}/status`, { status });

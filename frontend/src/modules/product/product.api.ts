@@ -15,3 +15,20 @@ export const getProducts = async (
 
   return response.data.data;
 };
+
+/** Paginated variant, for the Products page. */
+export const getProductList = async (
+  page = 1,
+  limit = 25,
+  search = "",
+): Promise<ProductListResponse> => {
+  const response = await api.get("/products", {
+    params: {
+      page,
+      limit,
+      search: search || undefined,
+    },
+  });
+
+  return response.data.data;
+};

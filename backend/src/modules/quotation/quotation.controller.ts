@@ -55,6 +55,16 @@ export class QuotationController {
     });
   }
 
+  static async getHistory(req: Request, res: Response) {
+    const result = await QuotationService.getHistory(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  }
+
+
   static async getProjectQuotations(req: Request, res: Response) {
     const result = await QuotationService.getProjectQuotations(
       req.params.projectId as string,
