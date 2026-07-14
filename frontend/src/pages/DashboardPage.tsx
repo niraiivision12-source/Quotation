@@ -133,7 +133,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 py-6">
+    <div className="space-y-6">
       {/* Top Header Block */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b pb-5">
         <div>
