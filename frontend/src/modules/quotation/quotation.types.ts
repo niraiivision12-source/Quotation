@@ -16,6 +16,11 @@ export interface QuotationItemForm {
 
   sku?: string;
 
+  /** Carried from the picked product so the row can confirm the choice. */
+  unit?: string;
+
+  stockQty?: number;
+
   quantity: number;
 
   costPrice: number;

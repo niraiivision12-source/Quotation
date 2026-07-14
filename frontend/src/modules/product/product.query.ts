@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { getProductList, getProducts } from "./product.api";
 
@@ -7,6 +7,14 @@ export function useProducts(search = "") {
     queryKey: ["products", search],
 
     queryFn: () => getProducts(search),
+
+    // Hold the previous results while the next search is in flight, so the
+    // dropdown doesn't blank out between keystrokes.
+    placeholderData: keepPreviousData,
+
+    // The catalogue barely changes during a quotation; don't refetch it for
+    // every row that mounts.
+    staleTime: 5 * 60 * 1000,
   });
 }
 

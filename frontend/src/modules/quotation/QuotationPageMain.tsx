@@ -50,6 +50,8 @@ export default function QuotationPageMain() {
   const [discountInput, setDiscountInput] = useState("0");
   const isDiscountFocusedRef = useRef(false);
   const [items, setItems] = useState<QuotationItemForm[]>([createEmptyQuotationRow()]);
+
+  const [focusRowId, setFocusRowId] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [billingUserId, setBillingUserId] = useState("");
   const [previewPayload, setPreviewPayload] = useState<CreateQuotationDTO | null>(null);
@@ -144,7 +146,15 @@ export default function QuotationPageMain() {
     [],
   );
 
-  function handleAddRow() { setItems((prev) => [...prev, createEmptyQuotationRow()]); }
+  function handleAddRow() {
+    const row = createEmptyQuotationRow();
+
+    setItems((prev) => [...prev, row]);
+
+    // The new row takes focus, so items can be added without the mouse.
+    setFocusRowId(row.id);
+  }
+
   function handleRemoveRow(id: string) { setItems((prev) => prev.filter((item) => item.id !== id)); }
   function handleUpdateRow(id: string, updates: Partial<QuotationItemForm>) {
     setItems((prev) => prev.map((item) => item.id === id ? { ...item, ...updates } : item));
@@ -320,9 +330,18 @@ export default function QuotationPageMain() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        {/* Left — info card */}
-        <div className="min-w-0">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+        {/* Left — items first. Adding products is the main job on this page,
+            so it must not sit below the fold. Lead/customer details follow. */}
+        <div className="min-w-0 space-y-5">
+          <QuotationItemsTable
+            items={items}
+            onUpdate={handleUpdateRow}
+            onRemove={handleRemoveRow}
+            onAddRow={handleAddRow}
+            focusRowId={focusRowId}
+          />
+
           <QuotationInfoCard
             quotationType={quotationType}
             onQuotationTypeChange={handleQuotationTypeChange}
@@ -350,8 +369,9 @@ export default function QuotationPageMain() {
           />
         </div>
 
-        {/* Right — summary card */}
-        <div className="min-w-0 rounded-xl border bg-white p-5">
+        {/* Right — summary. Sticky, so the running total stays on screen while
+            you work down the item list. */}
+        <div className="min-w-0 rounded-xl border bg-white p-5 xl:sticky xl:top-4">
           <h2 className="text-base font-semibold mb-0.5">Summary</h2>
           <p className="text-sm text-muted-foreground mb-5">Owner, totals &amp; action</p>
 
@@ -430,15 +450,6 @@ export default function QuotationPageMain() {
           </div>
         </div>
 
-        {/* Bottom — items table (full width) */}
-        <div className="min-w-0 xl:col-span-2">
-          <QuotationItemsTable
-            items={items}
-            onUpdate={handleUpdateRow}
-            onRemove={handleRemoveRow}
-            onAddRow={handleAddRow}
-          />
-        </div>
       </div>
 
       <QuotationPreviewDialog

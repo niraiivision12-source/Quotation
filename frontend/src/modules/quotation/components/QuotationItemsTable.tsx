@@ -13,6 +13,9 @@ interface Props {
   onRemove: (id: string) => void;
 
   onAddRow: () => void;
+
+  /** Id of the row just added, so it can take focus. */
+  focusRowId?: string | null;
 }
 
 export default function QuotationItemsTable({
@@ -20,7 +23,18 @@ export default function QuotationItemsTable({
   onUpdate,
   onRemove,
   onAddRow,
+  focusRowId,
 }: Props) {
+  // A product on two lines is nearly always a mistake — flag it rather than
+  // block it, since a genuine reason (different margin) does exist.
+  const duplicateProductIds = new Set(
+    items
+      .map((item) => item.productId)
+      .filter(
+        (productId, index, all) =>
+          productId && all.indexOf(productId) !== index,
+      ),
+  );
   useEffect(() => {
     function handleShortcut(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -91,6 +105,12 @@ export default function QuotationItemsTable({
                     item={item}
                     onUpdate={onUpdate}
                     onRemove={onRemove}
+                    onAddRow={onAddRow}
+                    shouldFocus={item.id === focusRowId}
+                    isDuplicate={
+                      !!item.productId &&
+                      duplicateProductIds.has(item.productId)
+                    }
                   />
                 ))
               )}

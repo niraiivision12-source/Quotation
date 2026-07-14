@@ -18,12 +18,30 @@ interface Props {
   onUpdate: (id: string, updates: Partial<QuotationItemForm>) => void;
 
   onRemove: (id: string) => void;
+
+  /** Adding from the last row starts the next one — keyboard-only entry. */
+  onAddRow: () => void;
+
+  /** This row was just created; put the cursor in its product search. */
+  shouldFocus?: boolean;
+
+  /** The same product is already on another line. */
+  isDuplicate?: boolean;
 }
 
-export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
+export default function QuotationRow({
+  item,
+  onUpdate,
+  onRemove,
+  onAddRow,
+  shouldFocus,
+  isDuplicate,
+}: Props) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const quantityRef = useRef<HTMLInputElement | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -35,7 +53,14 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
     width: 0,
   });
 
-  const [debouncedSearch, setDebouncedSearch] = useState(item.search || "");
+  // What the user has actually typed, kept separate from `item.search` (the
+  // text shown in the input). Selecting a product overwrites `item.search`
+  // with the product name — if that fed the query, picking a product would
+  // immediately refire the search for the thing you just picked, blanking the
+  // list mid-click. Only typing moves this.
+  const [query, setQuery] = useState("");
+
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
   const [costPriceInput, setCostPriceInput] = useState(String(item.costPrice));
 
@@ -47,14 +72,23 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
     null,
   );
 
-  // fetch products
-  const { data } = useProducts(debouncedSearch);
+  // A freshly added row lands with the cursor already in its search box, so
+  // you can add several items without reaching for the mouse.
+  useEffect(() => {
+    if (shouldFocus) {
+      inputRef.current?.focus();
+    }
+  }, [shouldFocus]);
+
+  // Every row starts on the empty query, so they all share one cache entry
+  // instead of each firing its own request.
+  const { data } = useProducts(debouncedQuery);
 
   // filter products
   const filteredProducts = useMemo(() => {
     const products = data?.items ?? [];
 
-    const search = debouncedSearch.toLowerCase();
+    const search = debouncedQuery.toLowerCase();
 
     if (!search.trim()) {
       return products.slice(0, 20);
@@ -68,29 +102,36 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
         );
       })
       .slice(0, 20);
-  }, [data?.items, debouncedSearch]);
+  }, [data?.items, debouncedQuery]);
 
-  // dropdown position tracking
+  // Position the portalled dropdown under its input. This used to run on an
+  // unbroken requestAnimationFrame loop, re-rendering every frame the dropdown
+  // was open; now it only recomputes when something can actually move it.
   useEffect(() => {
-    let frameId: number;
+    if (!item.showDropdown) return;
 
     function updatePosition() {
-      if (item.showDropdown && inputRef.current) {
-        const rect = inputRef.current.getBoundingClientRect();
+      if (!inputRef.current) return;
 
-        setDropdownPosition({
-          top: rect.bottom + window.scrollY + 4,
-          left: rect.left + window.scrollX,
-          width: rect.width,
-        });
-      }
+      const rect = inputRef.current.getBoundingClientRect();
 
-      frameId = requestAnimationFrame(updatePosition);
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
     }
 
     updatePosition();
 
-    return () => cancelAnimationFrame(frameId);
+    // Capture phase, so scrolling any ancestor container is caught too.
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
   }, [item.showDropdown]);
 
   // click outside
@@ -117,12 +158,12 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      setDebouncedSearch(item.search || "");
-      setSelectedIndex(0); // ✅ reset here instead
+      setDebouncedQuery(query);
+      setSelectedIndex(0);
     }, 200);
 
     return () => clearTimeout(timeout);
-  }, [item.search]);
+  }, [query]);
 
   useEffect(() => {
     if (activeNumberFieldRef.current === "cost") return;
@@ -174,6 +215,8 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
       productId: product.id,
       productName: product.name,
       sku: product.sku,
+      unit: product.unit,
+      stockQty: product.stockQty,
 
       search: product.name,
       showDropdown: false,
@@ -181,6 +224,13 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
       costPrice,
       sellingPrice,
       totalPrice,
+    });
+
+    // Quantity is the only thing left to decide, so go straight there and
+    // select the value — typing overwrites it instead of appending to "1".
+    requestAnimationFrame(() => {
+      quantityRef.current?.focus();
+      quantityRef.current?.select();
     });
   }
 
@@ -273,6 +323,9 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
     }
   }
 
+  const overStock =
+    item.stockQty !== undefined && item.quantity > item.stockQty;
+
   return (
     <tr className="border-b">
       {/* PRODUCT */}
@@ -281,22 +334,62 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
           <input
             ref={inputRef}
             value={item.search || ""}
-            placeholder="Search product..."
-            className="w-full rounded-xl border px-3 py-2 text-sm"
+            placeholder="Search product by name or SKU..."
+            className={`w-full rounded-xl border px-3 py-2 text-sm ${
+              isDuplicate ? "border-amber-400 bg-amber-50/50" : ""
+            }`}
             onFocus={() =>
               onUpdate(item.id, {
                 showDropdown: true,
               })
             }
             onKeyDown={handleKeyDown}
-            onChange={(e) =>
+            onChange={(e) => {
+              // Typing is the only thing that moves the search query.
+              setQuery(e.target.value);
+
               onUpdate(item.id, {
                 search: e.target.value,
                 showDropdown: true,
-              })
-            }
+              });
+            }}
           />
         </div>
+
+        {/* Confirms what was actually picked, without opening the dropdown. */}
+        {item.productId && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className="rounded border bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
+              {item.sku}
+            </span>
+
+            {item.unit && (
+              <span className="text-[10px] text-muted-foreground">
+                per {item.unit}
+              </span>
+            )}
+
+            {item.stockQty !== undefined && (
+              <span
+                className={`text-[10px] font-medium ${
+                  item.stockQty <= 0
+                    ? "text-rose-600"
+                    : item.stockQty < 20
+                      ? "text-amber-600"
+                      : "text-emerald-600"
+                }`}
+              >
+                {item.stockQty} in stock
+              </span>
+            )}
+
+            {isDuplicate && (
+              <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                already on another line
+              </span>
+            )}
+          </div>
+        )}
 
         {item.showDropdown &&
           createPortal(
@@ -319,22 +412,53 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
                     No products found
                   </div>
                 ) : (
-                  filteredProducts.map((product, index) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      className={`w-full p-3 text-left ${
-                        index === selectedIndex
-                          ? "bg-black text-white"
-                          : "hover:bg-gray-50"
-                      }`}
-                      onMouseEnter={() => setSelectedIndex(index)}
-                      onClick={() => selectProduct(product)}
-                    >
-                      <div className="font-medium">{product.name}</div>
-                      <div className="text-xs">SKU: {product.sku}</div>
-                    </button>
-                  ))
+                  filteredProducts.map((product, index) => {
+                    const isActive = index === selectedIndex;
+
+                    return (
+                      <button
+                        key={product.id}
+                        type="button"
+                        className={`flex w-full items-center justify-between gap-3 p-3 text-left ${
+                          isActive ? "bg-black text-white" : "hover:bg-gray-50"
+                        }`}
+                        onMouseEnter={() => setSelectedIndex(index)}
+                        onClick={() => selectProduct(product)}
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium">
+                            {product.name}
+                          </div>
+                          <div
+                            className={`font-mono text-[11px] ${
+                              isActive ? "text-gray-300" : "text-gray-500"
+                            }`}
+                          >
+                            {product.sku}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right">
+                          <div className="text-sm font-semibold">
+                            ₹{Number(product.costPrice).toLocaleString("en-IN")}
+                          </div>
+                          <div
+                            className={`text-[11px] ${
+                              isActive
+                                ? "text-gray-300"
+                                : product.stockQty <= 0
+                                  ? "text-rose-600"
+                                  : product.stockQty < 20
+                                    ? "text-amber-600"
+                                    : "text-gray-500"
+                            }`}
+                          >
+                            {product.stockQty} in stock
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </div>,
@@ -376,19 +500,36 @@ export default function QuotationRow({ item, onUpdate, onRemove }: Props) {
       </td>
 
       {/* QUANTITY */}
-      <td className="w-28 p-3">
+      <td className="w-28 p-3 align-top">
         <input
+          ref={quantityRef}
           type="number"
+          min={1}
           value={quantityInput}
           className="w-full rounded border p-2"
           onFocus={() => handleNumberFocus("quantity")}
           onBlur={() => handleNumberBlur("quantity")}
           onChange={handleQuantityChange}
+          onKeyDown={(e) => {
+            // Enter here finishes the line and opens the next one.
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onAddRow();
+            }
+          }}
         />
+
+        {overStock && (
+          <p className="mt-1 text-[10px] font-medium text-amber-600">
+            Only {item.stockQty} in stock
+          </p>
+        )}
       </td>
 
       {/* TOTAL */}
-      <td className="w-40 p-3 font-semibold">{item.totalPrice.toFixed(2)}</td>
+      <td className="w-40 p-3 align-top font-semibold">
+        ₹{item.totalPrice.toFixed(2)}
+      </td>
 
       {/* DELETE */}
       <td className="w-20 p-3">
