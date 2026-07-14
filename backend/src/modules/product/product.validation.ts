@@ -11,10 +11,20 @@ export const createProductSchema = z.object({
 
   unit: z.string().optional(),
 
-  costPrice: z.coerce.number().positive(),
+  costPrice: z.coerce.number().positive().optional().nullable(),
+
+  mrp: z.coerce.number().positive().optional().nullable(),
 
   stockQty: z.coerce.number().int().min(0),
-});
+}).refine(
+  (data) => 
+    (data.costPrice !== undefined && data.costPrice !== null && data.costPrice > 0) || 
+    (data.mrp !== undefined && data.mrp !== null && data.mrp > 0),
+  {
+    message: "Either Cost Price or MRP must be a positive number",
+    path: ["costPrice"],
+  }
+);
 
 export const updateProductSchema = z.object({
   sku: z.string().min(2).optional(),
@@ -27,7 +37,9 @@ export const updateProductSchema = z.object({
 
   unit: z.string().optional().nullable(),
 
-  costPrice: z.coerce.number().positive().optional(),
+  costPrice: z.coerce.number().positive().optional().nullable(),
+
+  mrp: z.coerce.number().positive().optional().nullable(),
 
   stockQty: z.coerce.number().int().min(0).optional(),
 });

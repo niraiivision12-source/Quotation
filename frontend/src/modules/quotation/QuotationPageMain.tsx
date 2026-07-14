@@ -98,8 +98,10 @@ export default function QuotationPageMain() {
           productName: item.product?.name || "",
           sku: item.product?.sku || "",
           quantity: item.quantity,
-          costPrice: Number(item.costPrice),
-          marginPercent: Number(item.marginPercent),
+          costPrice: item.costPrice ? Number(item.costPrice) : undefined,
+          marginPercent: item.marginPercent ? Number(item.marginPercent) : undefined,
+          mrp: item.mrp ? Number(item.mrp) : undefined,
+          discountPercent: item.discountPercent ? Number(item.discountPercent) : undefined,
           sellingPrice: Number(item.sellingPrice),
           totalPrice: Number(item.totalPrice),
           search: item.product?.name || "",
@@ -251,7 +253,8 @@ export default function QuotationPageMain() {
       items: validItems.map((item) => ({
         productId: item.productId!,
         quantity: item.quantity,
-        marginPercent: item.marginPercent,
+        marginPercent: item.marginPercent !== undefined ? item.marginPercent : undefined,
+        discountPercent: item.discountPercent !== undefined ? item.discountPercent : undefined,
       })),
     } satisfies CreateQuotationDTO;
   }

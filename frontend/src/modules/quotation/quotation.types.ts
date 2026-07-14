@@ -23,9 +23,13 @@ export interface QuotationItemForm {
 
   quantity: number;
 
-  costPrice: number;
+  costPrice?: number;
 
-  marginPercent: number;
+  marginPercent?: number;
+
+  mrp?: number;
+
+  discountPercent?: number;
 
   sellingPrice: number;
 
@@ -66,7 +70,8 @@ export interface CreateQuotationDTO {
   items: {
     productId: string;
     quantity: number;
-    marginPercent: number;
+    marginPercent?: number | null;
+    discountPercent?: number | null;
   }[];
 
   parentQuotationId?: string;

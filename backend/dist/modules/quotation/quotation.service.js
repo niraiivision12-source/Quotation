@@ -107,34 +107,75 @@ class QuotationService {
             if (!product.isActive) {
                 throw new app_error_1.AppError("Product is inactive", 400);
             }
-            let marginPercent = item.marginPercent;
-            if (marginPercent === 0) {
-                marginPercent = Number(settings.pricingDefaultMargin);
+            const productMRP = product.mrp !== null ? Number(product.mrp) : null;
+            const productCostPrice = product.costPrice !== null ? Number(product.costPrice) : null;
+            let isMRPMethod = false;
+            if (productMRP !== null && productCostPrice === null) {
+                isMRPMethod = true;
             }
-            if (user.role === "SALESMAN") {
-                if (!settings.pricingAllowMarginOverride) {
-                    if (marginPercent !== Number(settings.pricingDefaultMargin)) {
-                        throw new app_error_1.AppError(`Margin overrides are disabled. You must use the default margin of ${settings.pricingDefaultMargin}%`, 400);
-                    }
+            else if (productCostPrice !== null && productMRP === null) {
+                isMRPMethod = false;
+            }
+            else if (productMRP !== null && productCostPrice !== null) {
+                if (item.discountPercent !== null && item.discountPercent !== undefined && item.discountPercent > 0) {
+                    isMRPMethod = true;
+                }
+                else if (item.marginPercent !== null && item.marginPercent !== undefined && item.marginPercent > 0) {
+                    isMRPMethod = false;
                 }
                 else {
-                    if (marginPercent < Number(settings.pricingMinMargin)) {
-                        throw new app_error_1.AppError(`Margin cannot be lower than the minimum allowed margin of ${settings.pricingMinMargin}%`, 400);
-                    }
+                    isMRPMethod = (item.discountPercent !== null && item.discountPercent !== undefined);
                 }
             }
-            const costPrice = Number(product.costPrice);
-            const sellingPrice = costPrice + (costPrice * marginPercent) / 100;
-            const totalPrice = sellingPrice * item.quantity;
-            subtotal += totalPrice;
-            itemData.push({
-                productId: product.id,
-                quantity: item.quantity,
-                costPrice,
-                marginPercent,
-                sellingPrice,
-                totalPrice,
-            });
+            if (isMRPMethod) {
+                const mrp = productMRP;
+                const discountPercent = item.discountPercent ?? 0;
+                const sellingPrice = mrp - (mrp * discountPercent) / 100;
+                const totalPrice = sellingPrice * item.quantity;
+                subtotal += totalPrice;
+                itemData.push({
+                    productId: product.id,
+                    quantity: item.quantity,
+                    mrp,
+                    discountPercent,
+                    costPrice: null,
+                    marginPercent: null,
+                    sellingPrice,
+                    totalPrice,
+                });
+            }
+            else {
+                const costPrice = productCostPrice;
+                let marginPercent = item.marginPercent ?? 0;
+                if (marginPercent === 0) {
+                    marginPercent = Number(settings.pricingDefaultMargin);
+                }
+                if (user.role === "SALESMAN") {
+                    if (!settings.pricingAllowMarginOverride) {
+                        if (marginPercent !== Number(settings.pricingDefaultMargin)) {
+                            throw new app_error_1.AppError(`Margin overrides are disabled. You must use the default margin of ${settings.pricingDefaultMargin}%`, 400);
+                        }
+                    }
+                    else {
+                        if (marginPercent < Number(settings.pricingMinMargin)) {
+                            throw new app_error_1.AppError(`Margin cannot be lower than the minimum allowed margin of ${settings.pricingMinMargin}%`, 400);
+                        }
+                    }
+                }
+                const sellingPrice = costPrice + (costPrice * marginPercent) / 100;
+                const totalPrice = sellingPrice * item.quantity;
+                subtotal += totalPrice;
+                itemData.push({
+                    productId: product.id,
+                    quantity: item.quantity,
+                    costPrice,
+                    marginPercent,
+                    mrp: null,
+                    discountPercent: null,
+                    sellingPrice,
+                    totalPrice,
+                });
+            }
         }
         const discountAmount = data.discountAmount || 0;
         if (user.role === "SALESMAN") {
@@ -726,6 +767,8 @@ class QuotationService {
                     quantity: item.quantity,
                     costPrice: item.costPrice,
                     marginPercent: item.marginPercent,
+                    mrp: item.mrp,
+                    discountPercent: item.discountPercent,
                     sellingPrice: item.sellingPrice,
                     totalPrice: item.totalPrice,
                 })),

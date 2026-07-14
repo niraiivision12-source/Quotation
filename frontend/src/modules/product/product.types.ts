@@ -5,7 +5,9 @@ export interface Product {
 
   name: string;
 
-  costPrice: number;
+  costPrice?: number;
+
+  mrp?: number;
 
   stockQty: number;
 

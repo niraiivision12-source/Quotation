@@ -25,11 +25,13 @@ import type { Product } from "./product.types";
 
 const PAGE_SIZES = [25, 50, 100];
 
-const formatMoney = (value: number | string) =>
-  `₹${Number(value).toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+const formatMoney = (value: number | string | undefined | null) =>
+  value !== undefined && value !== null && Number(value) > 0
+    ? `₹${Number(value).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    : "—";
 
 const formatDate = (value?: string | null) =>
   value
@@ -178,7 +180,20 @@ export default function ProductList() {
                     </TableCell>
 
                     <TableCell className="text-right text-xs font-semibold text-gray-900 tabular-nums whitespace-nowrap">
-                      {formatMoney(product.costPrice)}
+                      {product.costPrice && product.costPrice > 0 ? (
+                        <div>
+                          <span>{formatMoney(product.costPrice)}</span>
+                          {product.mrp && product.mrp > 0 && (
+                            <span className="text-[10px] text-muted-foreground block font-normal">
+                              MRP: {formatMoney(product.mrp)}
+                            </span>
+                          )}
+                        </div>
+                      ) : product.mrp && product.mrp > 0 ? (
+                        <span className="text-violet-700">MRP: {formatMoney(product.mrp)}</span>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
 
                     <TableCell

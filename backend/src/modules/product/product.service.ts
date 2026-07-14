@@ -71,7 +71,8 @@ export class ProductService {
     brand?: string;
     category?: string;
     unit?: string;
-    costPrice: number;
+    costPrice?: number | null;
+    mrp?: number | null;
     stockQty: number;
   }) {
     const exists = await prisma.product.findUnique({
@@ -85,7 +86,16 @@ export class ProductService {
     }
 
     return prisma.product.create({
-      data,
+      data: {
+        sku: data.sku,
+        name: data.name,
+        brand: data.brand,
+        category: data.category,
+        unit: data.unit,
+        costPrice: data.costPrice ?? null,
+        mrp: data.mrp ?? null,
+        stockQty: data.stockQty,
+      },
     });
   }
 
@@ -112,7 +122,8 @@ export class ProductService {
       brand?: string | null;
       category?: string | null;
       unit?: string | null;
-      costPrice?: number;
+      costPrice?: number | null;
+      mrp?: number | null;
       stockQty?: number;
     },
   ) {

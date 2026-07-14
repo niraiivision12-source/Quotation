@@ -72,7 +72,16 @@ class ProductService {
             throw new app_error_1.AppError("SKU already exists", 409);
         }
         return prisma_1.prisma.product.create({
-            data,
+            data: {
+                sku: data.sku,
+                name: data.name,
+                brand: data.brand,
+                category: data.category,
+                unit: data.unit,
+                costPrice: data.costPrice ?? null,
+                mrp: data.mrp ?? null,
+                stockQty: data.stockQty,
+            },
         });
     }
     static async getById(id) {

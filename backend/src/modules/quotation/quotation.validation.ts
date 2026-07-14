@@ -50,7 +50,8 @@ export const createQuotationSchema = z.object({
 
       quantity: z.number().positive(),
 
-      marginPercent: z.number().min(0),
+      marginPercent: z.number().min(0).optional().nullable(),
+      discountPercent: z.number().min(0).optional().nullable(),
     }),
   ),
 

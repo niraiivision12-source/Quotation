@@ -8,6 +8,13 @@ export function calculateSellingPrice(
   return costPrice + (costPrice * marginPercent) / 100;
 }
 
+export function calculateSellingPriceFromMRP(
+  mrp: number,
+  discountPercent: number,
+) {
+  return mrp - (mrp * discountPercent) / 100;
+}
+
 export function calculateTotal(sellingPrice: number, quantity: number) {
   return sellingPrice * quantity;
 }
@@ -21,6 +28,10 @@ export function createEmptyQuotationRow(): QuotationItemForm {
     costPrice: 0,
 
     marginPercent: 0,
+
+    mrp: 0,
+
+    discountPercent: 0,
 
     sellingPrice: 0,
 

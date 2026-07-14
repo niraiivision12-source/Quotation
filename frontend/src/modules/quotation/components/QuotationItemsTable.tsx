@@ -74,13 +74,17 @@ export default function QuotationItemsTable({
               <tr>
                 <th className="p-4 text-left">Product</th>
 
+                <th className="p-4 text-left">Qty</th>
+
                 <th className="p-4 text-left">Cost Price</th>
+
+                <th className="p-4 text-left">MRP</th>
 
                 <th className="p-4 text-left">Margin %</th>
 
-                <th className="p-4 text-left">Selling Price</th>
+                <th className="p-4 text-left">Discount %</th>
 
-                <th className="p-4 text-left">Qty</th>
+                <th className="p-4 text-left">Selling Price</th>
 
                 <th className="p-4 text-left">Total</th>
 
@@ -92,7 +96,7 @@ export default function QuotationItemsTable({
               {items.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     className="p-10 text-center text-muted-foreground"
                   >
                     No items added

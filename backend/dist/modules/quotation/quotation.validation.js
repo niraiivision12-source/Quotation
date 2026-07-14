@@ -28,7 +28,8 @@ exports.createQuotationSchema = zod_1.z.object({
     items: zod_1.z.array(zod_1.z.object({
         productId: zod_1.z.uuid(),
         quantity: zod_1.z.number().positive(),
-        marginPercent: zod_1.z.number().min(0),
+        marginPercent: zod_1.z.number().min(0).optional().nullable(),
+        discountPercent: zod_1.z.number().min(0).optional().nullable(),
     })),
     followUp: followUpSchema,
 }).superRefine((data, ctx) => {

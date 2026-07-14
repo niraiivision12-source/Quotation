@@ -30,8 +30,9 @@ interface Props {
   totalAmount: number;
   isCreating: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm?: () => void;
   onEdit?: () => void;
+  readOnly?: boolean;
 }
 
 export default function QuotationPreviewDialog({
@@ -49,6 +50,7 @@ export default function QuotationPreviewDialog({
   onOpenChange,
   onConfirm,
   onEdit,
+  readOnly = false,
 }: Props) {
   const owner = users.find((user) => user.id === payload?.createdById);
   const validItems = items.filter((item) => item.productId);
@@ -97,8 +99,8 @@ export default function QuotationPreviewDialog({
                   <tr>
                     <th className="p-3 text-left">Product</th>
                     <th className="p-3 text-right">Qty</th>
-                    <th className="p-3 text-right">Margin</th>
-                    <th className="p-3 text-right">Amount</th>
+                    <th className="p-3 text-right">Selling Price</th>
+                    <th className="p-3 text-right">Total Selling Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -108,14 +110,9 @@ export default function QuotationPreviewDialog({
                         <div className="font-medium">
                           {item.productName ?? item.search}
                         </div>
-                        {item.sku && (
-                          <div className="text-xs text-muted-foreground">
-                            {item.sku}
-                          </div>
-                        )}
                       </td>
                       <td className="p-3 text-right">{item.quantity}</td>
-                      <td className="p-3 text-right">{item.marginPercent}%</td>
+                      <td className="p-3 text-right">₹ {item.sellingPrice.toFixed(2)}</td>
                       <td className="p-3 text-right font-medium">
                         ₹ {item.totalPrice.toFixed(2)}
                       </td>
@@ -144,7 +141,7 @@ export default function QuotationPreviewDialog({
 
         <DialogFooter className="flex flex-row justify-between items-center w-full gap-2 sm:gap-0">
           <div>
-            {onEdit && (
+            {!readOnly && onEdit && (
               <Button
                 type="button"
                 onClick={onEdit}
@@ -161,9 +158,9 @@ export default function QuotationPreviewDialog({
               onClick={() => onOpenChange(false)}
               disabled={isCreating}
             >
-              {onEdit ? "Close" : "Back"}
+              {readOnly ? "Close" : onEdit ? "Close" : "Back"}
             </Button>
-            {!onEdit && (
+            {!readOnly && !onEdit && onConfirm && (
               <Button type="button" onClick={onConfirm} disabled={isCreating}>
                 <Check />
                 {isCreating ? "Creating..." : "OK, Create"}

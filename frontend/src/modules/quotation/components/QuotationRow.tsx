@@ -10,7 +10,7 @@ import type { Product } from "../../product/product.types";
 
 import type { QuotationItemForm } from "../quotation.types";
 
-import { calculateSellingPrice, calculateTotal } from "../quotation.utils";
+import { calculateSellingPrice, calculateSellingPriceFromMRP, calculateTotal } from "../quotation.utils";
 
 interface Props {
   item: QuotationItemForm;
@@ -62,13 +62,17 @@ export default function QuotationRow({
 
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
-  const [costPriceInput, setCostPriceInput] = useState(String(item.costPrice));
+  const [costPriceInput, setCostPriceInput] = useState(String(item.costPrice ?? 0));
 
-  const [marginInput, setMarginInput] = useState(String(item.marginPercent));
+  const [marginInput, setMarginInput] = useState(String(item.marginPercent ?? 0));
+
+  const [mrpInput, setMRPInput] = useState(String(item.mrp ?? 0));
+
+  const [discountInput, setDiscountInput] = useState(String(item.discountPercent ?? 0));
 
   const [quantityInput, setQuantityInput] = useState(String(item.quantity));
 
-  const activeNumberFieldRef = useRef<"cost" | "margin" | "quantity" | null>(
+  const activeNumberFieldRef = useRef<"cost" | "margin" | "mrp" | "discount" | "quantity" | null>(
     null,
   );
 
@@ -104,9 +108,7 @@ export default function QuotationRow({
       .slice(0, 20);
   }, [data?.items, debouncedQuery]);
 
-  // Position the portalled dropdown under its input. This used to run on an
-  // unbroken requestAnimationFrame loop, re-rendering every frame the dropdown
-  // was open; now it only recomputes when something can actually move it.
+  // Position the portalled dropdown under its input.
   useEffect(() => {
     if (!item.showDropdown) return;
 
@@ -124,7 +126,6 @@ export default function QuotationRow({
 
     updatePosition();
 
-    // Capture phase, so scrolling any ancestor container is caught too.
     window.addEventListener("scroll", updatePosition, true);
     window.addEventListener("resize", updatePosition);
 
@@ -168,14 +169,26 @@ export default function QuotationRow({
   useEffect(() => {
     if (activeNumberFieldRef.current === "cost") return;
 
-    setCostPriceInput(String(item.costPrice));
+    setCostPriceInput(String(item.costPrice ?? 0));
   }, [item.costPrice]);
 
   useEffect(() => {
     if (activeNumberFieldRef.current === "margin") return;
 
-    setMarginInput(String(item.marginPercent));
+    setMarginInput(String(item.marginPercent ?? 0));
   }, [item.marginPercent]);
+
+  useEffect(() => {
+    if (activeNumberFieldRef.current === "mrp") return;
+
+    setMRPInput(String(item.mrp ?? 0));
+  }, [item.mrp]);
+
+  useEffect(() => {
+    if (activeNumberFieldRef.current === "discount") return;
+
+    setDiscountInput(String(item.discountPercent ?? 0));
+  }, [item.discountPercent]);
 
   useEffect(() => {
     if (activeNumberFieldRef.current === "quantity") return;
@@ -183,11 +196,11 @@ export default function QuotationRow({
     setQuantityInput(String(item.quantity));
   }, [item.quantity]);
 
-  function handleNumberFocus(field: "cost" | "margin" | "quantity") {
+  function handleNumberFocus(field: "cost" | "margin" | "mrp" | "discount" | "quantity") {
     activeNumberFieldRef.current = field;
   }
 
-  function handleNumberBlur(field: "cost" | "margin" | "quantity") {
+  function handleNumberBlur(field: "cost" | "margin" | "mrp" | "discount" | "quantity") {
     activeNumberFieldRef.current = null;
 
     if (field === "cost" && costPriceInput === "") {
@@ -198,6 +211,14 @@ export default function QuotationRow({
       setMarginInput("0");
     }
 
+    if (field === "mrp" && mrpInput === "") {
+      setMRPInput("0");
+    }
+
+    if (field === "discount" && discountInput === "") {
+      setDiscountInput("0");
+    }
+
     if (field === "quantity" && quantityInput === "") {
       setQuantityInput("0");
     }
@@ -205,9 +226,23 @@ export default function QuotationRow({
 
   // PRODUCT SELECT
   function selectProduct(product: Product) {
-    const costPrice = Number(product.costPrice);
+    const hasMrp = product.mrp !== undefined && product.mrp !== null && Number(product.mrp) > 0;
+    
+    let costPrice = 0;
+    let marginPercent = 0;
+    let mrp = 0;
+    let discountPercent = 0;
+    let sellingPrice = 0;
 
-    const sellingPrice = calculateSellingPrice(costPrice, item.marginPercent);
+    if (hasMrp) {
+      mrp = Number(product.mrp);
+      discountPercent = 0;
+      sellingPrice = mrp;
+    } else {
+      costPrice = Number(product.costPrice || 0);
+      marginPercent = item.marginPercent || 10;
+      sellingPrice = calculateSellingPrice(costPrice, marginPercent);
+    }
 
     const totalPrice = calculateTotal(sellingPrice, item.quantity);
 
@@ -222,12 +257,13 @@ export default function QuotationRow({
       showDropdown: false,
 
       costPrice,
+      marginPercent,
+      mrp,
+      discountPercent,
       sellingPrice,
       totalPrice,
     });
 
-    // Quantity is the only thing left to decide, so go straight there and
-    // select the value — typing overwrites it instead of appending to "1".
     requestAnimationFrame(() => {
       quantityRef.current?.focus();
       quantityRef.current?.select();
@@ -242,7 +278,7 @@ export default function QuotationRow({
 
     const costPrice = rawValue === "" ? 0 : Number(rawValue);
 
-    const sellingPrice = calculateSellingPrice(costPrice, item.marginPercent);
+    const sellingPrice = calculateSellingPrice(costPrice, item.marginPercent || 0);
 
     const totalPrice = calculateTotal(sellingPrice, item.quantity);
 
@@ -250,6 +286,8 @@ export default function QuotationRow({
       costPrice,
       sellingPrice,
       totalPrice,
+      mrp: 0,
+      discountPercent: 0,
     });
   }
 
@@ -261,7 +299,7 @@ export default function QuotationRow({
 
     const marginPercent = rawValue === "" ? 0 : Number(rawValue);
 
-    const sellingPrice = calculateSellingPrice(item.costPrice, marginPercent);
+    const sellingPrice = calculateSellingPrice(item.costPrice || 0, marginPercent);
 
     const totalPrice = calculateTotal(sellingPrice, item.quantity);
 
@@ -269,6 +307,50 @@ export default function QuotationRow({
       marginPercent,
       sellingPrice,
       totalPrice,
+      mrp: 0,
+      discountPercent: 0,
+    });
+  }
+
+  // MRP
+  function handleMRPChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const rawValue = e.target.value;
+
+    setMRPInput(rawValue);
+
+    const mrp = rawValue === "" ? 0 : Number(rawValue);
+
+    const sellingPrice = calculateSellingPriceFromMRP(mrp, item.discountPercent || 0);
+
+    const totalPrice = calculateTotal(sellingPrice, item.quantity);
+
+    onUpdate(item.id, {
+      mrp,
+      sellingPrice,
+      totalPrice,
+      costPrice: 0,
+      marginPercent: 0,
+    });
+  }
+
+  // DISCOUNT
+  function handleDiscountChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const rawValue = e.target.value;
+
+    setDiscountInput(rawValue);
+
+    const discountPercent = rawValue === "" ? 0 : Number(rawValue);
+
+    const sellingPrice = calculateSellingPriceFromMRP(item.mrp || 0, discountPercent);
+
+    const totalPrice = calculateTotal(sellingPrice, item.quantity);
+
+    onUpdate(item.id, {
+      discountPercent,
+      sellingPrice,
+      totalPrice,
+      costPrice: 0,
+      marginPercent: 0,
     });
   }
 
@@ -326,15 +408,17 @@ export default function QuotationRow({
   const overStock =
     item.stockQty !== undefined && item.quantity > item.stockQty;
 
+  const isMrpActive = (item.mrp ?? 0) > 0 || (item.discountPercent ?? 0) > 0;
+
   return (
     <tr className="border-b">
       {/* PRODUCT */}
-      <td className="w-[320px] p-3 align-top">
+      <td className="w-[280px] p-3 align-top">
         <div ref={wrapperRef} className="relative">
           <input
             ref={inputRef}
             value={item.search || ""}
-            placeholder="Search product by name or SKU..."
+            placeholder="Search product..."
             className={`w-full rounded-xl border px-3 py-2 text-sm ${
               isDuplicate ? "border-amber-400 bg-amber-50/50" : ""
             }`}
@@ -345,7 +429,6 @@ export default function QuotationRow({
             }
             onKeyDown={handleKeyDown}
             onChange={(e) => {
-              // Typing is the only thing that moves the search query.
               setQuery(e.target.value);
 
               onUpdate(item.id, {
@@ -356,13 +439,8 @@ export default function QuotationRow({
           />
         </div>
 
-        {/* Confirms what was actually picked, without opening the dropdown. */}
         {item.productId && (
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <span className="rounded border bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
-              {item.sku}
-            </span>
-
             {item.unit && (
               <span className="text-[10px] text-muted-foreground">
                 per {item.unit}
@@ -429,18 +507,14 @@ export default function QuotationRow({
                           <div className="truncate text-sm font-medium">
                             {product.name}
                           </div>
-                          <div
-                            className={`font-mono text-[11px] ${
-                              isActive ? "text-gray-300" : "text-gray-500"
-                            }`}
-                          >
-                            {product.sku}
-                          </div>
                         </div>
 
                         <div className="shrink-0 text-right">
                           <div className="text-sm font-semibold">
-                            ₹{Number(product.costPrice).toLocaleString("en-IN")}
+                            ₹{Number(product.mrp || product.costPrice || 0).toLocaleString("en-IN")}
+                            <span className="text-[10px] ml-1 font-normal text-muted-foreground">
+                              {product.mrp ? "(MRP)" : "(Cost)"}
+                            </span>
                           </div>
                           <div
                             className={`text-[11px] ${
@@ -466,52 +540,18 @@ export default function QuotationRow({
           )}
       </td>
 
-      {/* COST PRICE */}
-      <td className="w-36 p-3">
-        <input
-          type="number"
-          value={costPriceInput}
-          className="w-full rounded border p-2"
-          onFocus={() => handleNumberFocus("cost")}
-          onBlur={() => handleNumberBlur("cost")}
-          onChange={handleCostPriceChange}
-        />
-      </td>
-
-      {/* MARGIN */}
-      <td className="w-32 p-3">
-        <input
-          type="number"
-          value={marginInput}
-          className="w-full rounded border p-2"
-          onFocus={() => handleNumberFocus("margin")}
-          onBlur={() => handleNumberBlur("margin")}
-          onChange={handleMarginChange}
-        />
-      </td>
-
-      {/* SELLING PRICE */}
-      <td className="w-36 p-3">
-        <input
-          value={item.sellingPrice}
-          readOnly
-          className="w-full rounded border bg-gray-50 p-2"
-        />
-      </td>
-
       {/* QUANTITY */}
-      <td className="w-28 p-3 align-top">
+      <td className="w-24 p-3 align-top">
         <input
           ref={quantityRef}
           type="number"
           min={1}
           value={quantityInput}
-          className="w-full rounded border p-2"
+          className="w-full rounded border p-2 text-sm"
           onFocus={() => handleNumberFocus("quantity")}
           onBlur={() => handleNumberBlur("quantity")}
           onChange={handleQuantityChange}
           onKeyDown={(e) => {
-            // Enter here finishes the line and opens the next one.
             if (e.key === "Enter") {
               e.preventDefault();
               onAddRow();
@@ -526,13 +566,78 @@ export default function QuotationRow({
         )}
       </td>
 
+      {/* COST PRICE */}
+      <td className="w-28 p-3 align-top">
+        <input
+          type="number"
+          value={costPriceInput}
+          className={`w-full rounded border p-2 text-sm transition-colors ${
+            isMrpActive ? "bg-slate-50 text-slate-400 opacity-60" : "bg-white text-slate-900"
+          }`}
+          onFocus={() => handleNumberFocus("cost")}
+          onBlur={() => handleNumberBlur("cost")}
+          onChange={handleCostPriceChange}
+        />
+      </td>
+
+      {/* MRP */}
+      <td className="w-28 p-3 align-top">
+        <input
+          type="number"
+          value={mrpInput}
+          className={`w-full rounded border p-2 text-sm transition-colors ${
+            !isMrpActive ? "bg-slate-50 text-slate-400 opacity-60" : "bg-white text-slate-900"
+          }`}
+          onFocus={() => handleNumberFocus("mrp")}
+          onBlur={() => handleNumberBlur("mrp")}
+          onChange={handleMRPChange}
+        />
+      </td>
+
+      {/* MARGIN % */}
+      <td className="w-24 p-3 align-top">
+        <input
+          type="number"
+          value={marginInput}
+          className={`w-full rounded border p-2 text-sm transition-colors ${
+            isMrpActive ? "bg-slate-50 text-slate-400 opacity-60" : "bg-white text-slate-900"
+          }`}
+          onFocus={() => handleNumberFocus("margin")}
+          onBlur={() => handleNumberBlur("margin")}
+          onChange={handleMarginChange}
+        />
+      </td>
+
+      {/* DISCOUNT % */}
+      <td className="w-24 p-3 align-top">
+        <input
+          type="number"
+          value={discountInput}
+          className={`w-full rounded border p-2 text-sm transition-colors ${
+            !isMrpActive ? "bg-slate-50 text-slate-400 opacity-60" : "bg-white text-slate-900"
+          }`}
+          onFocus={() => handleNumberFocus("discount")}
+          onBlur={() => handleNumberBlur("discount")}
+          onChange={handleDiscountChange}
+        />
+      </td>
+
+      {/* SELLING PRICE */}
+      <td className="w-28 p-3 align-top">
+        <input
+          value={item.sellingPrice}
+          readOnly
+          className="w-full rounded border bg-gray-50 p-2 text-sm"
+        />
+      </td>
+
       {/* TOTAL */}
-      <td className="w-40 p-3 align-top font-semibold">
+      <td className="w-32 p-3 align-top font-semibold">
         ₹{item.totalPrice.toFixed(2)}
       </td>
 
       {/* DELETE */}
-      <td className="w-20 p-3">
+      <td className="w-16 p-3 align-top">
         <button
           type="button"
           className="text-red-500 hover:bg-red-50 p-2 rounded"

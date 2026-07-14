@@ -178,14 +178,13 @@ export function downloadQuotationPDF({
     .map((item) => [
       item.productName ?? item.search,
       item.quantity.toString(),
-      `${item.marginPercent}%`,
       `₹ ${item.sellingPrice.toFixed(2)}`,
       `₹ ${item.totalPrice.toFixed(2)}`,
     ]);
 
   autoTable(doc, {
     startY: startTableY,
-    head: [["Product Description", "Qty", "Margin %", "Unit Rate", "Amount"]],
+    head: [["Product Description", "Qty", "Selling Price", "Total Selling Price"]],
     body: rows,
     styles: {
       fontSize: 9.5,
@@ -198,9 +197,8 @@ export function downloadQuotationPDF({
     },
     columnStyles: {
       1: { halign: "center" },
-      2: { halign: "center" },
+      2: { halign: "right" },
       3: { halign: "right" },
-      4: { halign: "right" },
     },
   });
 

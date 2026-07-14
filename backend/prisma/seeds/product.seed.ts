@@ -62,6 +62,9 @@ const products = [
   { sku: "FAN-EXH-6IN", name: "Exhaust Fan 6 Inch", brand: "Havells", category: "FANS", costPrice: 650, unit: "piece" },
   { sku: "FAN-EXH-9IN", name: "Exhaust Fan 9 Inch", brand: "Havells", category: "FANS", costPrice: 900, unit: "piece" },
   { sku: "FAN-SPEED-REG", name: "Fan Speed Regulator (Step)", brand: "Anchor", category: "FANS", costPrice: 85, unit: "piece" },
+  { sku: "TEST-MRP-ONLY", name: "Test MRP Only Product", brand: "Generic", category: "LIGHTS", mrp: 200, unit: "piece" },
+  { sku: "TEST-COST-ONLY", name: "Test Cost Only Product", brand: "Generic", category: "FANS", costPrice: 150, unit: "piece" },
+  { sku: "TEST-BOTH-PRICING", name: "Test Both Pricing Product", brand: "Generic", category: "SWITCHES", costPrice: 120, mrp: 180, unit: "piece" },
 ];
 
 async function main() {
@@ -85,7 +88,8 @@ async function main() {
         name: product.name,
         brand: product.brand,
         category: product.category,
-        costPrice: product.costPrice,
+        costPrice: product.costPrice ?? null,
+        mrp: (product as any).mrp ?? null,
         unit: product.unit,
         stockQty: 0,
       },
