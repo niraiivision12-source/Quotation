@@ -25,3 +25,11 @@ export function useProductList(page = 1, limit = 25, search = "") {
     queryFn: () => getProductList(page, limit, search),
   });
 }
+
+export function useAllProducts() {
+  return useQuery({
+    queryKey: ["products", "all"],
+    queryFn: () => getProducts("", 20000),
+    staleTime: 10 * 60 * 1000,
+  });
+}

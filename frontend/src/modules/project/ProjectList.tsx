@@ -1,5 +1,5 @@
 import { Lightbulb, MapPin, Phone, Star, Wind, Wrench, Zap, ToggleLeft } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ import type { Lead } from "../lead/lead.types";
 import CreateProjectDialog from "./CreateProjectDialog";
 import { useProjects, useUpdateProjectPhase } from "./project.query";
 import type { Project } from "./project.types";
+import { useFuzzySearch } from "../../hooks/useFuzzySearch";
 
 const KANBAN_COLUMNS: { phase: string; label: string; headerClass: string; icon: React.ReactNode }[] = [
   { phase: "NEW_LEAD",          label: "New Lead",          headerClass: "bg-pink-100 text-pink-700",     icon: <Star size={14} /> },
@@ -177,13 +178,35 @@ export default function ProjectList() {
     targetPhaseLabel: string;
   } | null>(null);
 
-  const { data: allData } = useProjects(1, search, 200);
-  const { data: leadsData } = useLeads(1, search, { status: "NEW" });
-  const updatePhaseMutation = useUpdateProjectPhase();
+  const { data: rawProjectsData } = useProjects(1, "", 1000);
+  const projectsList = rawProjectsData?.items ?? [];
 
-  const activeProjects = (allData?.items ?? []).filter(
+  const { results: searchedProjects } = useFuzzySearch<Project>({
+    items: projectsList,
+    keys: ["projectName", "location", "currentPhase", "status"],
+    searchQuery: search,
+  });
+
+  const activeProjects = searchedProjects.filter(
     (p) => !["COMPLETED", "CLOSED_WITH_SALE", "CLOSED_WITHOUT_SALE", "CANCELLED"].includes(p.status)
   );
+
+  const { data: rawLeadsData } = useLeads(1, "", { status: "NEW" }, 1000);
+  const leadsList = rawLeadsData?.items ?? [];
+
+  const { results: leadsDataItems } = useFuzzySearch<Lead>({
+    items: leadsList,
+    keys: ["name", "mobile", "email", "status", "notes", "city"],
+    searchQuery: search,
+  });
+
+  const leadsData = useMemo(() => {
+    return {
+      items: leadsDataItems,
+    };
+  }, [leadsDataItems]);
+
+  const updatePhaseMutation = useUpdateProjectPhase();
 
   const handleProjectDrop = (projectId: string, targetPhase: string, targetPhaseLabel: string) => {
     const proj = activeProjects.find((p) => p.id === projectId);

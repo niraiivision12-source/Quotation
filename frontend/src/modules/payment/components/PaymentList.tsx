@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import RecordPaymentDialog from "./RecordPaymentDialog";
 import type { Payment } from "../payment.types";
 import { Receipt, Search } from "lucide-react";
+import { useFuzzySearch } from "../../../hooks/useFuzzySearch";
+import { highlightText } from "../../../utils/highlight.utils";
 
 const STATUS_BADGE_STYLE: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-700",
@@ -24,19 +26,39 @@ export default function PaymentList() {
   const [status, setStatus] = useState<string>("ALL");
 
   const queryParams = {
-    page,
-    limit: 20,
-    search: search || undefined,
+    page: 1,
+    limit: 10000,
     status: status !== "ALL" ? status : undefined,
   };
 
-  const { data: paymentsData, isLoading } = usePayments(queryParams);
+  const { data: rawPaymentsData, isLoading } = usePayments(queryParams);
+
+  const rawPayments = rawPaymentsData?.data?.items || [];
+
+  const { results: visiblePayments, total } = useFuzzySearch<Payment>({
+    items: rawPayments as Payment[],
+    keys: ["billNumber", "customer.name", "project.projectName"],
+    searchQuery: search,
+    page,
+    limit: 20,
+    customRankFn: (payment: Payment, q: string) => {
+      const qLower = q.toLowerCase();
+      const billNumber = payment.billNumber.toLowerCase();
+      const custName = (payment.customer?.name || "").toLowerCase();
+      const projName = (payment.project?.projectName || "").toLowerCase();
+
+      if (billNumber === qLower) return 1;
+      if (billNumber.startsWith(qLower)) return 2;
+      if (custName.startsWith(qLower) || projName.startsWith(qLower)) return 3;
+      if (billNumber.includes(qLower) || custName.includes(qLower) || projName.includes(qLower)) return 4;
+      return 5;
+    }
+  });
 
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
 
-  const payments: Payment[] = paymentsData?.data?.items || [];
-  const total = paymentsData?.data?.total || 0;
+  const payments: Payment[] = visiblePayments;
 
   const handleRecordPayment = (payment: Payment) => {
     setSelectedPayment(payment);
@@ -113,11 +135,11 @@ export default function PaymentList() {
                 const isPending = p.status === "PENDING" || p.status === "PARTIALLY_PAID" || p.status === "OVERDUE";
                 return (
                   <TableRow key={p.id} className="hover:bg-slate-50/50">
-                    <TableCell className="font-bold text-gray-900">{p.billNumber}</TableCell>
+                    <TableCell className="font-bold text-gray-900">{highlightText(p.billNumber, search)}</TableCell>
                     <TableCell>
                       {p.customer ? (
                         <Link to={`/customers/${p.customerId}`} className="text-blue-600 hover:underline font-medium">
-                          {p.customer.name}
+                          {highlightText(p.customer.name, search)}
                         </Link>
                       ) : (
                         "-"
@@ -126,7 +148,7 @@ export default function PaymentList() {
                     <TableCell>
                       {p.project ? (
                         <Link to={`/projects/${p.projectId}`} className="text-blue-600 hover:underline font-medium">
-                          {p.project.projectName}
+                          {highlightText(p.project.projectName, search)}
                         </Link>
                       ) : (
                         "-"

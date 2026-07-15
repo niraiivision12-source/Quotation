@@ -54,6 +54,8 @@ import {
   useTasks,
   useDeleteTask,
 } from "./task.query";
+import { useFuzzySearch } from "../../hooks/useFuzzySearch";
+import { highlightText } from "../../utils/highlight.utils";
 
 const PRIORITY_STYLES: Record<string, string> = {
   LOW: "bg-gray-100 text-gray-600",
@@ -208,21 +210,43 @@ export default function TaskList() {
     assignedToId?: string;
   }>({});
 
-  const { data, isLoading } = useTasks(page, {
+  const { data: rawTasksData, isLoading } = useTasks(1, {
     status: filters.status,
     priority: filters.priority,
     assignedToId: filters.assignedToId,
-    search: search || undefined,
     sortBy,
     sortOrder,
+  }, 10000);
+
+  const rawTasks = rawTasksData?.items ?? [];
+
+  const { results: visibleTasks, total } = useFuzzySearch({
+    items: rawTasks,
+    keys: ["title", "description", "status", "priority", "customer.name", "lead.name", "project.projectName"],
+    searchQuery: search,
+    page,
+    limit: 20,
+    customRankFn: (task, q) => {
+      const qLower = q.toLowerCase();
+      const title = task.title.toLowerCase();
+      const desc = (task.description || "").toLowerCase();
+
+      if (title === qLower) return 1;
+      if (title.startsWith(qLower)) return 2;
+      if (title.includes(qLower)) return 3;
+      if (desc.includes(qLower)) return 4;
+      return 5;
+    }
   });
+
   const { data: usersData } = useUsers(1);
   const completeMutation = useCompleteTask();
   const cancelMutation = useCancelTask();
   const deleteMutation = useDeleteTask();
 
-  const tasks = data?.items ?? [];
-  const total = data?.total ?? 0;
+
+
+  const tasks = visibleTasks;
   const totalPages = Math.ceil(total / 20);
 
   const pending = tasks.filter((t) => t.status === "PENDING").length;
@@ -414,10 +438,10 @@ export default function TaskList() {
                   >
                     <TableCell className="py-3 max-w-xs">
                       <p className={`font-medium text-sm ${task.status === "COMPLETED" ? "line-through text-muted-foreground" : ""}`}>
-                        {task.title}
+                        {highlightText(task.title, search)}
                       </p>
                       {task.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{highlightText(task.description, search)}</p>
                       )}
                     </TableCell>
 

@@ -6,7 +6,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaFacebook,
@@ -66,6 +66,8 @@ import {
   useConvertLead,
 } from "./lead.query";
 import type { Lead, LeadStatus } from "./lead.types";
+import { useFuzzySearch } from "../../hooks/useFuzzySearch";
+import { highlightText } from "../../utils/highlight.utils";
 import LeadStatusChangeModal from "./LeadStatusChangeModal";
 
 const convertSchema = z.object({
@@ -572,7 +574,39 @@ export default function LeadList() {
   }, [search]);
 
   const { data: usersData } = useUsers(1);
-  const { data, isLoading } = useLeads(page, debouncedSearch, filters, limit);
+  const { data: rawLeadsData, isLoading } = useLeads(1, "", filters, 10000);
+  const leads = rawLeadsData?.items ?? [];
+
+  const { results: visibleLeads, total } = useFuzzySearch<Lead>({
+    items: leads,
+    keys: ["name", "mobile", "email", "status", "notes", "city"],
+    searchQuery: debouncedSearch,
+    page,
+    limit,
+    customRankFn: (lead: Lead, q: string) => {
+      const qLower = q.toLowerCase();
+      const name = lead.name.toLowerCase();
+      const mobile = (lead.mobile || "").toLowerCase();
+      const email = (lead.email || "").toLowerCase();
+      const city = (lead.city || "").toLowerCase();
+
+      if (name === qLower) return 1;
+      if (name.startsWith(qLower)) return 2;
+      if (name.includes(qLower)) return 3;
+      if (mobile.includes(qLower) || email.includes(qLower) || city.includes(qLower)) return 4;
+      return 5;
+    }
+  });
+
+  const data = useMemo(() => {
+    if (!rawLeadsData) return undefined;
+    return {
+      items: visibleLeads,
+      total,
+      page,
+      limit,
+    };
+  }, [rawLeadsData, visibleLeads, total, page, limit]);
   const { data: stats } = useLeadStats();
   const updateMutation = useUpdateLead();
 
@@ -1116,11 +1150,11 @@ export default function LeadList() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-sm md:text-base truncate">
-                          {lead.name}
+                          {highlightText(lead.name, search)}
                         </p>
                         {lead.city && (
                           <p className="text-xs text-foreground/60 truncate">
-                            {lead.city}
+                            {highlightText(lead.city, search)}
                           </p>
                         )}
                       </div>

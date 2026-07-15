@@ -21,6 +21,14 @@ export const useCustomers = (page: number, search: string) => {
   });
 };
 
+export const useAllCustomers = () => {
+  return useQuery({
+    queryKey: ["customers", "all"],
+    queryFn: () => getCustomers(1, 10000, ""),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
 export const useCreateCustomer = () => {
   return useMutation({
     mutationFn: createCustomer,

@@ -18,6 +18,7 @@ import {
   PaymentStatus,
 } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { dummyProducts } from "./dummy-products";
 
 const prisma = new PrismaClient();
 
@@ -113,119 +114,7 @@ function getRandomDate(from: Date, to: Date): Date {
 }
 
 // 100 products definitions
-const productsList = [
-  // --- PIPES ---
-  { sku: "PIPE-PVC-1IN", name: "Supreme PVC Pipe 1 Inch", brand: "Supreme", category: "PIPES", costPrice: 120, unit: "piece" },
-  { sku: "PIPE-PVC-2IN", name: "Supreme PVC Pipe 2 Inch", brand: "Supreme", category: "PIPES", costPrice: 210, unit: "piece" },
-  { sku: "PIPE-COND-20MM", name: "Neltex Conduit Pipe 20mm", brand: "Neltex", category: "PIPES", costPrice: 85, unit: "piece" },
-  { sku: "PIPE-COND-25MM", name: "Neltex Conduit Pipe 25mm", brand: "Neltex", category: "PIPES", costPrice: 110, unit: "piece" },
-  { sku: "PIPE-FLEX-20MM", name: "Polycab Flexible Conduit 20mm", brand: "Polycab", category: "PIPES", costPrice: 65, unit: "meter" },
-  { sku: "PIPE-ELB-1IN", name: "Supreme PVC Elbow 1 Inch", brand: "Supreme", category: "PIPES", costPrice: 15, unit: "piece" },
-  { sku: "PIPE-TEE-1IN", name: "Supreme PVC Tee 1 Inch", brand: "Supreme", category: "PIPES", costPrice: 25, unit: "piece" },
-  { sku: "PIPE-CPL-1IN", name: "Supreme PVC Coupler 1 Inch", brand: "Supreme", category: "PIPES", costPrice: 10, unit: "piece" },
-  { sku: "PIPE-BND-20MM", name: "Neltex Conduit Bend 20mm", brand: "Neltex", category: "PIPES", costPrice: 12, unit: "piece" },
-  { sku: "PIPE-JB-1W-20MM", name: "Neltex Junction Box 1-Way 20mm", brand: "Neltex", category: "PIPES", costPrice: 18, unit: "piece" },
-  { sku: "PIPE-JB-2W-20MM", name: "Neltex Junction Box 2-Way 20mm", brand: "Neltex", category: "PIPES", costPrice: 22, unit: "piece" },
-  { sku: "PIPE-SOLV-100", name: "Supreme Solvent Cement 100ml", brand: "Supreme", category: "PIPES", costPrice: 45, unit: "can" },
-  { sku: "PIPE-SOLV-250", name: "Supreme Solvent Cement 250ml", brand: "Supreme", category: "PIPES", costPrice: 95, unit: "can" },
-  { sku: "PIPE-MET-20MM", name: "Metal Conduit Pipe 20mm", brand: "Jindal", category: "PIPES", costPrice: 180, unit: "piece" },
-  { sku: "PIPE-METJB-20MM", name: "Metal Junction Box 20mm", brand: "Jindal", category: "PIPES", costPrice: 40, unit: "piece" },
-
-  // --- WIRING ---
-  { sku: "WIRE-1SQ-RD", name: "Polycab Wire 1 Sqmm Red (90m)", brand: "Polycab", category: "WIRING", costPrice: 950, unit: "coil" },
-  { sku: "WIRE-1SQ-BL", name: "Polycab Wire 1 Sqmm Black (90m)", brand: "Polycab", category: "WIRING", costPrice: 950, unit: "coil" },
-  { sku: "WIRE-1SQ-GR", name: "Polycab Wire 1 Sqmm Green (90m)", brand: "Polycab", category: "WIRING", costPrice: 950, unit: "coil" },
-  { sku: "WIRE-2.5SQ-RD", name: "Polycab Wire 2.5 Sqmm Red (90m)", brand: "Polycab", category: "WIRING", costPrice: 2100, unit: "coil" },
-  { sku: "WIRE-2.5SQ-BL", name: "Polycab Wire 2.5 Sqmm Black (90m)", brand: "Polycab", category: "WIRING", costPrice: 2100, unit: "coil" },
-  { sku: "WIRE-4SQ-RD", name: "Polycab Wire 4 Sqmm Red (90m)", brand: "Polycab", category: "WIRING", costPrice: 3200, unit: "coil" },
-  { sku: "WIRE-6SQ-RD", name: "Polycab Wire 6 Sqmm Red (90m)", brand: "Polycab", category: "WIRING", costPrice: 4800, unit: "coil" },
-  { sku: "WIRE-10SQ-BL", name: "Havells Wire 10 Sqmm Black (90m)", brand: "Havells", category: "WIRING", costPrice: 7500, unit: "coil" },
-  { sku: "WIRE-1.5SQ-BLU", name: "Polycab Wire 1.5 Sqmm Blue (90m)", brand: "Polycab", category: "WIRING", costPrice: 1350, unit: "coil" },
-  { sku: "WIRE-1.5SQ-RD", name: "Polycab Wire 1.5 Sqmm Red (90m)", brand: "Polycab", category: "WIRING", costPrice: 1350, unit: "coil" },
-  { sku: "WIRE-1.5SQ-YLW", name: "Polycab Wire 1.5 Sqmm Yellow (90m)", brand: "Polycab", category: "WIRING", costPrice: 1350, unit: "coil" },
-  { sku: "WIRE-2.5SQ-YLW", name: "Finolex Wire 2.5 Sqmm Yellow (90m)", brand: "Finolex", category: "WIRING", costPrice: 2200, unit: "coil" },
-  { sku: "WIRE-2.5SQ-GRN", name: "Finolex Wire 2.5 Sqmm Green (90m)", brand: "Finolex", category: "WIRING", costPrice: 2200, unit: "coil" },
-  { sku: "WIRE-4SQ-BLU", name: "Finolex Wire 4 Sqmm Blue (90m)", brand: "Finolex", category: "WIRING", costPrice: 3350, unit: "coil" },
-  { sku: "WIRE-6SQ-BLK", name: "Finolex Wire 6 Sqmm Black (90m)", brand: "Finolex", category: "WIRING", costPrice: 4950, unit: "coil" },
-  { sku: "WIRE-LAN-CAT6", name: "Havells CAT6 LAN Cable (305m)", brand: "Havells", category: "WIRING", costPrice: 6500, unit: "coil" },
-  { sku: "WIRE-TV-RG6", name: "Coaxial TV Cable RG6 (100m)", brand: "Finolex", category: "WIRING", costPrice: 1800, unit: "coil" },
-  { sku: "WIRE-TEL-2P", name: "Telephone 2-Pair Cable 100m", brand: "Finolex", category: "WIRING", costPrice: 1100, unit: "coil" },
-
-  // --- SWITCHES ---
-  { sku: "SW-1WAY-6A", name: "Legrand 1-Way Switch 6A", brand: "Legrand", category: "SWITCHES", costPrice: 45, unit: "piece" },
-  { sku: "SW-2WAY-6A", name: "Legrand 2-Way Switch 6A", brand: "Legrand", category: "SWITCHES", costPrice: 65, unit: "piece" },
-  { sku: "SW-16A-SOCKET", name: "Legrand 16A Socket Outlet", brand: "Legrand", category: "SWITCHES", costPrice: 120, unit: "piece" },
-  { sku: "SW-5A-SOCKET", name: "Legrand 5A Socket Outlet", brand: "Legrand", category: "SWITCHES", costPrice: 55, unit: "piece" },
-  { sku: "SW-PLATE-2M", name: "Schneider Modular Plate 2 Module", brand: "Schneider", category: "SWITCHES", costPrice: 35, unit: "piece" },
-  { sku: "SW-PLATE-4M", name: "Schneider Modular Plate 4 Module", brand: "Schneider", category: "SWITCHES", costPrice: 55, unit: "piece" },
-  { sku: "SW-PLATE-6M", name: "Schneider Modular Plate 6 Module", brand: "Schneider", category: "SWITCHES", costPrice: 75, unit: "piece" },
-  { sku: "SW-MCB-6A", name: "ABB MCB Single Pole 6A", brand: "ABB", category: "SWITCHES", costPrice: 180, unit: "piece" },
-  { sku: "SW-MCB-16A", name: "ABB MCB Single Pole 16A", brand: "ABB", category: "SWITCHES", costPrice: 195, unit: "piece" },
-  { sku: "SW-MCB-32A", name: "ABB MCB Single Pole 32A", brand: "ABB", category: "SWITCHES", costPrice: 245, unit: "piece" },
-  { sku: "SW-MCB-DP-32A", name: "ABB MCB Double Pole 32A", brand: "ABB", category: "SWITCHES", costPrice: 480, unit: "piece" },
-  { sku: "SW-ELCB-25A", name: "Havells ELCB/RCCB 25A 30mA", brand: "Havells", category: "SWITCHES", costPrice: 950, unit: "piece" },
-  { sku: "SW-ELCB-40A", name: "Havells ELCB/RCCB 40A 30mA", brand: "Havells", category: "SWITCHES", costPrice: 1100, unit: "piece" },
-  { sku: "SW-DB-4W", name: "Legrand Distribution Board 4 Way", brand: "Legrand", category: "SWITCHES", costPrice: 550, unit: "piece" },
-  { sku: "SW-DB-8W", name: "Legrand Distribution Board 8 Way", brand: "Legrand", category: "SWITCHES", costPrice: 850, unit: "piece" },
-  { sku: "SW-DB-12W", name: "Legrand Distribution Board 12 Way", brand: "Legrand", category: "SWITCHES", costPrice: 1200, unit: "piece" },
-  { sku: "SW-BELL-6A", name: "Legrand 6A Bell Push Switch", brand: "Legrand", category: "SWITCHES", costPrice: 75, unit: "piece" },
-  { sku: "SW-REG-MOD", name: "Legrand Fan Regulator Module", brand: "Legrand", category: "SWITCHES", costPrice: 180, unit: "piece" },
-  { sku: "SW-PLATE-8M", name: "Schneider Modular Plate 8 Module", brand: "Schneider", category: "SWITCHES", costPrice: 95, unit: "piece" },
-  { sku: "SW-PLATE-12M", name: "Schneider Modular Plate 12 Module", brand: "Schneider", category: "SWITCHES", costPrice: 140, unit: "piece" },
-  { sku: "SW-PLATE-18M", name: "Schneider Modular Plate 18 Module", brand: "Schneider", category: "SWITCHES", costPrice: 190, unit: "piece" },
-  { sku: "SW-ANC-1WAY", name: "Anchor Roma 1-Way Switch 6A", brand: "Anchor", category: "SWITCHES", costPrice: 22, unit: "piece" },
-  { sku: "SW-ANC-16ASOC", name: "Anchor Roma 16A Socket", brand: "Anchor", category: "SWITCHES", costPrice: 60, unit: "piece" },
-  { sku: "SW-MBOX-2M", name: "Metal Box 2 Module (Modular)", brand: "Anchor", category: "SWITCHES", costPrice: 45, unit: "piece" },
-  { sku: "SW-MBOX-4M", name: "Metal Box 4 Module (Modular)", brand: "Anchor", category: "SWITCHES", costPrice: 65, unit: "piece" },
-  { sku: "SW-MBOX-6M", name: "Metal Box 6 Module (Modular)", brand: "Anchor", category: "SWITCHES", costPrice: 85, unit: "piece" },
-  { sku: "SW-MBOX-8M", name: "Metal Box 8 Module (Modular)", brand: "Anchor", category: "SWITCHES", costPrice: 110, unit: "piece" },
-  { sku: "SW-MBOX-12M", name: "Metal Box 12 Module (Modular)", brand: "Anchor", category: "SWITCHES", costPrice: 160, unit: "piece" },
-
-  // --- LIGHTS ---
-  { sku: "LT-LED-7W", name: "Philips LED Bulb 7W B22", brand: "Philips", category: "LIGHTS", costPrice: 65, unit: "piece" },
-  { sku: "LT-LED-9W", name: "Philips LED Bulb 9W B22", brand: "Philips", category: "LIGHTS", costPrice: 75, unit: "piece" },
-  { sku: "LT-LED-12W", name: "Philips LED Bulb 12W B22", brand: "Philips", category: "LIGHTS", costPrice: 90, unit: "piece" },
-  { sku: "LT-DOWN-7W", name: "Syska LED Downlight 7W Round", brand: "Syska", category: "LIGHTS", costPrice: 120, unit: "piece" },
-  { sku: "LT-DOWN-12W", name: "Syska LED Downlight 12W Round", brand: "Syska", category: "LIGHTS", costPrice: 185, unit: "piece" },
-  { sku: "LT-PANEL-12W", name: "Wipro LED Panel Light 12W", brand: "Wipro", category: "LIGHTS", costPrice: 250, unit: "piece" },
-  { sku: "LT-PANEL-24W", name: "Wipro LED Panel Light 24W", brand: "Wipro", category: "LIGHTS", costPrice: 420, unit: "piece" },
-  { sku: "LT-TUBE-18W", name: "Philips LED Tube Light 18W 4ft", brand: "Philips", category: "LIGHTS", costPrice: 160, unit: "piece" },
-  { sku: "LT-STRIP-5M", name: "Generic LED Strip Light 5m Warm White", brand: "Generic", category: "LIGHTS", costPrice: 350, unit: "roll" },
-  { sku: "LT-HLD-B22", name: "GM Bulb Holder B22", brand: "GM", category: "LIGHTS", costPrice: 20, unit: "piece" },
-  { sku: "LT-HLD-E27", name: "GM Bulb Holder E27", brand: "GM", category: "LIGHTS", costPrice: 25, unit: "piece" },
-  { sku: "LT-BAT-2FT", name: "Crompton Fluorescent Batten 2ft", brand: "Crompton", category: "LIGHTS", costPrice: 180, unit: "piece" },
-  { sku: "LT-BAT-4FT", name: "Crompton Fluorescent Batten 4ft", brand: "Crompton", category: "LIGHTS", costPrice: 260, unit: "piece" },
-  { sku: "LT-COB-3W", name: "Philips LED COB Light 3W White", brand: "Philips", category: "LIGHTS", costPrice: 175, unit: "piece" },
-  { sku: "LT-COB-6W", name: "Philips LED COB Light 6W Warm White", brand: "Philips", category: "LIGHTS", costPrice: 280, unit: "piece" },
-  { sku: "LT-SMRT-9W", name: "Wipro Smart LED Bulb 9W RGB", brand: "Wipro", category: "LIGHTS", costPrice: 490, unit: "piece" },
-  { sku: "LT-RGB-STRIP", name: "Wipro LED Strip Light 5m RGB", brand: "Wipro", category: "LIGHTS", costPrice: 680, unit: "roll" },
-  { sku: "LT-FLD-50W", name: "Wipro LED Flood Light 50W", brand: "Wipro", category: "LIGHTS", costPrice: 1450, unit: "piece" },
-  { sku: "LT-SPOT-3W", name: "Syska LED Spot Light 3W", brand: "Syska", category: "LIGHTS", costPrice: 140, unit: "piece" },
-  { sku: "LT-TUBE-20W", name: "Philips LED Tube Light 20W", brand: "Philips", category: "LIGHTS", costPrice: 195, unit: "piece" },
-
-  // --- FANS ---
-  { sku: "FAN-CEIL-48", name: "Havells Ceiling Fan 48 Inch", brand: "Havells", category: "FANS", costPrice: 2200, unit: "piece" },
-  { sku: "FAN-CEIL-52", name: "Havells Ceiling Fan 52 Inch", brand: "Havells", category: "FANS", costPrice: 2600, unit: "piece" },
-  { sku: "FAN-USHA-48", name: "Usha Ceiling Fan 48 Inch", brand: "Usha", category: "FANS", costPrice: 1850, unit: "piece" },
-  { sku: "FAN-TAB-16", name: "Crompton Table Fan 16 Inch", brand: "Crompton", category: "FANS", costPrice: 1200, unit: "piece" },
-  { sku: "FAN-WALL-12", name: "Orient Wall Fan 12 Inch", brand: "Orient", category: "FANS", costPrice: 1400, unit: "piece" },
-  { sku: "FAN-EXH-6", name: "Havells Exhaust Fan 6 Inch", brand: "Havells", category: "FANS", costPrice: 650, unit: "piece" },
-  { sku: "FAN-EXH-9", name: "Havells Exhaust Fan 9 Inch", brand: "Havells", category: "FANS", costPrice: 900, unit: "piece" },
-  { sku: "FAN-REG-ANC", name: "Anchor Fan Speed Regulator (Step)", brand: "Anchor", category: "FANS", costPrice: 85, unit: "piece" },
-  { sku: "FAN-BLDC-1200", name: "Usha BLDC Ceiling Fan 1200mm", brand: "Usha", category: "FANS", costPrice: 3100, unit: "piece" },
-  { sku: "FAN-EXH-12", name: "Crompton Exhaust Fan 12 Inch", brand: "Crompton", category: "FANS", costPrice: 1450, unit: "piece" },
-  { sku: "FAN-TAB-12", name: "Orient Table Fan 12 Inch", brand: "Orient", category: "FANS", costPrice: 950, unit: "piece" },
-
-  // --- OTHERS ---
-  { sku: "OTH-TAPE-BLK", name: "PVC Insulation Tape Black (5-Pack)", brand: "Steelgrip", category: "OTHERS", costPrice: 45, unit: "pack" },
-  { sku: "OTH-TAPE-RED", name: "PVC Insulation Tape Red (5-Pack)", brand: "Steelgrip", category: "OTHERS", costPrice: 45, unit: "pack" },
-  { sku: "OTH-PLUG-6MM", name: "PVC Wall Plugs 6mm (Gitti) 100-Pack", brand: "Generic", category: "OTHERS", costPrice: 25, unit: "pack" },
-  { sku: "OTH-PLUG-8MM", name: "PVC Wall Plugs 8mm (Gitti) 100-Pack", brand: "Generic", category: "OTHERS", costPrice: 35, unit: "pack" },
-  { sku: "OTH-SCREW-1.5", name: "Self Tapping Screws 1.5 Inch 100-Pack", brand: "Generic", category: "OTHERS", costPrice: 60, unit: "pack" },
-  { sku: "OTH-MSW-32A", name: "Anchor Main Switch DP 32A", brand: "Anchor", category: "OTHERS", costPrice: 420, unit: "piece" },
-  { sku: "OTH-EXT-4W", name: "Polycab 3-Pin Extension Board 4-Way", brand: "Polycab", category: "OTHERS", costPrice: 380, unit: "piece" },
-  { sku: "OTH-IND-SOC", name: "Havells Industrial Socket 16A", brand: "Havells", category: "OTHERS", costPrice: 240, unit: "piece" },
-];
+const productsList = dummyProducts;
 
 async function main() {
   console.log("Starting DB clean & seed...");
@@ -337,8 +226,8 @@ async function main() {
   });
   console.log("Seeded system settings.");
 
-  // 5. Seed 100 Products
-  console.log("Seeding 100 products...");
+  // 5. Seed Products
+  console.log(`Seeding ${productsList.length} products...`);
   const dbProducts = [];
   for (let i = 0; i < productsList.length; i++) {
     const raw = productsList[i];
@@ -358,6 +247,7 @@ async function main() {
         brand: raw.brand,
         category: raw.category,
         costPrice: raw.costPrice,
+        mrp: raw.mrp,
         stockQty,
         unit: raw.unit,
         isActive: true,

@@ -20,8 +20,10 @@ import {
   TableRow,
 } from "../../components/ui/table";
 
-import { useProductList } from "./product.query";
+import { useAllProducts } from "./product.query";
 import type { Product } from "./product.types";
+import { useFuzzySearch } from "../../hooks/useFuzzySearch";
+import { highlightText } from "../../utils/highlight.utils";
 
 const PAGE_SIZES = [25, 50, 100];
 
@@ -65,14 +67,31 @@ export default function ProductList() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data, isLoading, isFetching } = useProductList(
+  const { data: allProductsData, isLoading, isFetching } = useAllProducts();
+  const allProducts = allProductsData?.items ?? [];
+
+  const { results: products, total } = useFuzzySearch({
+    items: allProducts,
+    keys: ["name", "sku", "brand", "category"],
+    searchQuery: debouncedSearch,
     page,
     limit,
-    debouncedSearch,
-  );
+    customRankFn: (product: Product, q: string) => {
+      const qLower = q.toLowerCase();
+      const name = product.name.toLowerCase();
+      const sku = (product.sku || "").toLowerCase();
+      const brand = (product.brand || "").toLowerCase();
+      const category = (product.category || "").toLowerCase();
 
-  const products: Product[] = data?.items ?? [];
-  const total: number = data?.total ?? 0;
+      if (sku === qLower) return 1;
+      if (name === qLower) return 2;
+      if (name.startsWith(qLower)) return 3;
+      if (sku.startsWith(qLower)) return 4;
+      if (name.includes(qLower)) return 5;
+      if (brand.includes(qLower) || category.includes(qLower)) return 6;
+      return 7;
+    }
+  });
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const firstRow = total === 0 ? 0 : (page - 1) * limit + 1;
@@ -160,19 +179,19 @@ export default function ProductList() {
                     </TableCell>
 
                     <TableCell className="font-mono text-[11px] text-gray-900 whitespace-nowrap">
-                      {product.sku}
+                      {highlightText(product.sku, debouncedSearch)}
                     </TableCell>
 
                     <TableCell className="text-xs font-medium text-gray-900">
-                      {product.name}
+                      {highlightText(product.name, debouncedSearch)}
                     </TableCell>
 
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {product.brand ?? "—"}
+                      {product.brand ? highlightText(product.brand, debouncedSearch) : "—"}
                     </TableCell>
 
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {product.category ?? "—"}
+                      {product.category ? highlightText(product.category, debouncedSearch) : "—"}
                     </TableCell>
 
                     <TableCell className="text-xs text-muted-foreground">

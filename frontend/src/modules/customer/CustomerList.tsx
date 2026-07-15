@@ -20,8 +20,10 @@ import {
 } from "../../components/ui/table";
 import { Link } from "react-router-dom";
 import CreateCustomerDialog from "./CreateCustomerDialog";
-import { useCustomers, useDeleteCustomer } from "./customer.query";
+import { useAllCustomers, useDeleteCustomer } from "./customer.query";
 import type { Customer } from "./customer.types";
+import { useFuzzySearch } from "../../hooks/useFuzzySearch";
+import { highlightText } from "../../utils/highlight.utils";
 
 function DeleteCustomerButton({ customer }: { customer: Customer }) {
   const [open, setOpen] = useState(false);
@@ -68,7 +70,30 @@ export default function CustomerList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  const { data, isLoading } = useCustomers(page, search);
+  const { data, isLoading } = useAllCustomers();
+  const customers = data?.items ?? [];
+
+  const { results: visibleCustomers, totalPages } = useFuzzySearch({
+    items: customers,
+    keys: ["name", "mobile", "email", "address"],
+    searchQuery: search,
+    page,
+    limit: 20,
+    customRankFn: (customer, q) => {
+      const qLower = q.toLowerCase();
+      const name = customer.name.toLowerCase();
+      const mobile = (customer.mobile || "").toLowerCase();
+      const email = (customer.email || "").toLowerCase();
+      const address = (customer.address || "").toLowerCase();
+
+      if (mobile === qLower) return 1;
+      if (name === qLower) return 2;
+      if (name.startsWith(qLower)) return 3;
+      if (name.includes(qLower)) return 4;
+      if (email.includes(qLower) || address.includes(qLower)) return 5;
+      return 6;
+    }
+  });
 
   return (
     <div>
@@ -107,23 +132,25 @@ export default function CustomerList() {
             </TableRow>
           )}
 
-          {!isLoading && data?.items.length === 0 && (
+          {!isLoading && visibleCustomers.length === 0 && (
             <TableRow>
               <TableCell colSpan={5}>No customers found.</TableCell>
             </TableRow>
           )}
 
-          {data?.items.map((customer) => (
+          {visibleCustomers.map((customer) => (
             <TableRow key={customer.id}>
               <TableCell>
-                <Link to={`/customers/${customer.id}`}>{customer.name}</Link>
+                <Link to={`/customers/${customer.id}`} className="text-blue-600 hover:underline">
+                  {highlightText(customer.name, search)}
+                </Link>
               </TableCell>
 
-              <TableCell>{customer.mobile}</TableCell>
+              <TableCell>{highlightText(customer.mobile, search)}</TableCell>
 
-              <TableCell>{customer.email ?? "-"}</TableCell>
+              <TableCell>{customer.email ? highlightText(customer.email, search) : "-"}</TableCell>
 
-              <TableCell>{customer.address ?? "-"}</TableCell>
+              <TableCell>{customer.address ? highlightText(customer.address, search) : "-"}</TableCell>
               <TableCell>
                 <DeleteCustomerButton customer={customer} />
               </TableCell>
@@ -137,7 +164,7 @@ export default function CustomerList() {
           Previous
         </Button>
         <Button
-          disabled={!data || page * 20 >= data.total}
+          disabled={page >= totalPages}
           onClick={() => setPage((p) => p + 1)}
         >
           Next

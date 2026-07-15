@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, GitBranch, Search } from "lucide-react";
 
@@ -23,6 +23,8 @@ import {
 
 import { useQuotations } from "./quotation.query";
 import type { QuotationListItem } from "./quotation.types";
+import { useFuzzySearch } from "../../hooks/useFuzzySearch";
+import { highlightText } from "../../utils/highlight.utils";
 
 const PAGE_SIZE = 20;
 
@@ -48,24 +50,27 @@ export default function QuotationList() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
 
-  const { data, isLoading } = useQuotations(page, PAGE_SIZE);
+  const { data: rawQuotationsData, isLoading } = useQuotations(1, 10000);
 
-  const items: QuotationListItem[] = data?.items ?? [];
-  const total: number = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const items: QuotationListItem[] = rawQuotationsData?.items ?? [];
 
-  // The list endpoint has no search/status params, so filter the page we have.
-  // Anything beyond the current page won't be matched — see the note below.
-  const term = search.trim().toLowerCase();
-  const visible = items.filter((quotation) => {
-    const matchesStatus = status === "ALL" || quotation.status === status;
-    const matchesTerm =
-      !term ||
-      quotation.quotationNumber.toLowerCase().includes(term) ||
-      targetName(quotation).toLowerCase().includes(term);
+  // Filter by status first
+  const statusFiltered = useMemo(() => {
+    return items.filter((q: QuotationListItem) => status === "ALL" || q.status === status);
+  }, [items, status]);
 
-    return matchesStatus && matchesTerm;
+  // Perform fuzzy search
+  const { results: searchedQuotations, total } = useFuzzySearch<QuotationListItem>({
+    items: statusFiltered,
+    keys: ["quotationNumber", "walkInName", "status", "lead.name", "customer.name", "project.projectName"],
+    searchQuery: search,
   });
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const visible = useMemo(() => {
+    const skip = (page - 1) * PAGE_SIZE;
+    return searchedQuotations.slice(skip, skip + PAGE_SIZE);
+  }, [searchedQuotations, page]);
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
@@ -132,12 +137,12 @@ export default function QuotationList() {
             </TableHeader>
 
             <TableBody>
-              {visible.map((quotation) => (
+              {visible.map((quotation: QuotationListItem) => (
                 <TableRow key={quotation.id}>
                   <TableCell>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-xs text-gray-900">
-                        {quotation.quotationNumber}
+                        {highlightText(quotation.quotationNumber, search)}
                       </span>
                       <span className="text-[10px] text-muted-foreground bg-gray-50 border px-1.5 py-0.5 rounded font-mono">
                         v{quotation.version}
@@ -157,7 +162,7 @@ export default function QuotationList() {
 
                   <TableCell>
                     <span className="text-xs text-gray-900">
-                      {targetName(quotation)}
+                      {highlightText(targetName(quotation), search)}
                     </span>
                     <p className="text-[10px] text-muted-foreground">
                       {quotation.type.replace(/_/g, " ")}
@@ -165,7 +170,7 @@ export default function QuotationList() {
                   </TableCell>
 
                   <TableCell className="text-xs text-muted-foreground">
-                    {quotation.project?.projectName ?? "—"}
+                    {quotation.project?.projectName ? highlightText(quotation.project.projectName, search) : "—"}
                   </TableCell>
 
                   <TableCell>

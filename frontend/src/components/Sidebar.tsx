@@ -58,7 +58,7 @@ export default function Sidebar({
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-3.5 border-b">
         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-sm">C</span>
+          <span className="text-white font-bold text-sm">N</span>
         </div>
         <div>
           <p className="font-bold text-sm leading-tight">NKP CRM</p>
@@ -74,10 +74,9 @@ export default function Sidebar({
             end={item.exact}
             onClick={() => onMobileClose?.()}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-blue-50 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
+                ? "bg-blue-50 text-blue-700"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               }`
             }
           >

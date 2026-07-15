@@ -1,12 +1,16 @@
-import { Trash2 } from "lucide-react";
+import { Trash2, History, X } from "lucide-react";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { createPortal } from "react-dom";
 
-import { useProducts } from "../../product/product.query";
+import { useAllProducts } from "../../product/product.query";
 
 import type { Product } from "../../product/product.types";
+
+import { useProductDropdownSearch } from "../../../hooks/useProductDropdownSearch";
+
+import { highlightText } from "../../../utils/highlight.utils";
 
 import type { QuotationItemForm } from "../quotation.types";
 
@@ -45,22 +49,13 @@ export default function QuotationRow({
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const dropdownListRef = useRef<HTMLDivElement | null>(null);
 
-  const [dropdownPosition, setDropdownPosition] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
-  });
-
-  // What the user has actually typed, kept separate from `item.search` (the
-  // text shown in the input). Selecting a product overwrites `item.search`
-  // with the product name — if that fed the query, picking a product would
-  // immediately refire the search for the thing you just picked, blanking the
-  // list mid-click. Only typing moves this.
-  const [query, setQuery] = useState("");
-
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
 
   const [costPriceInput, setCostPriceInput] = useState(String(item.costPrice ?? 0));
 
@@ -84,33 +79,48 @@ export default function QuotationRow({
     }
   }, [shouldFocus]);
 
-  // Every row starts on the empty query, so they all share one cache entry
-  // instead of each firing its own request.
-  const { data } = useProducts(debouncedQuery);
+  // Load the complete product catalog once and cache it.
+  // All rows share the same cache entry and do not fire duplicate requests.
+  const { data: allProductsData, isLoading: isLoadingProducts } = useAllProducts();
+  const products = allProductsData?.items ?? [];
 
-  // filter products
-  const filteredProducts = useMemo(() => {
-    const products = data?.items ?? [];
+  const {
+    query,
+    dropdownItems,
+    selectedIndex,
+    setSelectedIndex,
+    recentSearches,
+    clearRecentSearches,
+    removeRecentSearch,
+    handleInputChange,
+    handleKeyDown,
+    selectProduct,
+    handleRecentSearchSelect,
+  } = useProductDropdownSearch({
+    products,
+    searchVal: item.search || "",
+    setSearchVal: (val) => onUpdate(item.id, { search: val }),
+    onSelectProduct: (product) => handleProductSelect(product),
+    onCloseDropdown: () => onUpdate(item.id, { showDropdown: false }),
+  });
 
-    const search = debouncedQuery.toLowerCase();
-
-    if (!search.trim()) {
-      return products.slice(0, 20);
+  useEffect(() => {
+    if (item.showDropdown && selectedIndex >= 0 && dropdownListRef.current) {
+      const activeEl = dropdownListRef.current.children[selectedIndex] as HTMLElement;
+      if (activeEl) {
+        activeEl.scrollIntoView({
+          block: "nearest",
+        });
+      }
     }
-
-    return products
-      .filter((p) => {
-        return (
-          p.name.toLowerCase().includes(search) ||
-          p.sku?.toLowerCase().includes(search)
-        );
-      })
-      .slice(0, 20);
-  }, [data?.items, debouncedQuery]);
+  }, [selectedIndex, item.showDropdown]);
 
   // Position the portalled dropdown under its input.
   useEffect(() => {
-    if (!item.showDropdown) return;
+    if (!item.showDropdown) {
+      setDropdownPosition(null);
+      return;
+    }
 
     function updatePosition() {
       if (!inputRef.current) return;
@@ -157,14 +167,7 @@ export default function QuotationRow({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [item.id, onUpdate]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedQuery(query);
-      setSelectedIndex(0);
-    }, 200);
 
-    return () => clearTimeout(timeout);
-  }, [query]);
 
   useEffect(() => {
     if (activeNumberFieldRef.current === "cost") return;
@@ -225,7 +228,7 @@ export default function QuotationRow({
   }
 
   // PRODUCT SELECT
-  function selectProduct(product: Product) {
+  function handleProductSelect(product: Product) {
     const hasMrp = product.mrp !== undefined && product.mrp !== null && Number(product.mrp) > 0;
     
     let costPrice = 0;
@@ -370,40 +373,7 @@ export default function QuotationRow({
     });
   }
 
-  // KEYBOARD NAV
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!item.showDropdown) return;
 
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-
-      setSelectedIndex((prev) =>
-        Math.min(prev + 1, filteredProducts.length - 1),
-      );
-    }
-
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-
-      setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    }
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-
-      const selected = filteredProducts[selectedIndex];
-
-      if (selected) {
-        selectProduct(selected);
-      }
-    }
-
-    if (e.key === "Escape") {
-      onUpdate(item.id, {
-        showDropdown: false,
-      });
-    }
-  }
 
   const overStock =
     item.stockQty !== undefined && item.quantity > item.stockQty;
@@ -419,7 +389,7 @@ export default function QuotationRow({
             ref={inputRef}
             value={item.search || ""}
             placeholder="Search product..."
-            className={`w-full rounded-xl border px-3 py-2 text-sm ${
+            className={`w-full rounded-xl border px-3 py-2 text-sm transition-shadow focus:outline-hidden focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 ${
               isDuplicate ? "border-amber-400 bg-amber-50/50" : ""
             }`}
             onFocus={() =>
@@ -428,14 +398,7 @@ export default function QuotationRow({
               })
             }
             onKeyDown={handleKeyDown}
-            onChange={(e) => {
-              setQuery(e.target.value);
-
-              onUpdate(item.id, {
-                search: e.target.value,
-                showDropdown: true,
-              });
-            }}
+            onChange={(e) => handleInputChange(e.target.value)}
           />
         </div>
 
@@ -469,62 +432,122 @@ export default function QuotationRow({
           </div>
         )}
 
-        {item.showDropdown &&
+        {item.showDropdown && dropdownPosition &&
           createPortal(
             <div
               ref={dropdownRef}
-              className="absolute z-50 rounded-xl border bg-white shadow-xl"
+              className="absolute z-50 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
               style={{
                 top: dropdownPosition.top,
                 left: dropdownPosition.left,
                 width: Math.max(dropdownPosition.width, 420),
               }}
             >
-              <div className="border-b bg-gray-50 px-4 py-2 text-xs">
-                Product Search
+              <div className="border-b bg-slate-50 px-4 py-2 text-xs flex justify-between items-center font-medium text-slate-500">
+                <span>{query.trim() ? "Search Results" : "Recent Searches"}</span>
+                {isLoadingProducts && (
+                  <span className="text-[10px] text-slate-400 animate-pulse">Loading index...</span>
+                )}
+                {!query.trim() && recentSearches.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearRecentSearches}
+                    className="text-[10px] text-rose-600 hover:text-rose-800 font-semibold hover:underline"
+                  >
+                    Clear All
+                  </button>
+                )}
               </div>
 
-              <div className="max-h-80 overflow-y-auto">
-                {filteredProducts.length === 0 ? (
-                  <div className="p-4 text-sm text-gray-500">
+              <div ref={dropdownListRef} className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                {dropdownItems.length === 0 ? (
+                  <div className="p-4 text-sm text-slate-500 text-center">
                     No products found
                   </div>
                 ) : (
-                  filteredProducts.map((product, index) => {
+                  dropdownItems.map((dropdownItem, index) => {
                     const isActive = index === selectedIndex;
 
+                    if (dropdownItem.type === "recent") {
+                      return (
+                        <div
+                          key={`recent-${dropdownItem.query}`}
+                          className={`flex w-full items-center justify-between gap-2 p-2 px-3 text-left transition-colors ${
+                            isActive ? "bg-slate-100 text-slate-900" : "hover:bg-slate-50"
+                          }`}
+                          onMouseEnter={() => setSelectedIndex(index)}
+                        >
+                          <button
+                            type="button"
+                            className="flex items-center gap-2 flex-1 text-left text-sm font-medium text-slate-700"
+                            onClick={() => handleRecentSearchSelect(dropdownItem.query)}
+                          >
+                            <History size={13} className="text-slate-400" />
+                            <span>{dropdownItem.query}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded-sm transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeRecentSearch(dropdownItem.query);
+                            }}
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    const product = dropdownItem.product;
                     return (
                       <button
-                        key={product.id}
+                        key={`prod-${product.id}`}
                         type="button"
-                        className={`flex w-full items-center justify-between gap-3 p-3 text-left ${
-                          isActive ? "bg-black text-white" : "hover:bg-gray-50"
+                        className={`flex w-full items-center justify-between gap-3 p-3 text-left transition-colors ${
+                          isActive ? "bg-slate-900 text-white" : "hover:bg-slate-50 text-slate-800"
                         }`}
                         onMouseEnter={() => setSelectedIndex(index)}
                         onClick={() => selectProduct(product)}
                       >
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium">
-                            {product.name}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold">
+                            {highlightText(product.name, query)}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px] opacity-80">
+                            {product.sku && (
+                              <span className={`font-mono px-1 rounded-sm text-[10px] font-bold ${
+                                isActive ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-700"
+                              }`}>
+                                {highlightText(product.sku, query)}
+                              </span>
+                            )}
+                            {product.brand && (
+                              <span>{highlightText(product.brand, query)}</span>
+                            )}
+                            {product.brand && product.category && <span>·</span>}
+                            {product.category && (
+                              <span>{highlightText(product.category, query)}</span>
+                            )}
                           </div>
                         </div>
 
                         <div className="shrink-0 text-right">
-                          <div className="text-sm font-semibold">
+                          <div className="text-sm font-bold">
                             ₹{Number(product.mrp || product.costPrice || 0).toLocaleString("en-IN")}
-                            <span className="text-[10px] ml-1 font-normal text-muted-foreground">
+                            <span className="text-[10px] ml-1 font-normal opacity-70">
                               {product.mrp ? "(MRP)" : "(Cost)"}
                             </span>
                           </div>
                           <div
-                            className={`text-[11px] ${
+                            className={`text-[11px] mt-0.5 ${
                               isActive
-                                ? "text-gray-300"
+                                ? "text-slate-300"
                                 : product.stockQty <= 0
-                                  ? "text-rose-600"
+                                  ? "text-rose-600 font-semibold"
                                   : product.stockQty < 20
-                                    ? "text-amber-600"
-                                    : "text-gray-500"
+                                    ? "text-amber-600 font-semibold"
+                                    : "text-emerald-600 font-semibold"
                             }`}
                           >
                             {product.stockQty} in stock

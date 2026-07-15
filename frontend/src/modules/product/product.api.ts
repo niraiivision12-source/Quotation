@@ -4,11 +4,12 @@ import type { ProductListResponse } from "./product.types";
 
 export const getProducts = async (
   search = "",
+  limit = 50,
 ): Promise<ProductListResponse> => {
   const response = await api.get("/products", {
     params: {
       page: 1,
-      limit: 50,
+      limit,
       search,
     },
   });
