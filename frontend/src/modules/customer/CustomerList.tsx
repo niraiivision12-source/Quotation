@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 import { Button } from "../../components/ui/button";
 import {
@@ -18,12 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import CreateCustomerDialog from "./CreateCustomerDialog";
 import { useAllCustomers, useDeleteCustomer } from "./customer.query";
 import type { Customer } from "./customer.types";
 import { useFuzzySearch } from "../../hooks/useFuzzySearch";
 import { highlightText } from "../../utils/highlight.utils";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 
 function DeleteCustomerButton({ customer }: { customer: Customer }) {
   const [open, setOpen] = useState(false);
@@ -69,6 +70,10 @@ function DeleteCustomerButton({ customer }: { customer: Customer }) {
 export default function CustomerList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number | null>(null);
 
   const { data, isLoading } = useAllCustomers();
   const customers = data?.items ?? [];
@@ -95,6 +100,88 @@ export default function CustomerList() {
     }
   });
 
+  useEffect(() => {
+    setFocusedRowIndex(null);
+  }, [search, page]);
+
+  useKeyboardShortcuts(
+    [
+      {
+        id: "cust-focus-search",
+        keys: "/",
+        description: "Focus search bar",
+        category: "Customer Management",
+        action: (e) => {
+          e.preventDefault();
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        },
+      },
+      {
+        id: "cust-prev-page",
+        keys: "alt+arrowleft",
+        description: "Previous page",
+        category: "Customer Management",
+        action: () => {
+          if (page > 1) setPage((p) => p - 1);
+        },
+      },
+      {
+        id: "cust-next-page",
+        keys: "alt+arrowright",
+        description: "Next page",
+        category: "Customer Management",
+        action: () => {
+          if (page < totalPages) setPage((p) => p + 1);
+        },
+      },
+      {
+        id: "cust-row-down",
+        keys: "arrowdown",
+        description: "Select next row",
+        category: "Customer Management",
+        allowInInputs: true,
+        action: (e) => {
+          if (visibleCustomers.length === 0) return;
+          e.preventDefault();
+          setFocusedRowIndex((prev) => {
+            if (prev === null) return 0;
+            return Math.min(prev + 1, visibleCustomers.length - 1);
+          });
+        },
+      },
+      {
+        id: "cust-row-up",
+        keys: "arrowup",
+        description: "Select previous row",
+        category: "Customer Management",
+        allowInInputs: true,
+        action: (e) => {
+          if (visibleCustomers.length === 0) return;
+          e.preventDefault();
+          setFocusedRowIndex((prev) => {
+            if (prev === null || prev === 0) return null;
+            return prev - 1;
+          });
+        },
+      },
+      {
+        id: "cust-row-enter",
+        keys: "enter",
+        description: "Open customer details",
+        category: "Customer Management",
+        allowInInputs: true,
+        action: (e) => {
+          if (focusedRowIndex !== null && visibleCustomers[focusedRowIndex]) {
+            e.preventDefault();
+            navigate(`/customers/${visibleCustomers[focusedRowIndex].id}`);
+          }
+        },
+      },
+    ],
+    [visibleCustomers, page, totalPages, focusedRowIndex, navigate]
+  );
+
   return (
     <div>
       <PageHeader title="Customers" />
@@ -105,6 +192,7 @@ export default function CustomerList() {
 
       <div className="mb-4">
         <Input
+          ref={searchInputRef}
           placeholder="Search customer"
           value={search}
           onChange={(e) => {
@@ -138,8 +226,15 @@ export default function CustomerList() {
             </TableRow>
           )}
 
-          {visibleCustomers.map((customer) => (
-            <TableRow key={customer.id}>
+          {visibleCustomers.map((customer, index) => (
+            <TableRow 
+              key={customer.id}
+              className={
+                index === focusedRowIndex
+                  ? "bg-slate-100/80 hover:bg-slate-100/80 ring-2 ring-indigo-500/10"
+                  : ""
+              }
+            >
               <TableCell>
                 <Link to={`/customers/${customer.id}`} className="text-blue-600 hover:underline">
                   {highlightText(customer.name, search)}

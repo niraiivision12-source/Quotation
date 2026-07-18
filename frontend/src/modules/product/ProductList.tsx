@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
-import { Package, Search } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Package, Search, Upload, Edit } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import {
   Select,
   SelectContent,
@@ -19,10 +21,17 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../../components/ui/dialog";
 
-import { useProductList } from "./product.query";
-import type { Product } from "./product.types";
+import { useProductList, useUpdateProduct } from "./product.query";
 import { highlightText } from "../../utils/highlight.utils";
+import ProductImportModal from "./ProductImportModal";
 
 const PAGE_SIZES = [25, 50, 100];
 
@@ -55,6 +64,72 @@ export default function ProductList() {
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number | null>(null);
+
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Form states for manual editing
+  const [editName, setEditName] = useState("");
+  const [editSku, setEditSku] = useState("");
+  const [editBrand, setEditBrand] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editUnit, setEditUnit] = useState("");
+  const [editCostPrice, setEditCostPrice] = useState("");
+  const [editMrp, setEditMrp] = useState("");
+  const [editStockQty, setEditStockQty] = useState("");
+
+  const updateProductMutation = useUpdateProduct();
+
+  const handleOpenEditModal = (product: any) => {
+    setSelectedProduct(product);
+    setEditName(product.name ?? "");
+    setEditSku(product.sku ?? "");
+    setEditBrand(product.brand ?? "");
+    setEditCategory(product.category ?? "");
+    setEditUnit(product.unit ?? "");
+    setEditCostPrice(product.costPrice !== null && product.costPrice !== undefined ? String(product.costPrice) : "");
+    setEditMrp(product.mrp !== null && product.mrp !== undefined ? String(product.mrp) : "");
+    setEditStockQty(product.stockQty !== null && product.stockQty !== undefined ? String(product.stockQty) : "0");
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduct) return;
+
+    if (!editSku.trim()) {
+      toast.error("SKU is required");
+      return;
+    }
+    if (!editName.trim()) {
+      toast.error("Product Name is required");
+      return;
+    }
+
+    try {
+      await updateProductMutation.mutateAsync({
+        id: selectedProduct.id,
+        payload: {
+          sku: editSku.trim(),
+          name: editName.trim(),
+          brand: editBrand.trim() || null,
+          category: editCategory.trim() || null,
+          unit: editUnit.trim() || null,
+          costPrice: editCostPrice.trim() !== "" ? Number(editCostPrice) : null,
+          mrp: editMrp.trim() !== "" ? Number(editMrp) : null,
+          stockQty: editStockQty.trim() !== "" ? Number(editStockQty) : 0,
+        },
+      });
+      toast.success("Product updated successfully");
+      setIsEditModalOpen(false);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to update product");
+    }
+  };
 
   // The API searches server-side, so don't fire a request on every keystroke.
   useEffect(() => {
@@ -66,10 +141,107 @@ export default function ProductList() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: productListData, isLoading, isFetching } = useProductList(page, limit, debouncedSearch);
+  const [stockStatus, setStockStatus] = useState("all");
+  const [priceStatus, setPriceStatus] = useState("all");
+
+  const { data: productListData, isLoading, isFetching } = useProductList(
+    page,
+    limit,
+    debouncedSearch,
+    stockStatus === "all" ? "" : stockStatus,
+    priceStatus === "all" ? "" : priceStatus
+  );
   const products = productListData?.items ?? [];
   const total = productListData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  useEffect(() => {
+    setFocusedRowIndex(null);
+  }, [search, page, limit, stockStatus, priceStatus]);
+
+  useKeyboardShortcuts(
+    [
+      {
+        id: "prod-focus-search",
+        keys: "/",
+        description: "Focus search bar",
+        category: "Product Management",
+        action: (e) => {
+          if (isEditModalOpen || isImportModalOpen) return;
+          e.preventDefault();
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        },
+      },
+      {
+        id: "prod-prev-page",
+        keys: "alt+arrowleft",
+        description: "Previous page",
+        category: "Product Management",
+        action: () => {
+          if (isEditModalOpen || isImportModalOpen) return;
+          if (page > 1) setPage((p) => p - 1);
+        },
+      },
+      {
+        id: "prod-next-page",
+        keys: "alt+arrowright",
+        description: "Next page",
+        category: "Product Management",
+        action: () => {
+          if (isEditModalOpen || isImportModalOpen) return;
+          if (page < totalPages) setPage((p) => p + 1);
+        },
+      },
+      {
+        id: "prod-row-down",
+        keys: "arrowdown",
+        description: "Select next row",
+        category: "Product Management",
+        allowInInputs: true,
+        action: (e) => {
+          if (isEditModalOpen || isImportModalOpen) return;
+          if (products.length === 0) return;
+          e.preventDefault();
+          setFocusedRowIndex((prev) => {
+            if (prev === null) return 0;
+            return Math.min(prev + 1, products.length - 1);
+          });
+        },
+      },
+      {
+        id: "prod-row-up",
+        keys: "arrowup",
+        description: "Select previous row",
+        category: "Product Management",
+        allowInInputs: true,
+        action: (e) => {
+          if (isEditModalOpen || isImportModalOpen) return;
+          if (products.length === 0) return;
+          e.preventDefault();
+          setFocusedRowIndex((prev) => {
+            if (prev === null || prev === 0) return null;
+            return prev - 1;
+          });
+        },
+      },
+      {
+        id: "prod-row-enter",
+        keys: "enter",
+        description: "Edit selected product",
+        category: "Product Management",
+        allowInInputs: true,
+        action: (e) => {
+          if (isEditModalOpen || isImportModalOpen) return;
+          if (focusedRowIndex !== null && products[focusedRowIndex]) {
+            e.preventDefault();
+            handleOpenEditModal(products[focusedRowIndex]);
+          }
+        },
+      },
+    ],
+    [products, page, totalPages, focusedRowIndex, isEditModalOpen, isImportModalOpen]
+  );
 
   const firstRow = total === 0 ? 0 : (page - 1) * limit + 1;
   const lastRow = Math.min(page * limit, total);
@@ -83,6 +255,7 @@ export default function ProductList() {
             className="absolute left-3 top-3.5 text-muted-foreground"
           />
           <Input
+            ref={searchInputRef}
             placeholder="Search all products by name or SKU..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -91,13 +264,47 @@ export default function ProductList() {
         </div>
 
         <Select
+          value={stockStatus}
+          onValueChange={(value) => {
+            setStockStatus(value);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-44 h-10 text-sm">
+            <SelectValue placeholder="Stock Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Stock Statuses</SelectItem>
+            <SelectItem value="inStock">In Stock (Qty &gt; 0)</SelectItem>
+            <SelectItem value="outOfStock">Out of Stock</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={priceStatus}
+          onValueChange={(value) => {
+            setPriceStatus(value);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-44 h-10 text-sm">
+            <SelectValue placeholder="Price Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Pricing</SelectItem>
+            <SelectItem value="hasPrice">With Pricing</SelectItem>
+            <SelectItem value="noPrice">Without Pricing</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
           value={String(limit)}
           onValueChange={(value) => {
             setLimit(Number(value));
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-full sm:w-36 h-10 text-sm">
+          <SelectTrigger className="w-full sm:w-32 h-10 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -108,7 +315,21 @@ export default function ProductList() {
             ))}
           </SelectContent>
         </Select>
+
+        <Button
+          onClick={() => setIsImportModalOpen(true)}
+          className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shrink-0 cursor-pointer"
+        >
+          <Upload size={14} />
+          Import Products
+        </Button>
       </div>
+
+      <ProductImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+      />
+
 
       <div className="bg-white border border-gray-150 rounded-2xl overflow-hidden shadow-xs">
         {isLoading ? (
@@ -145,12 +366,20 @@ export default function ProductList() {
                   <TableHead className="text-right">Stock</TableHead>
                   <TableHead className="text-right">Tally Stock</TableHead>
                   <TableHead>Updated</TableHead>
+                  <TableHead className="w-16 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {products.map((product, index) => (
-                  <TableRow key={product.id}>
+                  <TableRow 
+                    key={product.id}
+                    className={
+                      index === focusedRowIndex
+                        ? "bg-slate-100/80 hover:bg-slate-100/80 ring-2 ring-indigo-500/10"
+                        : ""
+                    }
+                  >
                     <TableCell className="text-right text-[10px] text-muted-foreground tabular-nums">
                       {firstRow + index}
                     </TableCell>
@@ -205,6 +434,18 @@ export default function ProductList() {
                     <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
                       {formatDate(product.updatedAt)}
                     </TableCell>
+
+                    <TableCell className="text-center p-1.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenEditModal(product)}
+                        className="h-7 w-7 text-gray-500 hover:text-indigo-600 rounded-lg hover:bg-indigo-50/50 cursor-pointer flex items-center justify-center mx-auto"
+                        title="Edit Product"
+                      >
+                        <Edit size={13} />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -240,6 +481,154 @@ export default function ProductList() {
           </Button>
         </div>
       </div>
+
+      {/* Edit Product Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden bg-white rounded-2xl shadow-xl border border-gray-150">
+          <DialogHeader className="p-6 pb-4 border-b border-gray-100 bg-gray-50/50">
+            <DialogTitle className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <Package className="text-indigo-600" size={18} />
+              Edit Product Details
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveProduct}>
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5 col-span-2">
+                  <label htmlFor="edit-name" className="text-xs font-semibold text-gray-700">
+                    Product Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="edit-name"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="e.g. Havells Motor 3Ph"
+                    className="h-10 text-xs rounded-xl"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-sku" className="text-xs font-semibold text-gray-700">
+                    SKU / Code <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="edit-sku"
+                    value={editSku}
+                    onChange={(e) => setEditSku(e.target.value)}
+                    placeholder="e.g. SKU-12345"
+                    className="h-10 text-xs rounded-xl"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-unit" className="text-xs font-semibold text-gray-700">
+                    Unit (UoM)
+                  </label>
+                  <Input
+                    id="edit-unit"
+                    value={editUnit}
+                    onChange={(e) => setEditUnit(e.target.value)}
+                    placeholder="e.g. Box, No., Pcs"
+                    className="h-10 text-xs rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-brand" className="text-xs font-semibold text-gray-700">
+                    Brand
+                  </label>
+                  <Input
+                    id="edit-brand"
+                    value={editBrand}
+                    onChange={(e) => setEditBrand(e.target.value)}
+                    placeholder="e.g. Havells"
+                    className="h-10 text-xs rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-category" className="text-xs font-semibold text-gray-700">
+                    Category
+                  </label>
+                  <Input
+                    id="edit-category"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    placeholder="e.g. Electrical"
+                    className="h-10 text-xs rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-cost" className="text-xs font-semibold text-gray-700">
+                    Cost Price (₹)
+                  </label>
+                  <Input
+                    id="edit-cost"
+                    type="number"
+                    step="any"
+                    value={editCostPrice}
+                    onChange={(e) => setEditCostPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="h-10 text-xs rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-mrp" className="text-xs font-semibold text-gray-700">
+                    MRP (₹)
+                  </label>
+                  <Input
+                    id="edit-mrp"
+                    type="number"
+                    step="any"
+                    value={editMrp}
+                    onChange={(e) => setEditMrp(e.target.value)}
+                    placeholder="0.00"
+                    className="h-10 text-xs rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5 col-span-2">
+                  <label htmlFor="edit-stock" className="text-xs font-semibold text-gray-700">
+                    Stock Quantity
+                  </label>
+                  <Input
+                    id="edit-stock"
+                    type="number"
+                    value={editStockQty}
+                    onChange={(e) => setEditStockQty(e.target.value)}
+                    placeholder="0"
+                    className="h-10 text-xs rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="p-4 border-t border-gray-100 bg-gray-50/50 flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditModalOpen(false)}
+                className="h-9 px-4 rounded-xl text-xs font-semibold"
+                disabled={updateProductMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold"
+                disabled={updateProductMutation.isPending}
+              >
+                {updateProductMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

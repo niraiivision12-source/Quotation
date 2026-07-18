@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuthStore } from "../store/auth.store";
+import logoImg from "../assets/logo.jpg";
 
 const NAV_ITEMS = [
   {
@@ -56,12 +57,11 @@ export default function Sidebar({
   return (
     <aside className="w-60 border-r h-screen flex flex-col bg-white shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b">
-        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-sm">N</span>
-        </div>
+      <div className="flex items-center gap-2.5 px-5 py-3 border-b">
+        <img src={logoImg} alt="NKP Logo" className="w-9 h-9 rounded-lg object-cover shrink-0 border border-gray-100" />
         <div>
-          <p className="font-bold text-sm leading-tight">NKP CRM</p>
+          <p className="font-bold text-sm leading-tight text-gray-900">N.K.Poduval & Co</p>
+          <span className="text-[10px] text-gray-500 font-medium tracking-wide leading-none block mt-0.5">SINCE 1948</span>
         </div>
       </div>
 

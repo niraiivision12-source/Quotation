@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import type { CreateQuotationDTO, QuotationItemForm } from "./quotation.types";
+import logoImg from "../../assets/logo.jpg";
 
 interface CompanyDetails {
   companyName: string;
@@ -54,18 +55,18 @@ export function downloadQuotationPDF({
   });
 
   const comp = companyDetails || {
-    companyName: "NKP Construction",
+    companyName: "N.K.Poduval & Company",
     companyLogo: null,
-    companyGst: "27AAAAA0000A1Z5",
-    companyAddress: "123 Business Park, Mumbai, India",
-    companyPhone: "+91 98765 43210",
-    companyEmail: "info@nkpconstruction.com",
-    companyWebsite: "www.nkpconstruction.com",
+    companyGst: "UDYAM-KL-07-0017431",
+    companyAddress: "Sastri Road, Kottayam, Kerala - 686001",
+    companyPhone: "+91 94970 89390",
+    companyEmail: "office.nkpoduval@gmail.com",
+    companyWebsite: "www.nkpoduval.com",
     bankName: "State Bank of India",
     bankAccountNo: "123456789012",
     bankIfsc: "SBIN0001234",
-    bankBranch: "Mumbai Main Branch",
-    upiId: "nkp@sbi",
+    bankBranch: "Kottayam Branch",
+    upiId: "nkpoduval@sbi",
     termsAndConditions: "1. Quotation is valid for 30 days.\n2. 50% advance payment required.",
     authorizedSignature: null,
     footerText: "Thank you for doing business with us!",
@@ -76,10 +77,12 @@ export function downloadQuotationPDF({
   // Header Logo and Info
   // -----------------------------
   let textStartX = 14;
-  if (comp.companyLogo && comp.companyLogo.startsWith("data:image")) {
+  const logoToUse = comp.companyLogo || logoImg;
+  if (logoToUse) {
     try {
-      doc.addImage(comp.companyLogo, "PNG", 14, 10, 25, 25);
-      textStartX = 44;
+      const format = logoToUse.includes(".png") || logoToUse.startsWith("data:image/png") ? "PNG" : "JPEG";
+      doc.addImage(logoToUse, format, 14, 8, 22, 22);
+      textStartX = 41;
     } catch (e) {
       console.error("Failed to add company logo to PDF", e);
     }

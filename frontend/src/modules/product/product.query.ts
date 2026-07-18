@@ -1,6 +1,6 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { getProductList, getProducts } from "./product.api";
+import { getProductList, getProducts, previewProductImport, confirmProductImport, updateProduct } from "./product.api";
 
 export function useProducts(search = "") {
   return useQuery({
@@ -18,11 +18,11 @@ export function useProducts(search = "") {
   });
 }
 
-export function useProductList(page = 1, limit = 25, search = "") {
+export function useProductList(page = 1, limit = 25, search = "", stockStatus = "", priceStatus = "") {
   return useQuery({
-    queryKey: ["products", "list", page, limit, search],
+    queryKey: ["products", "list", page, limit, search, stockStatus, priceStatus],
 
-    queryFn: ({ signal }) => getProductList(page, limit, search, signal),
+    queryFn: ({ signal }) => getProductList(page, limit, search, stockStatus, priceStatus, signal),
   });
 }
 
@@ -33,3 +33,32 @@ export function useAllProducts() {
     staleTime: 10 * 60 * 1000,
   });
 }
+
+export function usePreviewProductImport() {
+  return useMutation({
+    mutationFn: (file: File) => previewProductImport(file),
+  });
+}
+
+export function useConfirmProductImport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { inserts: any[]; updates: any[] }) =>
+      confirmProductImport(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
+      updateProduct(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+

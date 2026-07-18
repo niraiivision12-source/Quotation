@@ -56,7 +56,7 @@ export function useFuzzySearch<T>({
   const fuse = useMemo(() => {
     return new Fuse(items, {
       keys,
-      threshold: 0.3,
+      threshold: 0.5,
       includeScore: true,
       ignoreLocation: true,
       ...fuseOptions,

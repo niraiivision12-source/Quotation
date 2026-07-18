@@ -27,15 +27,56 @@ function toTsQuery(normalized: string): string {
 }
 
 export class ProductService {
-  static async getAll(page: number, limit: number, search?: string) {
+  static async getAll(
+    page: number,
+    limit: number,
+    search?: string,
+    stockStatus?: string,
+    priceStatus?: string
+  ) {
     const skip = (page - 1) * limit;
+
+    // Build dynamic Prisma where clause
+    const prismaWhere: any = {
+      isActive: true,
+    };
+
+    if (stockStatus === "inStock") {
+      prismaWhere.stockQty = { gt: 0 };
+    } else if (stockStatus === "outOfStock") {
+      prismaWhere.stockQty = { lte: 0 };
+    }
+
+    if (priceStatus === "hasPrice") {
+      prismaWhere.OR = [
+        { costPrice: { gt: 0 } },
+        { mrp: { gt: 0 } },
+      ];
+    } else if (priceStatus === "noPrice") {
+      prismaWhere.AND = [
+        { OR: [{ costPrice: null }, { costPrice: { lte: 0 } }] },
+        { OR: [{ mrp: null }, { mrp: { lte: 0 } }] },
+      ];
+    }
+
+    // Build dynamic SQL where conditions
+    let filterSql = "";
+    if (stockStatus === "inStock") {
+      filterSql += ` AND p."stockQty" > 0`;
+    } else if (stockStatus === "outOfStock") {
+      filterSql += ` AND p."stockQty" <= 0`;
+    }
+
+    if (priceStatus === "hasPrice") {
+      filterSql += ` AND (p."costPrice" > 0 OR p.mrp > 0)`;
+    } else if (priceStatus === "noPrice") {
+      filterSql += ` AND (p."costPrice" IS NULL OR p."costPrice" <= 0) AND (p.mrp IS NULL OR p.mrp <= 0)`;
+    }
 
     if (!search || !search.trim()) {
       const [items, total] = await Promise.all([
         prisma.product.findMany({
-          where: {
-            isActive: true,
-          },
+          where: prismaWhere,
           skip,
           take: limit,
           orderBy: {
@@ -43,9 +84,7 @@ export class ProductService {
           },
         }),
         prisma.product.count({
-          where: {
-            isActive: true,
-          },
+          where: prismaWhere,
         }),
       ]);
 
@@ -65,9 +104,7 @@ export class ProductService {
     if (!normalized) {
       const [items, total] = await Promise.all([
         prisma.product.findMany({
-          where: {
-            isActive: true,
-          },
+          where: prismaWhere,
           skip,
           take: limit,
           orderBy: {
@@ -75,9 +112,7 @@ export class ProductService {
           },
         }),
         prisma.product.count({
-          where: {
-            isActive: true,
-          },
+          where: prismaWhere,
         }),
       ]);
 
@@ -136,9 +171,9 @@ export class ProductService {
                   THEN ts_rank_cd(p.searchable, to_tsquery('simple', ns.ts_query_str)) * 15.0 
                   ELSE 0.0 END) +
             
-            -- 6. Trigram Similarity
-            (similarity(p.name, ns.query_str) * 10.0) +
-            (similarity(COALESCE(p.sku, ''), ns.query_str) * 5.0) +
+            -- 6. Trigram Word Similarity
+            (word_similarity(ns.query_str, p.name) * 15.0) +
+            (word_similarity(ns.query_str, COALESCE(p.sku, '')) * 5.0) +
             
             -- 7. Business ranking (active before inactive)
             (CASE WHEN p."isActive" = true THEN 1.0 ELSE 0.0 END)
@@ -146,12 +181,13 @@ export class ProductService {
         FROM "Product" p, normalized_search ns
         WHERE 
           p."isActive" = true
+          ${filterSql}
           AND (
             p.sku ILIKE ns.prefix_pattern
             OR p.name ILIKE ns.prefix_pattern
             OR (ns.ts_query_str <> '' AND p.searchable @@ to_tsquery('simple', ns.ts_query_str))
-            OR p.name % ns.query_str
-            OR p.sku % ns.query_str
+            OR word_similarity(ns.query_str, p.name) > 0.15
+            OR word_similarity(ns.query_str, COALESCE(p.sku, '')) > 0.15
           )
         ORDER BY score DESC, p.name ASC
         LIMIT $4 OFFSET $5;
@@ -174,12 +210,13 @@ export class ProductService {
         FROM "Product" p, normalized_search ns
         WHERE 
           p."isActive" = true
+          ${filterSql}
           AND (
             p.sku ILIKE ns.prefix_pattern
             OR p.name ILIKE ns.prefix_pattern
             OR (ns.ts_query_str <> '' AND p.searchable @@ to_tsquery('simple', ns.ts_query_str))
-            OR p.name % ns.query_str
-            OR p.sku % ns.query_str
+            OR word_similarity(ns.query_str, p.name) > 0.15
+            OR word_similarity(ns.query_str, COALESCE(p.sku, '')) > 0.15
           );
         `,
         normalized,

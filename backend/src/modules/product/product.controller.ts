@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 
 import { ProductService } from "./product.service";
+import { ProductImportService } from "./product.import.service";
+import { AppError } from "../../utils/app-error";
 
 import {
   createProductSchema,
@@ -26,8 +28,10 @@ export class ProductController {
     const limit = Number(req.query.limit || 20);
 
     const search = req.query.search?.toString();
+    const stockStatus = req.query.stockStatus?.toString();
+    const priceStatus = req.query.priceStatus?.toString();
 
-    const products = await ProductService.getAll(page, limit, search);
+    const products = await ProductService.getAll(page, limit, search, stockStatus, priceStatus);
 
     return res.status(200).json({
       success: true,
@@ -74,4 +78,30 @@ export class ProductController {
       message: "Product sync not implemented yet",
     });
   }
+
+  static async previewImport(req: Request, res: Response) {
+    if (!req.file) {
+      throw new AppError("No file uploaded", 400);
+    }
+    const preview = await ProductImportService.parseAndPreview(req.file.buffer);
+    return res.status(200).json({
+      success: true,
+      message: "Import preview generated",
+      data: preview,
+    });
+  }
+
+  static async confirmImport(req: Request, res: Response) {
+    const { inserts, updates } = req.body;
+    if (!Array.isArray(inserts) || !Array.isArray(updates)) {
+      throw new AppError("Invalid import confirmation data", 400);
+    }
+    const result = await ProductImportService.executeImport(inserts, updates);
+    return res.status(200).json({
+      success: true,
+      message: "Products imported successfully",
+      data: result,
+    });
+  }
 }
+

@@ -6,8 +6,9 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import {
   FaFacebook,
   FaInstagram,
@@ -519,6 +520,9 @@ export default function LeadList() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number | null>(null);
+
   const [page, _setPage] = useState(1);
 
   const setPage: typeof _setPage = (value) => {
@@ -607,6 +611,96 @@ export default function LeadList() {
       limit,
     };
   }, [rawLeadsData, visibleLeads, total, page, limit]);
+
+  useEffect(() => {
+    setFocusedRowIndex(null);
+  }, [search, page, limit, filters]);
+
+  useKeyboardShortcuts(
+    [
+      {
+        id: "lead-focus-search",
+        keys: "/",
+        description: "Focus search bar",
+        category: "Lead Management",
+        action: (e) => {
+          if (document.querySelector('[role="dialog"]')) return;
+          e.preventDefault();
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        },
+      },
+      {
+        id: "lead-prev-page",
+        keys: "alt+arrowleft",
+        description: "Previous page",
+        category: "Lead Management",
+        action: () => {
+          if (document.querySelector('[role="dialog"]')) return;
+          if (page > 1) setPage(page - 1);
+        },
+      },
+      {
+        id: "lead-next-page",
+        keys: "alt+arrowright",
+        description: "Next page",
+        category: "Lead Management",
+        action: () => {
+          if (document.querySelector('[role="dialog"]')) return;
+          const totalPages = data ? Math.ceil(data.total / limit) : 1;
+          if (page < totalPages) setPage(page + 1);
+        },
+      },
+      {
+        id: "lead-row-down",
+        keys: "arrowdown",
+        description: "Select next row",
+        category: "Lead Management",
+        allowInInputs: true,
+        action: (e) => {
+          if (document.querySelector('[role="dialog"]')) return;
+          if (visibleLeads.length === 0) return;
+          e.preventDefault();
+          setFocusedRowIndex((prev) => {
+            if (prev === null) return 0;
+            return Math.min(prev + 1, visibleLeads.length - 1);
+          });
+        },
+      },
+      {
+        id: "lead-row-up",
+        keys: "arrowup",
+        description: "Select previous row",
+        category: "Lead Management",
+        allowInInputs: true,
+        action: (e) => {
+          if (document.querySelector('[role="dialog"]')) return;
+          if (visibleLeads.length === 0) return;
+          e.preventDefault();
+          setFocusedRowIndex((prev) => {
+            if (prev === null || prev === 0) return null;
+            return prev - 1;
+          });
+        },
+      },
+      {
+        id: "lead-row-enter",
+        keys: "enter",
+        description: "Open lead details",
+        category: "Lead Management",
+        allowInInputs: true,
+        action: (e) => {
+          if (document.querySelector('[role="dialog"]')) return;
+          if (focusedRowIndex !== null && visibleLeads[focusedRowIndex]) {
+            e.preventDefault();
+            navigate(`/leads/${visibleLeads[focusedRowIndex].id}`);
+          }
+        },
+      },
+    ],
+    [visibleLeads, page, limit, data, focusedRowIndex, navigate]
+  );
+
   const { data: stats } = useLeadStats();
   const updateMutation = useUpdateLead();
 
@@ -744,6 +838,7 @@ export default function LeadList() {
       {/* Filter bar — row 1: search + action buttons */}
       <div className="flex items-center gap-2 mb-2">
         <Input
+          ref={searchInputRef}
           placeholder="Search leads..."
           value={search}
           className="flex-1 min-w-0 max-w-xs"
