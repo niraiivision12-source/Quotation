@@ -20,9 +20,8 @@ import {
   TableRow,
 } from "../../components/ui/table";
 
-import { useAllProducts } from "./product.query";
+import { useProductList } from "./product.query";
 import type { Product } from "./product.types";
-import { useFuzzySearch } from "../../hooks/useFuzzySearch";
 import { highlightText } from "../../utils/highlight.utils";
 
 const PAGE_SIZES = [25, 50, 100];
@@ -67,31 +66,9 @@ export default function ProductList() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: allProductsData, isLoading, isFetching } = useAllProducts();
-  const allProducts = allProductsData?.items ?? [];
-
-  const { results: products, total } = useFuzzySearch({
-    items: allProducts,
-    keys: ["name", "sku", "brand", "category"],
-    searchQuery: debouncedSearch,
-    page,
-    limit,
-    customRankFn: (product: Product, q: string) => {
-      const qLower = q.toLowerCase();
-      const name = product.name.toLowerCase();
-      const sku = (product.sku || "").toLowerCase();
-      const brand = (product.brand || "").toLowerCase();
-      const category = (product.category || "").toLowerCase();
-
-      if (sku === qLower) return 1;
-      if (name === qLower) return 2;
-      if (name.startsWith(qLower)) return 3;
-      if (sku.startsWith(qLower)) return 4;
-      if (name.includes(qLower)) return 5;
-      if (brand.includes(qLower) || category.includes(qLower)) return 6;
-      return 7;
-    }
-  });
+  const { data: productListData, isLoading, isFetching } = useProductList(page, limit, debouncedSearch);
+  const products = productListData?.items ?? [];
+  const total = productListData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const firstRow = total === 0 ? 0 : (page - 1) * limit + 1;

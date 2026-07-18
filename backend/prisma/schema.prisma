@@ -76,6 +76,7 @@ model Product {
 
   ProductMargin  ProductMargin[]
   quotationItems QuotationItem[]
+  searchable     Unsupported("tsvector")? @default(dbgenerated())
 
   @@index([name])
   @@index([sku])

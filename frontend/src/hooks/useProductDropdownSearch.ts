@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { useFuzzySearch } from "./useFuzzySearch";
 import type { Product } from "../modules/product/product.types";
+import { useProducts } from "../modules/product/product.query";
 
 export type DropdownItem =
   | { type: "recent"; query: string }
   | { type: "product"; product: Product };
 
 interface UseProductDropdownSearchOptions {
-  products: Product[];
   searchVal: string;
   setSearchVal: (val: string) => void;
   onSelectProduct: (product: Product) => void;
@@ -15,7 +14,6 @@ interface UseProductDropdownSearchOptions {
 }
 
 export function useProductDropdownSearch({
-  products,
   searchVal,
   setSearchVal,
   onSelectProduct,
@@ -35,7 +33,7 @@ export function useProductDropdownSearch({
     }
   });
 
-  // Debounce input to prevent unnecessary fuzzy search processing
+  // Debounce input to prevent excessive backend queries
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(query);
@@ -50,35 +48,9 @@ export function useProductDropdownSearch({
     }
   }, [searchVal]);
 
-  const customRankProduct = (product: Product, q: string, _fuseScore: number) => {
-    if (!q) return 999;
-    const qLower = q.toLowerCase();
-    const name = product.name.toLowerCase();
-    const sku = (product.sku || "").toLowerCase();
-    const brand = (product.brand || "").toLowerCase();
-    const category = (product.category || "").toLowerCase();
-
-    // Priority 1: Exact SKU match
-    if (sku === qLower) return 1;
-    // Priority 2: Exact Name match
-    if (name === qLower) return 2;
-    // Priority 3: Product name starting with search text
-    if (name.startsWith(qLower)) return 3;
-    // Priority 4: Product name containing search text
-    if (name.includes(qLower)) return 4;
-    // Priority 5: Brand/category matches
-    if (brand.startsWith(qLower) || brand.includes(qLower) || category.startsWith(qLower) || category.includes(qLower)) return 5;
-    // Priority 6: Fuzzy typo matches
-    return 6;
-  };
-
-  // Perform fuzzy search
-  const { results: searchedProducts } = useFuzzySearch({
-    items: products,
-    keys: ["name", "sku", "brand", "category"],
-    searchQuery: debouncedQuery,
-    customRankFn: customRankProduct,
-  });
+  // Perform backend database search
+  const { data: searchResults, isLoading } = useProducts(debouncedQuery);
+  const searchedProducts = searchResults?.items ?? [];
 
   // Generate combined dropdown options
   const dropdownItems = useMemo<DropdownItem[]>(() => {
@@ -86,10 +58,10 @@ export function useProductDropdownSearch({
       if (recentSearches.length > 0) {
         return recentSearches.map((term) => ({ type: "recent", query: term }));
       }
-      return products.slice(0, 20).map((p) => ({ type: "product", product: p }));
+      return searchedProducts.slice(0, 20).map((p) => ({ type: "product", product: p }));
     }
     return searchedProducts.slice(0, 30).map((p) => ({ type: "product", product: p }));
-  }, [query, recentSearches, products, searchedProducts]);
+  }, [query, recentSearches, searchedProducts]);
 
   // Reset selected index when the items list changes
   useEffect(() => {
@@ -173,5 +145,6 @@ export function useProductDropdownSearch({
     handleKeyDown,
     selectProduct,
     handleRecentSearchSelect,
+    isLoading,
   };
 }

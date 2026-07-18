@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { createPortal } from "react-dom";
 
-import { useAllProducts } from "../../product/product.query";
-
 import type { Product } from "../../product/product.types";
 
 import { useProductDropdownSearch } from "../../../hooks/useProductDropdownSearch";
@@ -79,11 +77,6 @@ export default function QuotationRow({
     }
   }, [shouldFocus]);
 
-  // Load the complete product catalog once and cache it.
-  // All rows share the same cache entry and do not fire duplicate requests.
-  const { data: allProductsData, isLoading: isLoadingProducts } = useAllProducts();
-  const products = allProductsData?.items ?? [];
-
   const {
     query,
     dropdownItems,
@@ -96,8 +89,8 @@ export default function QuotationRow({
     handleKeyDown,
     selectProduct,
     handleRecentSearchSelect,
+    isLoading: isLoadingProducts,
   } = useProductDropdownSearch({
-    products,
     searchVal: item.search || "",
     setSearchVal: (val) => onUpdate(item.id, { search: val }),
     onSelectProduct: (product) => handleProductSelect(product),
