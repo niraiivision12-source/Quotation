@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { useShortcutStore, Shortcut } from "../store/shortcut.store";
+import { useShortcutStore } from "../store/shortcut.store";
+import type { Shortcut } from "../store/shortcut.store";
 
 export function useKeyboardShortcuts(shortcuts: Shortcut[], deps: any[] = []) {
   useEffect(() => {
