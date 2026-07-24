@@ -285,7 +285,7 @@ function ReminderFormFields({
           <Select value={form.watch("leadId") || ""} onValueChange={(v) => form.setValue("leadId", v)}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="Select Lead" /></SelectTrigger>
             <SelectContent>
-              {leadsData?.items.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+              {leadsData?.items.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -307,7 +307,7 @@ function ReminderFormFields({
           <Select value={form.watch("projectId") || ""} onValueChange={(v) => form.setValue("projectId", v)}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="Select Project" /></SelectTrigger>
             <SelectContent>
-              {projectsData?.items.map((p) => <SelectItem key={p.id} value={p.id}>{p.projectName}</SelectItem>)}
+              {projectsData?.items.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.projectName}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

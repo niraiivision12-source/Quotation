@@ -21,6 +21,9 @@ const user_routes_1 = __importDefault(require("../modules/user/user.routes"));
 const settings_routes_1 = __importDefault(require("../modules/settings/settings.routes"));
 const payment_routes_1 = __importDefault(require("../modules/payment/payment.routes"));
 const sync_routes_1 = __importDefault(require("../modules/sync/sync.routes"));
+const enquiry_routes_1 = __importDefault(require("../modules/enquiry/enquiry.routes"));
+const opportunity_routes_1 = __importDefault(require("../modules/opportunity/opportunity.routes"));
+const report_routes_1 = __importDefault(require("../modules/report/report.routes"));
 const dev_routes_1 = __importDefault(require("./dev.routes"));
 const router = (0, express_1.Router)();
 router.get("/health", (_req, res) => {
@@ -43,6 +46,9 @@ router.use("/dashboard", dashboard_routes_1.default);
 router.use("/settings", settings_routes_1.default);
 router.use("/payments", payment_routes_1.default);
 router.use("/sync", sync_routes_1.default);
+router.use("/enquiries", enquiry_routes_1.default);
+router.use("/opportunities", opportunity_routes_1.default);
+router.use("/reports", auth_middleware_1.authenticate, (0, role_middleware_1.authorize)(client_1.UserRole.OWNER), report_routes_1.default);
 // Dev Explorer routes, restricted to OWNER role
 router.use("/dev", auth_middleware_1.authenticate, (0, role_middleware_1.authorize)(client_1.UserRole.OWNER), dev_routes_1.default);
 exports.default = router;

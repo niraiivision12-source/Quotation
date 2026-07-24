@@ -8,10 +8,10 @@ import {
   ReminderType,
 } from "@prisma/client";
 
-async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: string) {
+async function updateOpportunityNextFollowUp(tx: Prisma.TransactionClient, opportunityId: string) {
   const nextReminder = await tx.reminder.findFirst({
     where: {
-      leadId,
+      opportunityId,
       status: ReminderStatus.PENDING,
     },
     orderBy: {
@@ -19,8 +19,8 @@ async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: stri
     },
   });
 
-  await tx.lead.update({
-    where: { id: leadId },
+  await tx.opportunity.update({
+    where: { id: opportunityId },
     data: {
       nextFollowUpAt: nextReminder ? nextReminder.dueAt : null,
     },
@@ -37,13 +37,41 @@ export class ReminderService {
       priority: ReminderPriority;
       dueAt: Date;
       repeatType?: ReminderRepeatType;
-      leadId?: string;
+      opportunityId?: string;
       customerId?: string;
-      projectId?: string;
       paymentId?: string;
     },
   ) {
     return prisma.$transaction(async (tx) => {
+      if (data.opportunityId) {
+        const opp = await tx.opportunity.findUnique({
+          where: { id: data.opportunityId },
+        });
+        if (opp) {
+          const user = await tx.user.findUnique({ where: { id: userId } });
+          if (user && user.role !== "OWNER") {
+            const settings = await tx.systemSettings.findUnique({ where: { id: "default" } });
+            const mappings = (settings?.categorySalesmanAssignment as Record<string, any>) || {};
+            const config = mappings[opp.category];
+            let authorized = false;
+            if (typeof config === "string") {
+              authorized = config === userId;
+            } else if (config && typeof config === "object") {
+              const isPrimary = config.primarySalespersonId === userId;
+              const isBackup = config.backupSalespersonId === userId;
+              const isAdditional = Array.isArray(config.additionalEditors) && config.additionalEditors.includes(userId);
+              authorized = isPrimary || isBackup || isAdditional;
+            }
+            if (opp.assignedToId === userId) {
+              authorized = true;
+            }
+            if (!authorized) {
+              throw new AppError("You do not have permission to manage reminders for this pipeline category", 403);
+            }
+          }
+        }
+      }
+
       const reminder = await tx.reminder.create({
         data: {
           ...data,
@@ -51,23 +79,12 @@ export class ReminderService {
         },
       });
 
-      if (data.leadId) {
-        await updateLeadNextFollowUp(tx, data.leadId);
+      if (data.opportunityId) {
+        await updateOpportunityNextFollowUp(tx, data.opportunityId);
 
-        await tx.leadActivity.create({
+        await tx.opportunityActivity.create({
           data: {
-            leadId: data.leadId,
-            userId,
-            type: "REMINDER_CREATED",
-            message: `Reminder created: ${reminder.title}`,
-          },
-        });
-      }
-
-      if (data.projectId) {
-        await tx.projectActivity.create({
-          data: {
-            projectId: data.projectId,
+            opportunityId: data.opportunityId,
             userId,
             type: "REMINDER_CREATED",
             message: `Reminder created: ${reminder.title}`,
@@ -84,7 +101,7 @@ export class ReminderService {
     userRole: string,
     page: number,
     limit: number,
-    projectId?: string,
+    opportunityId?: string,
   ) {
     const skip = (page - 1) * limit;
 
@@ -92,8 +109,8 @@ export class ReminderService {
     if (userRole !== "OWNER") {
       where.userId = userId;
     }
-    if (projectId) {
-      where.projectId = projectId;
+    if (opportunityId) {
+      where.opportunityId = opportunityId;
     }
 
     const [items, total] = await Promise.all([
@@ -105,10 +122,10 @@ export class ReminderService {
           dueAt: "asc",
         },
         include: {
-          lead: {
+          opportunity: {
             select: {
               id: true,
-              name: true,
+              category: true,
             },
           },
           customer: {
@@ -117,19 +134,13 @@ export class ReminderService {
               name: true,
             },
           },
-          project: {
-            select: {
-              id: true,
-              projectName: true,
-            },
-          },
           payment: {
             select: {
               id: true,
               billNumber: true,
-              project: {
+              opportunity: {
                 select: {
-                  projectName: true,
+                  category: true,
                 },
               },
             },
@@ -175,10 +186,10 @@ export class ReminderService {
     const reminder = await prisma.reminder.findFirst({
       where,
       include: {
-        lead: {
+        opportunity: {
           select: {
             id: true,
-            name: true,
+            category: true,
           },
         },
         customer: {
@@ -187,19 +198,13 @@ export class ReminderService {
             name: true,
           },
         },
-        project: {
-          select: {
-            id: true,
-            projectName: true,
-          },
-        },
         payment: {
           select: {
             id: true,
             billNumber: true,
-            project: {
+            opportunity: {
               select: {
-                projectName: true,
+                category: true,
               },
             },
           },
@@ -231,9 +236,8 @@ export class ReminderService {
       dueAt?: Date;
       repeatType?: ReminderRepeatType;
       status?: ReminderStatus;
-      leadId?: string | null;
+      opportunityId?: string | null;
       customerId?: string | null;
-      projectId?: string | null;
       paymentId?: string | null;
     },
   ) {
@@ -252,8 +256,8 @@ export class ReminderService {
         data,
       });
 
-      if (reminder.leadId) {
-        await updateLeadNextFollowUp(tx, reminder.leadId);
+      if (reminder.opportunityId) {
+        await updateOpportunityNextFollowUp(tx, reminder.opportunityId);
       }
 
       return updatedReminder;
@@ -279,23 +283,12 @@ export class ReminderService {
         },
       });
 
-      if (reminder.leadId) {
-        await updateLeadNextFollowUp(tx, reminder.leadId);
+      if (reminder.opportunityId) {
+        await updateOpportunityNextFollowUp(tx, reminder.opportunityId);
 
-        await tx.leadActivity.create({
+        await tx.opportunityActivity.create({
           data: {
-            leadId: reminder.leadId,
-            userId,
-            type: "REMINDER_COMPLETED",
-            message: `Reminder completed: ${reminder.title}`,
-          },
-        });
-      }
-
-      if (reminder.projectId) {
-        await tx.projectActivity.create({
-          data: {
-            projectId: reminder.projectId,
+            opportunityId: reminder.opportunityId,
             userId,
             type: "REMINDER_COMPLETED",
             message: `Reminder completed: ${reminder.title}`,
@@ -322,8 +315,8 @@ export class ReminderService {
         where: { id },
       });
 
-      if (reminder.leadId) {
-        await updateLeadNextFollowUp(tx, reminder.leadId);
+      if (reminder.opportunityId) {
+        await updateOpportunityNextFollowUp(tx, reminder.opportunityId);
       }
 
       return true;

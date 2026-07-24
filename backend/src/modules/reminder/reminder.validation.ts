@@ -19,11 +19,9 @@ export const createReminderSchema = z.object({
 
   repeatType: z.enum(ReminderRepeatType).optional(),
 
-  leadId: z.uuid().optional(),
+  opportunityId: z.uuid().optional(),
 
   customerId: z.uuid().optional(),
-
-  projectId: z.uuid().optional(),
 
   paymentId: z.uuid().optional(),
 });
@@ -41,11 +39,9 @@ export const updateReminderSchema = z.object({
 
   repeatType: z.enum(ReminderRepeatType).optional(),
 
-  leadId: z.uuid().optional().nullable(),
+  opportunityId: z.uuid().optional().nullable(),
 
   customerId: z.uuid().optional().nullable(),
-
-  projectId: z.uuid().optional().nullable(),
 
   paymentId: z.uuid().optional().nullable(),
 });

@@ -26,7 +26,7 @@ export interface PaymentFilterQuery {
   search?: string;
   status?: PaymentStatus;
   customerId?: string;
-  projectId?: string;
+  opportunityId?: string;
   salesmanId?: string;
   collectorId?: string;
 }

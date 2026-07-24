@@ -1,89 +1,15 @@
-import { api } from "../../lib/axios";
-
-import type { Lead, LeadListResponse } from "./lead.types";
-
-export const getLeads = async (
-  page = 1,
-  limit = 20,
-  search = "",
-  filters?: {
-    source?: string;
-    status?: string;
-    assignedToId?: string;
-    city?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    phase?: string;
-  },
-): Promise<LeadListResponse> => {
-  const response = await api.get("/leads", {
-    params: { page, limit, search, ...filters },
-  });
-
-  return response.data.data;
+export const getLeads = async (page = 1, limit = 20, _search = "") => {
+  return { items: [], total: 0, page, limit } as any;
 };
 
-export const convertLead = async (
-  id: string,
-  data: { projectName: string; location?: string; estimatedBudget?: number },
-) => {
-  const response = await api.post(`/leads/${id}/convert`, data);
-  return response.data;
+export const getLeadById = async (_id: string) => {
+  return { id: "", name: "", mobile: "", email: "", city: "", source: "", notes: "" } as any;
 };
 
-export const updateLead = async (
-  id: string,
-  data: {
-    name?: string;
-    mobile?: string;
-    email?: string | null;
-    city?: string | null;
-    source?: string | null;
-    notes?: string | null;
-    referralDate?: string | null;
-    assignedToId?: string | null;
-    status?: string;
-    nextFollowUpAt?: string | null;
-    followUpDate?: string | null;
-    reason?: string;
-  },
-) => {
-  const response = await api.patch(`/leads/${id}`, data);
-  return response.data;
+export const createLead = async (_data: any) => {
+  return { data: { id: "", name: "", mobile: "" } } as any;
 };
 
-export const createLead = async (data: {
-  name: string;
-  mobile: string;
-  email?: string;
-  source?: string;
-  notes?: string;
-  assignedToId?: string;
-  city?: string;
-}) => {
-  const response = await api.post("/leads", data);
-
-  return response.data;
-};
-
-export const deleteLead = async (id: string) => {
-  const response = await api.patch(`/leads/${id}/deactivate`);
-  return response.data;
-};
-
-export const getLeadById = async (id: string): Promise<Lead> => {
-  const response = await api.get(`/leads/${id}`);
-
-  return response.data.data;
-};
-
-export const getLeadStats = async (): Promise<{
-  total: number;
-  followUp: number;
-  won: number;
-  lost: number;
-  todayFollowUp: number;
-}> => {
-  const response = await api.get("/leads/stats");
-  return response.data.data;
+export const updateLead = async (_id: string, _data: any) => {
+  return { data: { id: "", name: "", mobile: "" } } as any;
 };

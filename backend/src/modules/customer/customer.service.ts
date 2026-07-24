@@ -72,10 +72,33 @@ export class CustomerService {
     const customer = await prisma.customer.findUnique({
       where: { id, isActive: true },
       include: {
-        projects: {
-          orderBy: {
-            createdAt: "desc",
+        opportunities: {
+          include: {
+            assignedTo: {
+              select: { id: true, name: true }
+            },
+            quotations: true,
+            payments: true,
           },
+          orderBy: { createdAt: "desc" },
+        },
+        quotations: {
+          orderBy: { createdAt: "desc" },
+        },
+        payments: {
+          orderBy: { createdAt: "desc" },
+        },
+        reminders: {
+          orderBy: { dueAt: "asc" },
+        },
+        tasks: {
+          orderBy: { dueAt: "asc" },
+        },
+        activities: {
+          orderBy: { createdAt: "desc" },
+        },
+        assignedTo: {
+          select: { id: true, name: true }
         },
       },
     });
@@ -84,7 +107,25 @@ export class CustomerService {
       throw new AppError("Customer not found", 404);
     }
 
-    return customer;
+    // Compute overview metrics
+    const outstandingAmount = customer.payments
+      .filter((p) => p.status !== "CANCELLED")
+      .reduce((sum, p) => sum + Number(p.pendingAmount), 0);
+
+    const totalRevenue = customer.payments
+      .filter((p) => p.status !== "CANCELLED")
+      .reduce((sum, p) => sum + Number(p.totalBillAmount), 0);
+
+    const lastPurchase = customer.payments.length > 0 ? customer.payments[0].billDate : null;
+    const lastContact = customer.activities.length > 0 ? customer.activities[0].createdAt : customer.createdAt;
+
+    return {
+      ...customer,
+      outstandingAmount,
+      totalRevenue,
+      lastPurchase,
+      lastContact,
+    };
   }
 
   static async update(

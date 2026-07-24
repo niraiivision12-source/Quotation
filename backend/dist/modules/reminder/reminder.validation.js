@@ -10,9 +10,8 @@ exports.createReminderSchema = zod_1.z.object({
     priority: zod_1.z.enum(client_1.ReminderPriority),
     dueAt: zod_1.z.coerce.date(),
     repeatType: zod_1.z.enum(client_1.ReminderRepeatType).optional(),
-    leadId: zod_1.z.uuid().optional(),
+    opportunityId: zod_1.z.uuid().optional(),
     customerId: zod_1.z.uuid().optional(),
-    projectId: zod_1.z.uuid().optional(),
     paymentId: zod_1.z.uuid().optional(),
 });
 exports.updateReminderSchema = zod_1.z.object({
@@ -22,9 +21,8 @@ exports.updateReminderSchema = zod_1.z.object({
     status: zod_1.z.enum(client_1.ReminderStatus).optional(),
     dueAt: zod_1.z.coerce.date().optional(),
     repeatType: zod_1.z.enum(client_1.ReminderRepeatType).optional(),
-    leadId: zod_1.z.uuid().optional().nullable(),
+    opportunityId: zod_1.z.uuid().optional().nullable(),
     customerId: zod_1.z.uuid().optional().nullable(),
-    projectId: zod_1.z.uuid().optional().nullable(),
     paymentId: zod_1.z.uuid().optional().nullable(),
 });
 //# sourceMappingURL=reminder.validation.js.map

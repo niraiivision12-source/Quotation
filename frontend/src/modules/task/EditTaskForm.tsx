@@ -208,7 +208,7 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
               </SelectTrigger>
               <SelectContent>
                 {linkType === "lead" &&
-                  leadsData?.items.map((l) => (
+                  leadsData?.items.map((l: any) => (
                     <SelectItem key={l.id} value={l.id}>
                       {l.name}
                     </SelectItem>
@@ -220,7 +220,7 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
                     </SelectItem>
                   ))}
                 {linkType === "project" &&
-                  projectsData?.items.map((p) => (
+                  projectsData?.items.map((p: any) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.projectName}
                     </SelectItem>

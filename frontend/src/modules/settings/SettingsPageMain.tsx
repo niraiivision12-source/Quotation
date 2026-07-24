@@ -54,15 +54,13 @@ export default function SettingsPageMain() {
   const [leadAssignmentMethod, setLeadAssignmentMethod] = useState<"MANUAL" | "PERCENTAGE" | "ROUND_ROBIN">("MANUAL");
   const [leadSalesmanPercentages, setLeadSalesmanPercentages] = useState<Record<string, number>>({});
 
-  const [projectAssignmentMethod, setProjectAssignmentMethod] = useState<"MANUAL" | "PERCENTAGE" | "PHASE_BASED">("MANUAL");
-  const [projectSalesmanPercentages, setProjectSalesmanPercentages] = useState<Record<string, number>>({});
-  const [projectPhaseAssignment, setProjectPhaseAssignment] = useState<Record<string, string>>({
-    PIPES: "",
-    WIRING: "",
-    SWITCHES: "",
-    LIGHTS: "",
-    FANS: "",
-    OTHERS: "",
+  const [categorySalesmanAssignment, setCategorySalesmanAssignment] = useState<Record<string, any>>({
+    PIPES: { primarySalespersonId: "", backupSalespersonId: "", additionalEditors: [] },
+    WIRES: { primarySalespersonId: "", backupSalespersonId: "", additionalEditors: [] },
+    SWITCHES: { primarySalespersonId: "", backupSalespersonId: "", additionalEditors: [] },
+    LIGHTS: { primarySalespersonId: "", backupSalespersonId: "", additionalEditors: [] },
+    FANS: { primarySalespersonId: "", backupSalespersonId: "", additionalEditors: [] },
+    OTHERS: { primarySalespersonId: "", backupSalespersonId: "", additionalEditors: [] },
   });
 
   const [quoteValidityDays, setQuoteValidityDays] = useState(30);
@@ -144,16 +142,31 @@ export default function SettingsPageMain() {
         setLeadAssignmentMethod(settings.leadAssignmentMethod || "MANUAL");
         setLeadSalesmanPercentages(settings.leadSalesmanPercentages || {});
 
-        setProjectAssignmentMethod(settings.projectAssignmentMethod || "MANUAL");
-        setProjectSalesmanPercentages(settings.projectSalesmanPercentages || {});
-        setProjectPhaseAssignment(settings.projectPhaseAssignment || {
-          PIPES: "",
-          WIRING: "",
-          SWITCHES: "",
-          LIGHTS: "",
-          FANS: "",
-          OTHERS: "",
+        const raw = settings.categorySalesmanAssignment || {};
+        const normalized: Record<string, any> = {};
+        ["PIPES", "WIRES", "SWITCHES", "LIGHTS", "FANS", "OTHERS"].forEach((cat) => {
+          const val = raw[cat];
+          if (typeof val === "string") {
+            normalized[cat] = {
+              primarySalespersonId: val,
+              backupSalespersonId: "",
+              additionalEditors: [],
+            };
+          } else if (val && typeof val === "object") {
+            normalized[cat] = {
+              primarySalespersonId: val.primarySalespersonId || "",
+              backupSalespersonId: val.backupSalespersonId || "",
+              additionalEditors: Array.isArray(val.additionalEditors) ? val.additionalEditors : [],
+            };
+          } else {
+            normalized[cat] = {
+              primarySalespersonId: "",
+              backupSalespersonId: "",
+              additionalEditors: [],
+            };
+          }
         });
+        setCategorySalesmanAssignment(normalized);
 
         setQuoteValidityDays(settings.quoteValidityDays ?? 30);
         setQuoteDefaultNotes(settings.quoteDefaultNotes || "");
@@ -223,25 +236,9 @@ export default function SettingsPageMain() {
       }
     }
 
-    if (projectAssignmentMethod === "PERCENTAGE") {
-      const activeIds = salesmen.map((s) => s.id);
-      const activeWeights = activeIds.map((id) => Number(projectSalesmanPercentages[id] || 0));
-      const sum = activeWeights.reduce((a, b) => a + b, 0);
-      if (Math.abs(sum - 100) > 0.01) {
-        toast.error(`Project assignment percentages must equal 100%. Current sum: ${sum}%`);
-        return;
-      }
-    }
+    // Category mappings validation check
 
-    if (projectAssignmentMethod === "PHASE_BASED") {
-      const phases = ["PIPES", "WIRING", "SWITCHES", "LIGHTS", "FANS", "OTHERS"];
-      for (const p of phases) {
-        if (!projectPhaseAssignment[p]) {
-          toast.error(`Please assign a salesman to the project phase: ${p}`);
-          return;
-        }
-      }
-    }
+    // Optional validation for category assignments can be added here if required.
 
     if (paymentAssignmentMethod === "PERCENTAGE") {
       const activeIds = [...salesmen.map((s) => s.id), ...accountants.map((a) => a.id)];
@@ -275,9 +272,7 @@ export default function SettingsPageMain() {
         leadAssignmentMethod,
         leadSalesmanPercentages,
 
-        projectAssignmentMethod,
-        projectSalesmanPercentages,
-        projectPhaseAssignment,
+        categorySalesmanAssignment,
 
         paymentAssignmentMethod,
         paymentAssignmentPercentages,
@@ -367,7 +362,7 @@ export default function SettingsPageMain() {
   const tabs = [
     { id: "company", label: "Company Settings", icon: <Building2 size={16} /> },
     { id: "lead", label: "Lead Assignment", icon: <Users size={16} /> },
-    { id: "project", label: "Project Assignment", icon: <Briefcase size={16} /> },
+    { id: "project", label: "Pipeline Mappings", icon: <Briefcase size={16} /> },
     { id: "quotation", label: "Quotation Settings", icon: <ScrollText size={16} /> },
     { id: "notifications", label: "Notifications", icon: <Bell size={16} /> },
     { id: "general", label: "General", icon: <Sliders size={16} /> },
@@ -696,118 +691,116 @@ export default function SettingsPageMain() {
             </div>
           )}
 
-          {/* Tab 3: Project Assignment */}
+          {/* Tab 3: Pipeline Mappings */}
           {activeTab === "project" && (
             <div className="space-y-6">
-              <h2 className="text-lg font-bold border-b pb-2">Project Assignment Settings</h2>
-              
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">Assignment Method</label>
-                <div className="flex flex-wrap gap-4 mt-1">
-                  {["MANUAL", "PERCENTAGE", "PHASE_BASED"].map((m) => (
-                    <label key={m} className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                      <input
-                        type="radio"
-                        name="projectMethod"
-                        disabled={!isOwner}
-                        checked={projectAssignmentMethod === m}
-                        onChange={() => setProjectAssignmentMethod(m as any)}
-                        className="h-4 w-4 text-black focus:ring-black border-zinc-300"
-                      />
-                      <span>
-                        {m === "MANUAL" ? "Manual Assignment" : m === "PERCENTAGE" ? "Percentage-Based" : "Phase-Based (Specific Salesmen)"}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+              <div>
+                <h2 className="text-lg font-bold border-b pb-2">Pipeline Assignment Mappings</h2>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Configure primary, backup, and additional editor permissions for each electrical category pipeline.
+                </p>
               </div>
 
-              {projectAssignmentMethod === "PERCENTAGE" && (
-                <div className="space-y-4 border-t pt-4">
-                  <div>
-                    <h3 className="text-sm font-semibold">Salesman Percentages</h3>
-                    <p className="text-xs text-muted-foreground">Specify what percentage of new projects should be assigned to each active salesman. Must total 100%.</p>
-                  </div>
-                  {salesmen.length === 0 ? (
-                    <p className="text-xs text-rose-500 font-medium">No active salesmen available. Add/Activate users under the Users page.</p>
-                  ) : (
-                    <div className="space-y-3 max-w-md">
-                      {salesmen.map((user) => (
-                        <div key={user.id} className="flex items-center gap-3">
-                          <span className="text-sm font-medium flex-1 truncate">{user.name}</span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              disabled={!isOwner}
-                              min={0}
-                              max={100}
-                              value={projectSalesmanPercentages[user.id] ?? 0}
-                              onChange={(e) =>
-                                setProjectSalesmanPercentages((prev) => ({
-                                  ...prev,
-                                  [user.id]: Number(e.target.value),
-                                }))
-                              }
-                              className="w-20 h-9 rounded-lg border px-3 text-right text-sm focus:outline-zinc-800 disabled:bg-zinc-50"
-                            />
-                            <span className="text-sm font-medium text-zinc-500">%</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {["PIPES", "WIRES", "SWITCHES", "LIGHTS", "FANS", "OTHERS"].map((category) => {
+                  const currentConfig = categorySalesmanAssignment[category] || {
+                    primarySalespersonId: "",
+                    backupSalespersonId: "",
+                    additionalEditors: [],
+                  };
+
+                  return (
+                    <div key={category} className="border border-slate-200/80 shadow-sm p-4 rounded-2xl space-y-4 bg-white flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-bold text-slate-800 border-b pb-1.5 uppercase tracking-wider text-[10px] text-slate-400">
+                          {category} Pipeline
+                        </h3>
+                        
+                        {/* Primary */}
+                        <div className="flex flex-col gap-1 mt-3">
+                          <label className="text-xs font-semibold text-slate-600">Primary Salesperson *</label>
+                          <select
+                            disabled={!isOwner}
+                            value={currentConfig.primarySalespersonId || ""}
+                            onChange={(e) =>
+                              setCategorySalesmanAssignment((prev) => ({
+                                ...prev,
+                                [category]: {
+                                  ...currentConfig,
+                                  primarySalespersonId: e.target.value,
+                                },
+                              }))
+                            }
+                            className="h-9 rounded-lg border bg-white px-2.5 text-xs focus:outline-zinc-800 disabled:bg-zinc-50"
+                          >
+                            <option value="">Select Primary Salesperson</option>
+                            {salesmen.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Backup */}
+                        <div className="flex flex-col gap-1 mt-3">
+                          <label className="text-xs font-semibold text-slate-600">Backup Salesperson (Optional)</label>
+                          <select
+                            disabled={!isOwner}
+                            value={currentConfig.backupSalespersonId || ""}
+                            onChange={(e) =>
+                              setCategorySalesmanAssignment((prev) => ({
+                                ...prev,
+                                [category]: {
+                                  ...currentConfig,
+                                  backupSalespersonId: e.target.value,
+                                },
+                              }))
+                            }
+                            className="h-9 rounded-lg border bg-white px-2.5 text-xs focus:outline-zinc-800 disabled:bg-zinc-50"
+                          >
+                            <option value="">None (Owner fallback)</option>
+                            {salesmen.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Additional Editors Checklist */}
+                        <div className="space-y-1 mt-3">
+                          <label className="text-xs font-semibold text-slate-600 block">Additional Editors (Optional)</label>
+                          <div className="grid grid-cols-2 gap-2 border border-slate-100 p-2.5 rounded-lg bg-slate-50/50 max-h-24 overflow-y-auto">
+                            {salesmen.map((s) => {
+                              const isChecked = currentConfig.additionalEditors?.includes(s.id);
+                              return (
+                                <label key={s.id} className="flex items-center gap-1.5 text-xs font-medium cursor-pointer text-slate-600">
+                                  <input
+                                    type="checkbox"
+                                    disabled={!isOwner}
+                                    checked={isChecked}
+                                    onChange={() => {
+                                      const nextEditors = isChecked
+                                        ? currentConfig.additionalEditors.filter((id: string) => id !== s.id)
+                                        : [...(currentConfig.additionalEditors || []), s.id];
+                                      setCategorySalesmanAssignment((prev) => ({
+                                        ...prev,
+                                        [category]: {
+                                          ...currentConfig,
+                                          additionalEditors: nextEditors,
+                                        },
+                                      }));
+                                    }}
+                                    className="rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                                  />
+                                  {s.name}
+                                </label>
+                              );
+                            })}
                           </div>
                         </div>
-                      ))}
-                      <div className="flex items-center justify-between border-t pt-2 max-w-md font-semibold text-sm">
-                        <span>Total Sum</span>
-                        <span
-                          className={
-                            Math.abs(
-                              salesmen.map((s) => Number(projectSalesmanPercentages[s.id] || 0)).reduce((a, b) => a + b, 0) - 100
-                            ) < 0.01
-                              ? "text-green-600"
-                              : "text-rose-600"
-                          }
-                        >
-                          {salesmen.map((s) => Number(projectSalesmanPercentages[s.id] || 0)).reduce((a, b) => a + b, 0)}% (Required: 100%)
-                        </span>
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-
-              {projectAssignmentMethod === "PHASE_BASED" && (
-                <div className="space-y-4 border-t pt-4">
-                  <div>
-                    <h3 className="text-sm font-semibold">Phase Assignments</h3>
-                    <p className="text-xs text-muted-foreground">Assign each project phase to a specific salesman. Project trackings are populated using these rules.</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-                    {["PIPES", "WIRING", "SWITCHES", "LIGHTS", "FANS", "OTHERS"].map((phase) => (
-                      <div key={phase} className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium">
-                          {phase.charAt(0) + phase.slice(1).toLowerCase()} Phase *
-                        </label>
-                        <select
-                          disabled={!isOwner}
-                          value={projectPhaseAssignment[phase] || ""}
-                          onChange={(e) =>
-                            setProjectPhaseAssignment((prev) => ({
-                              ...prev,
-                              [phase]: e.target.value,
-                            }))
-                          }
-                          className="h-10 rounded-lg border bg-white px-3 text-sm focus:outline-zinc-800 disabled:bg-zinc-50"
-                        >
-                          <option value="">Select Salesman</option>
-                          {salesmen.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
           )}
 

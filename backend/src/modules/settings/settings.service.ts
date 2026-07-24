@@ -108,6 +108,7 @@ export class SettingsService {
         leadSalesmanPercentages: data.leadSalesmanPercentages ?? undefined,
         projectSalesmanPercentages: data.projectSalesmanPercentages ?? undefined,
         projectPhaseAssignment: data.projectPhaseAssignment ?? undefined,
+        categorySalesmanAssignment: data.categorySalesmanAssignment ?? undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         quotePdfHeaderFooter: data.quotePdfHeaderFooter as any,
         rolePermissions: data.rolePermissions ?? undefined,

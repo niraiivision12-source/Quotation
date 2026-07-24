@@ -51,7 +51,7 @@ export class PaymentController {
       search: req.query.search?.toString(),
       status: req.query.status as PaymentStatus,
       customerId: req.query.customerId?.toString(),
-      projectId: req.query.projectId?.toString(),
+      opportunityId: req.query.opportunityId?.toString(),
       salesmanId: req.query.salesmanId?.toString(),
       collectorId: req.query.collectorId?.toString(),
     };

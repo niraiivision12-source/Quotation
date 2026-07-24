@@ -13,7 +13,7 @@ class PaymentService {
             // 1. Verify Quotation
             const quotation = await tx.quotation.findUnique({
                 where: { id: data.quotationId },
-                include: { customer: true, project: true },
+                include: { customer: true, opportunity: true },
             });
             if (!quotation) {
                 throw new app_error_1.AppError("Quotation not found", 404);
@@ -25,12 +25,12 @@ class PaymentService {
                 throw new app_error_1.AppError(`Quotation already has a bill linked: #${quotation.billNumber}`, 400);
             }
             const customer = quotation.customer;
-            const project = quotation.project;
+            const opportunity = quotation.opportunity;
             if (!customer) {
                 throw new app_error_1.AppError("Customer associated with quotation not found", 404);
             }
-            if (!project) {
-                throw new app_error_1.AppError("Project associated with quotation not found", 404);
+            if (!opportunity) {
+                throw new app_error_1.AppError("Opportunity associated with quotation not found", 404);
             }
             const billDate = new Date(data.billDate);
             const initialReceived = data.initialAmountReceived || 0;
@@ -138,14 +138,14 @@ class PaymentService {
                 }
                 else {
                     // MANUAL fallback
-                    collectorId = project.assignedToId || quotation.createdById;
+                    collectorId = opportunity.assignedToId || quotation.createdById;
                 }
             }
             // 6. Create Payment Record
             const payment = await tx.payment.create({
                 data: {
                     customerId: customer.id,
-                    projectId: project.id,
+                    opportunityId: opportunity.id,
                     quotationId: quotation.id,
                     salesmanId: quotation.createdById, // the original salesperson who created quotation
                     collectorId,
@@ -191,9 +191,9 @@ class PaymentService {
                     metadata: { paymentId: payment.id, billNumber: data.billNumber },
                 },
             });
-            await tx.projectActivity.create({
+            await tx.opportunityActivity.create({
                 data: {
-                    projectId: project.id,
+                    opportunityId: opportunity.id,
                     userId,
                     type: "BILL_LINKED",
                     message: `Tally Bill #${data.billNumber} linked. Amount: ₹${totalAmount.toLocaleString()}`,
@@ -215,8 +215,8 @@ class PaymentService {
                 await tx.customerActivity.create({
                     data: { customerId: customer.id, type: actionType, message: msg },
                 });
-                await tx.projectActivity.create({
-                    data: { projectId: project.id, userId, type: actionType, message: msg },
+                await tx.opportunityActivity.create({
+                    data: { opportunityId: opportunity.id, userId, type: actionType, message: msg },
                 });
             }
             if (allowCredit && pendingAmount > 0) {
@@ -224,15 +224,15 @@ class PaymentService {
                 await tx.customerActivity.create({
                     data: { customerId: customer.id, type: "CREDIT_GRANTED", message: msg },
                 });
-                await tx.projectActivity.create({
-                    data: { projectId: project.id, userId, type: "CREDIT_GRANTED", message: msg },
+                await tx.opportunityActivity.create({
+                    data: { opportunityId: opportunity.id, userId, type: "CREDIT_GRANTED", message: msg },
                 });
             }
             // 10. Automatically Create Collection Reminder if balance is pending
             if (pendingAmount > 0) {
                 const collector = await tx.user.findUnique({ where: { id: collectorId } });
                 const reminderTitle = `Payment Collection: Bill #${data.billNumber}`;
-                const reminderDesc = `Customer: ${customer.name}\nProject: ${project.projectName}\nPending Amount: ₹${pendingAmount.toLocaleString()}\nDue Date: ${dueDate.toLocaleDateString()}\nBill Number: ${data.billNumber}`;
+                const reminderDesc = `Customer: ${customer.name}\nCategory: ${opportunity.category}\nPending Amount: ₹${pendingAmount.toLocaleString()}\nDue Date: ${dueDate.toLocaleDateString()}\nBill Number: ${data.billNumber}`;
                 await tx.reminder.create({
                     data: {
                         title: reminderTitle,
@@ -241,7 +241,7 @@ class PaymentService {
                         dueAt: dueDate,
                         userId: collectorId,
                         customerId: customer.id,
-                        projectId: project.id,
+                        opportunityId: opportunity.id,
                         paymentId: payment.id,
                         priority: "HIGH",
                     },
@@ -250,8 +250,8 @@ class PaymentService {
                 await tx.customerActivity.create({
                     data: { customerId: customer.id, type: "REMINDER_CREATED", message: rMsg },
                 });
-                await tx.projectActivity.create({
-                    data: { projectId: project.id, userId, type: "REMINDER_CREATED", message: rMsg },
+                await tx.opportunityActivity.create({
+                    data: { opportunityId: opportunity.id, userId, type: "REMINDER_CREATED", message: rMsg },
                 });
             }
             return payment;
@@ -264,7 +264,7 @@ class PaymentService {
         return prisma_1.prisma.$transaction(async (tx) => {
             const payment = await tx.payment.findUnique({
                 where: { id: paymentId },
-                include: { customer: true, project: true },
+                include: { customer: true, opportunity: true },
             });
             if (!payment) {
                 throw new app_error_1.AppError("Payment record not found", 404);
@@ -324,8 +324,8 @@ class PaymentService {
             await tx.customerActivity.create({
                 data: { customerId: payment.customerId, type: actionType, message },
             });
-            await tx.projectActivity.create({
-                data: { projectId: payment.projectId, userId, type: actionType, message },
+            await tx.opportunityActivity.create({
+                data: { opportunityId: payment.opportunityId, userId, type: actionType, message },
             });
             // Reminders Logic
             if (newPendingAmount <= 0) {
@@ -345,8 +345,8 @@ class PaymentService {
                     await tx.customerActivity.create({
                         data: { customerId: payment.customerId, type: "REMINDER_COMPLETED", message: rMsg },
                     });
-                    await tx.projectActivity.create({
-                        data: { projectId: payment.projectId, userId, type: "REMINDER_COMPLETED", message: rMsg },
+                    await tx.opportunityActivity.create({
+                        data: { opportunityId: payment.opportunityId, userId, type: "REMINDER_COMPLETED", message: rMsg },
                     });
                 }
             }
@@ -355,7 +355,7 @@ class PaymentService {
                 await tx.reminder.updateMany({
                     where: { paymentId: payment.id, status: client_1.ReminderStatus.PENDING },
                     data: {
-                        description: `Customer: ${payment.customer.name}\nProject: ${payment.project.projectName}\nPending Amount: ₹${Math.max(0, newPendingAmount).toLocaleString()}\nDue Date: ${payment.dueDate.toLocaleDateString()}\nBill Number: ${payment.billNumber}`,
+                        description: `Customer: ${payment.customer.name}\nCategory: ${payment.opportunity.category}\nPending Amount: ₹${Math.max(0, newPendingAmount).toLocaleString()}\nDue Date: ${payment.dueDate.toLocaleDateString()}\nBill Number: ${payment.billNumber}`,
                     },
                 });
             }
@@ -369,7 +369,7 @@ class PaymentService {
         return prisma_1.prisma.$transaction(async (tx) => {
             const payment = await tx.payment.findUnique({
                 where: { id: paymentId },
-                include: { customer: true, project: true },
+                include: { customer: true, opportunity: true },
             });
             if (!payment) {
                 throw new app_error_1.AppError("Payment record not found", 404);
@@ -401,8 +401,8 @@ class PaymentService {
             await tx.customerActivity.create({
                 data: { customerId: payment.customerId, type: "PAYMENT_CANCELLED", message: msg },
             });
-            await tx.projectActivity.create({
-                data: { projectId: payment.projectId, userId, type: "PAYMENT_CANCELLED", message: msg },
+            await tx.opportunityActivity.create({
+                data: { opportunityId: payment.opportunityId, userId, type: "PAYMENT_CANCELLED", message: msg },
             });
             return updated;
         });
@@ -423,8 +423,8 @@ class PaymentService {
         if (filters.customerId) {
             where.customerId = filters.customerId;
         }
-        if (filters.projectId) {
-            where.projectId = filters.projectId;
+        if (filters.opportunityId) {
+            where.opportunityId = filters.opportunityId;
         }
         if (filters.salesmanId) {
             where.salesmanId = filters.salesmanId;
@@ -436,7 +436,6 @@ class PaymentService {
             where.OR = [
                 { billNumber: { contains: filters.search, mode: "insensitive" } },
                 { customer: { name: { contains: filters.search, mode: "insensitive" } } },
-                { project: { projectName: { contains: filters.search, mode: "insensitive" } } },
             ];
         }
         const [items, total] = await Promise.all([
@@ -446,7 +445,7 @@ class PaymentService {
                 take: limit,
                 include: {
                     customer: { select: { id: true, name: true, mobile: true, creditAllowed: true } },
-                    project: { select: { id: true, projectName: true } },
+                    opportunity: { select: { id: true, category: true } },
                     quotation: { select: { id: true, quotationNumber: true } },
                     collector: { select: { id: true, name: true, role: true } },
                 },
@@ -471,7 +470,7 @@ class PaymentService {
             where: { id },
             include: {
                 customer: true,
-                project: true,
+                opportunity: true,
                 quotation: true,
                 collector: { select: { id: true, name: true, role: true } },
                 salesman: { select: { id: true, name: true } },
@@ -516,8 +515,8 @@ class PaymentService {
                         await tx.customerActivity.create({
                             data: { customerId: payment.customerId, type: "PAYMENT_OVERDUE", message: msg },
                         });
-                        await tx.projectActivity.create({
-                            data: { projectId: payment.projectId, type: "PAYMENT_OVERDUE", message: msg },
+                        await tx.opportunityActivity.create({
+                            data: { opportunityId: payment.opportunityId, type: "PAYMENT_OVERDUE", message: msg },
                         });
                     });
                 }

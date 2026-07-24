@@ -44,6 +44,17 @@ export interface CustomerDetails {
   creditAllowed: boolean;
   defaultCreditDays: number;
   maxCreditAmount: number;
+  assignedToId?: string | null;
 
-  projects: CustomerProject[];
+  assignedTo?: { id: string; name: string } | null;
+  opportunities?: any[];
+  quotations?: any[];
+  payments?: any[];
+  reminders?: any[];
+  tasks?: any[];
+  activities?: any[];
+  outstandingAmount?: number;
+  totalRevenue?: number;
+  lastPurchase?: string | null;
+  lastContact?: string | null;
 }

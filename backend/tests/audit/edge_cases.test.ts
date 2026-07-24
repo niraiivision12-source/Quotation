@@ -17,11 +17,11 @@ describe('Edge Cases', () => {
     await prisma.$executeRaw`TRUNCATE TABLE "User", "Customer", "Lead", "Quotation", "Payment", "Project", "LeadActivity", "CustomerActivity", "ProjectActivity" RESTART IDENTITY CASCADE;`;
   });
 
-  test('GET /dashboard returns empty activity list without error', async () => {
+  test('GET /dashboard returns summary without error', async () => {
     const res = await request(app).get('/api/dashboard').set('Authorization', 'Bearer test-token-owner');
     expect(res.status).toBe(200);
-    expect(res.body.activities).toBeInstanceOf(Array);
-    expect(res.body.activities.length).toBe(0);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.kpiCards).toBeDefined();
   });
 
   test('Create duplicate customer phone triggers validation error', async () => {
@@ -31,13 +31,13 @@ describe('Edge Cases', () => {
       .send({ name: 'Acme Corp', mobile: '1234567890' })
       .set('Authorization', 'Bearer test-token-owner');
     expect(res1.status).toBe(201);
-    // Attempt duplicate
+    // Attempt duplicate - returns 409 conflict
     const res2 = await request(app)
       .post('/api/customers')
       .send({ name: 'Acme Corp 2', mobile: '1234567890' })
       .set('Authorization', 'Bearer test-token-owner');
-    expect(res2.status).toBe(400);
-    expect(res2.body.message).toMatch(/duplicate/i);
+    expect(res2.status).toBe(409);
+    expect(res2.body.message).toMatch(/already exists/i);
   });
 
   test('Handle extremely large quotation value', async () => {

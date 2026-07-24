@@ -7,10 +7,11 @@ import {
   Package,
   ScrollText,
   UserRound,
-  Users,
   Settings,
   CreditCard,
   Activity,
+  Inbox,
+  TrendingUp,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuthStore } from "../store/auth.store";
@@ -23,8 +24,8 @@ const NAV_ITEMS = [
     icon: <LayoutDashboard size={18} />,
     exact: true,
   },
-  { to: "/projects", label: "Pipelines", icon: <Briefcase size={18} /> },
-  { to: "/leads", label: "Leads", icon: <Users size={18} /> },
+  { to: "/pipelines", label: "Product Pipelines", icon: <Briefcase size={18} /> },
+  { to: "/enquiries", label: "Enquiry Inbox", icon: <Inbox size={18} />, ownerOnly: true },
   { to: "/reminders", label: "Reminders", icon: <Bell size={18} /> },
   { to: "/products", label: "Products", icon: <Package size={18} /> },
   // `exact` so this stays unlit while /quotations/history is open.
@@ -41,8 +42,9 @@ const NAV_ITEMS = [
   },
   { to: "/payments", label: "Payments", icon: <CreditCard size={18} /> },
   { to: "/tasks", label: "Tasks", icon: <ListTodo size={18} /> },
-  { to: "/users", label: "Users", icon: <UserRound size={18} /> },
-  { to: "/settings", label: "Settings", icon: <Settings size={18} /> },
+  { to: "/reports", label: "Reports", icon: <TrendingUp size={18} />, ownerOnly: true },
+  { to: "/users", label: "Users", icon: <UserRound size={18} />, ownerOnly: true },
+  { to: "/settings", label: "Settings", icon: <Settings size={18} />, ownerOnly: true },
   { to: "/api-testing", label: "API Explorer", icon: <Activity size={18} />, ownerOnly: true },
 ];
 

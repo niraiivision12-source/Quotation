@@ -28,6 +28,7 @@ export const updateSettingsSchema = z.object({
   projectAssignmentMethod: z.enum(["MANUAL", "PERCENTAGE", "PHASE_BASED"]),
   projectSalesmanPercentages: z.record(z.string(), z.coerce.number()).default({}),
   projectPhaseAssignment: z.record(z.string(), z.string()).default({}),
+  categorySalesmanAssignment: z.record(z.string(), z.any()).optional().default({}),
 
   // Quotation Settings
   quoteValidityDays: z.coerce.number().min(1, "Validity must be at least 1 day"),

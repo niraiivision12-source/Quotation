@@ -4,18 +4,18 @@ exports.ReminderService = void 0;
 const prisma_1 = require("../../config/prisma");
 const app_error_1 = require("../../utils/app-error");
 const client_1 = require("@prisma/client");
-async function updateLeadNextFollowUp(tx, leadId) {
+async function updateOpportunityNextFollowUp(tx, opportunityId) {
     const nextReminder = await tx.reminder.findFirst({
         where: {
-            leadId,
+            opportunityId,
             status: client_1.ReminderStatus.PENDING,
         },
         orderBy: {
             dueAt: "asc",
         },
     });
-    await tx.lead.update({
-        where: { id: leadId },
+    await tx.opportunity.update({
+        where: { id: opportunityId },
         data: {
             nextFollowUpAt: nextReminder ? nextReminder.dueAt : null,
         },
@@ -24,27 +24,46 @@ async function updateLeadNextFollowUp(tx, leadId) {
 class ReminderService {
     static async create(userId, data) {
         return prisma_1.prisma.$transaction(async (tx) => {
+            if (data.opportunityId) {
+                const opp = await tx.opportunity.findUnique({
+                    where: { id: data.opportunityId },
+                });
+                if (opp) {
+                    const user = await tx.user.findUnique({ where: { id: userId } });
+                    if (user && user.role !== "OWNER") {
+                        const settings = await tx.systemSettings.findUnique({ where: { id: "default" } });
+                        const mappings = settings?.categorySalesmanAssignment || {};
+                        const config = mappings[opp.category];
+                        let authorized = false;
+                        if (typeof config === "string") {
+                            authorized = config === userId;
+                        }
+                        else if (config && typeof config === "object") {
+                            const isPrimary = config.primarySalespersonId === userId;
+                            const isBackup = config.backupSalespersonId === userId;
+                            const isAdditional = Array.isArray(config.additionalEditors) && config.additionalEditors.includes(userId);
+                            authorized = isPrimary || isBackup || isAdditional;
+                        }
+                        if (opp.assignedToId === userId) {
+                            authorized = true;
+                        }
+                        if (!authorized) {
+                            throw new app_error_1.AppError("You do not have permission to manage reminders for this pipeline category", 403);
+                        }
+                    }
+                }
+            }
             const reminder = await tx.reminder.create({
                 data: {
                     ...data,
                     userId,
                 },
             });
-            if (data.leadId) {
-                await updateLeadNextFollowUp(tx, data.leadId);
-                await tx.leadActivity.create({
+            if (data.opportunityId) {
+                await updateOpportunityNextFollowUp(tx, data.opportunityId);
+                await tx.opportunityActivity.create({
                     data: {
-                        leadId: data.leadId,
-                        userId,
-                        type: "REMINDER_CREATED",
-                        message: `Reminder created: ${reminder.title}`,
-                    },
-                });
-            }
-            if (data.projectId) {
-                await tx.projectActivity.create({
-                    data: {
-                        projectId: data.projectId,
+                        opportunityId: data.opportunityId,
                         userId,
                         type: "REMINDER_CREATED",
                         message: `Reminder created: ${reminder.title}`,
@@ -54,14 +73,14 @@ class ReminderService {
             return reminder;
         });
     }
-    static async getMyReminders(userId, userRole, page, limit, projectId) {
+    static async getMyReminders(userId, userRole, page, limit, opportunityId) {
         const skip = (page - 1) * limit;
         const where = {};
         if (userRole !== "OWNER") {
             where.userId = userId;
         }
-        if (projectId) {
-            where.projectId = projectId;
+        if (opportunityId) {
+            where.opportunityId = opportunityId;
         }
         const [items, total] = await Promise.all([
             prisma_1.prisma.reminder.findMany({
@@ -72,10 +91,10 @@ class ReminderService {
                     dueAt: "asc",
                 },
                 include: {
-                    lead: {
+                    opportunity: {
                         select: {
                             id: true,
-                            name: true,
+                            category: true,
                         },
                     },
                     customer: {
@@ -84,19 +103,13 @@ class ReminderService {
                             name: true,
                         },
                     },
-                    project: {
-                        select: {
-                            id: true,
-                            projectName: true,
-                        },
-                    },
                     payment: {
                         select: {
                             id: true,
                             billNumber: true,
-                            project: {
+                            opportunity: {
                                 select: {
-                                    projectName: true,
+                                    category: true,
                                 },
                             },
                         },
@@ -139,10 +152,10 @@ class ReminderService {
         const reminder = await prisma_1.prisma.reminder.findFirst({
             where,
             include: {
-                lead: {
+                opportunity: {
                     select: {
                         id: true,
-                        name: true,
+                        category: true,
                     },
                 },
                 customer: {
@@ -151,19 +164,13 @@ class ReminderService {
                         name: true,
                     },
                 },
-                project: {
-                    select: {
-                        id: true,
-                        projectName: true,
-                    },
-                },
                 payment: {
                     select: {
                         id: true,
                         billNumber: true,
-                        project: {
+                        opportunity: {
                             select: {
-                                projectName: true,
+                                category: true,
                             },
                         },
                     },
@@ -194,8 +201,8 @@ class ReminderService {
                 where: { id },
                 data,
             });
-            if (reminder.leadId) {
-                await updateLeadNextFollowUp(tx, reminder.leadId);
+            if (reminder.opportunityId) {
+                await updateOpportunityNextFollowUp(tx, reminder.opportunityId);
             }
             return updatedReminder;
         });
@@ -216,21 +223,11 @@ class ReminderService {
                     completedAt: new Date(),
                 },
             });
-            if (reminder.leadId) {
-                await updateLeadNextFollowUp(tx, reminder.leadId);
-                await tx.leadActivity.create({
+            if (reminder.opportunityId) {
+                await updateOpportunityNextFollowUp(tx, reminder.opportunityId);
+                await tx.opportunityActivity.create({
                     data: {
-                        leadId: reminder.leadId,
-                        userId,
-                        type: "REMINDER_COMPLETED",
-                        message: `Reminder completed: ${reminder.title}`,
-                    },
-                });
-            }
-            if (reminder.projectId) {
-                await tx.projectActivity.create({
-                    data: {
-                        projectId: reminder.projectId,
+                        opportunityId: reminder.opportunityId,
                         userId,
                         type: "REMINDER_COMPLETED",
                         message: `Reminder completed: ${reminder.title}`,
@@ -252,8 +249,8 @@ class ReminderService {
             await tx.reminder.delete({
                 where: { id },
             });
-            if (reminder.leadId) {
-                await updateLeadNextFollowUp(tx, reminder.leadId);
+            if (reminder.opportunityId) {
+                await updateOpportunityNextFollowUp(tx, reminder.opportunityId);
             }
             return true;
         });

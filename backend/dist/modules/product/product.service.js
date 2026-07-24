@@ -28,14 +28,48 @@ function toTsQuery(normalized) {
         .join(" & ");
 }
 class ProductService {
-    static async getAll(page, limit, search) {
+    static async getAll(page, limit, search, stockStatus, priceStatus) {
         const skip = (page - 1) * limit;
+        // Build dynamic Prisma where clause
+        const prismaWhere = {
+            isActive: true,
+        };
+        if (stockStatus === "inStock") {
+            prismaWhere.stockQty = { gt: 0 };
+        }
+        else if (stockStatus === "outOfStock") {
+            prismaWhere.stockQty = { lte: 0 };
+        }
+        if (priceStatus === "hasPrice") {
+            prismaWhere.OR = [
+                { costPrice: { gt: 0 } },
+                { mrp: { gt: 0 } },
+            ];
+        }
+        else if (priceStatus === "noPrice") {
+            prismaWhere.AND = [
+                { OR: [{ costPrice: null }, { costPrice: { lte: 0 } }] },
+                { OR: [{ mrp: null }, { mrp: { lte: 0 } }] },
+            ];
+        }
+        // Build dynamic SQL where conditions
+        let filterSql = "";
+        if (stockStatus === "inStock") {
+            filterSql += ` AND p."stockQty" > 0`;
+        }
+        else if (stockStatus === "outOfStock") {
+            filterSql += ` AND p."stockQty" <= 0`;
+        }
+        if (priceStatus === "hasPrice") {
+            filterSql += ` AND (p."costPrice" > 0 OR p.mrp > 0)`;
+        }
+        else if (priceStatus === "noPrice") {
+            filterSql += ` AND (p."costPrice" IS NULL OR p."costPrice" <= 0) AND (p.mrp IS NULL OR p.mrp <= 0)`;
+        }
         if (!search || !search.trim()) {
             const [items, total] = await Promise.all([
                 prisma_1.prisma.product.findMany({
-                    where: {
-                        isActive: true,
-                    },
+                    where: prismaWhere,
                     skip,
                     take: limit,
                     orderBy: {
@@ -43,9 +77,7 @@ class ProductService {
                     },
                 }),
                 prisma_1.prisma.product.count({
-                    where: {
-                        isActive: true,
-                    },
+                    where: prismaWhere,
                 }),
             ]);
             return {
@@ -62,9 +94,7 @@ class ProductService {
         if (!normalized) {
             const [items, total] = await Promise.all([
                 prisma_1.prisma.product.findMany({
-                    where: {
-                        isActive: true,
-                    },
+                    where: prismaWhere,
                     skip,
                     take: limit,
                     orderBy: {
@@ -72,9 +102,7 @@ class ProductService {
                     },
                 }),
                 prisma_1.prisma.product.count({
-                    where: {
-                        isActive: true,
-                    },
+                    where: prismaWhere,
                 }),
             ]);
             return {
@@ -140,6 +168,7 @@ class ProductService {
         FROM "Product" p, normalized_search ns
         WHERE 
           p."isActive" = true
+          ${filterSql}
           AND (
             p.sku ILIKE ns.prefix_pattern
             OR p.name ILIKE ns.prefix_pattern
@@ -161,6 +190,7 @@ class ProductService {
         FROM "Product" p, normalized_search ns
         WHERE 
           p."isActive" = true
+          ${filterSql}
           AND (
             p.sku ILIKE ns.prefix_pattern
             OR p.name ILIKE ns.prefix_pattern

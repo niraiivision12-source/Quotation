@@ -1,158 +1,245 @@
-
 import {
-  DollarSign,
+  Inbox,
+  AlertCircle,
+  Activity,
+  CheckCircle2,
+  XCircle,
   TrendingUp,
-  Briefcase,
-  Users,
-  Target,
+  DollarSign,
+  Clock,
+  Calendar,
   FileText,
-  AlertTriangle,
-  Bell,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus,
+  CreditCard,
+  Layers,
 } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
-import type { KPICardData } from "./dashboard.types";
+import { useAuthStore } from "../../store/auth.store";
 
 interface DashboardCardsProps {
-  data: {
-    totalRevenue: KPICardData;
-    potentialRevenue: KPICardData;
-    totalLeads: KPICardData;
-    activeCustomers: KPICardData;
-    activeProjects: KPICardData;
-    pendingQuotations: KPICardData;
-    lowStockProducts: KPICardData;
-    pendingReminders: KPICardData;
-  };
+  data: any; // Dynamic based on role
 }
 
 export function DashboardCards({ data }: DashboardCardsProps) {
+  const user = useAuthStore((state) => state.user);
+  const role = user?.role || "SALESMAN";
+
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(val);
+  };
+
+  if (role === "OWNER") {
+    const kpis = data || {};
+    const cards = [
+      {
+        title: "Total Enquiries",
+        value: (kpis.totalEnquiries ?? 0).toString(),
+        description: "Enquiries in selected period",
+        icon: Inbox,
+        color: "text-blue-600 bg-blue-50/60 dark:bg-blue-950/20",
+      },
+      {
+        title: "New Enquiries Today",
+        value: (kpis.newEnquiriesToday ?? 0).toString(),
+        description: "Received since midnight",
+        icon: AlertCircle,
+        color: "text-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/20",
+      },
+      {
+        title: "Pending Enquiries",
+        value: (kpis.pendingEnquiries ?? 0).toString(),
+        description: "Awaiting triage assignment",
+        icon: Clock,
+        color: "text-amber-600 bg-amber-50/60 dark:bg-amber-950/20",
+      },
+      {
+        title: "Active Opportunities",
+        value: (kpis.activeOpportunities ?? 0).toString(),
+        description: "Opportunities in the pipeline",
+        icon: Activity,
+        color: "text-purple-600 bg-purple-50/60 dark:bg-purple-950/20",
+      },
+      {
+        title: "Won Opportunities",
+        value: (kpis.wonOpportunities ?? 0).toString(),
+        description: "Successfully closed won",
+        icon: CheckCircle2,
+        color: "text-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/20",
+      },
+      {
+        title: "Lost Opportunities",
+        value: (kpis.lostOpportunities ?? 0).toString(),
+        description: "Closed lost in period",
+        icon: XCircle,
+        color: "text-rose-600 bg-rose-50/60 dark:bg-rose-950/20",
+      },
+      {
+        title: "Potential Revenue",
+        value: formatCurrency(kpis.potentialRevenue ?? 0),
+        description: "Estimated pipeline value",
+        icon: TrendingUp,
+        color: "text-cyan-600 bg-cyan-50/60 dark:bg-cyan-950/20",
+      },
+      {
+        title: "Closed Revenue",
+        value: formatCurrency(kpis.closedRevenue ?? 0),
+        description: "Won opportunities value",
+        icon: DollarSign,
+        color: "text-green-600 bg-green-50/60 dark:bg-green-950/20",
+      },
+      {
+        title: "Today's Follow-ups",
+        value: (kpis.todayFollowups ?? 0).toString(),
+        description: "Pending reminders due today",
+        icon: Calendar,
+        color: "text-teal-600 bg-teal-50/60 dark:bg-teal-950/20",
+      },
+      {
+        title: "Overdue Follow-ups",
+        value: (kpis.overdueFollowups ?? 0).toString(),
+        description: "Missed follow-ups requiring attention",
+        icon: AlertCircle,
+        color: "text-red-600 bg-red-50/60 dark:bg-red-950/20",
+        isWarning: (kpis.overdueFollowups ?? 0) > 0,
+      },
+      {
+        title: "Today's Quotations",
+        value: (kpis.todayQuotations ?? 0).toString(),
+        description: "Created in system today",
+        icon: FileText,
+        color: "text-sky-600 bg-sky-50/60 dark:bg-sky-950/20",
+      },
+      {
+        title: "Pending Payments",
+        value: (kpis.pendingPayments ?? 0).toString(),
+        description: "Awaiting collection or partial pay",
+        icon: CreditCard,
+        color: "text-pink-600 bg-pink-50/60 dark:bg-pink-950/20",
+      },
+    ];
+
+    return (
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {cards.map((card, i) => {
+          const Icon = card.icon;
+          return (
+            <Card
+              key={i}
+              className={`transition-all hover:shadow-md border border-slate-100 hover:border-slate-200 rounded-2xl bg-white ${
+                card.isWarning ? "ring-1 ring-red-100 bg-red-50/10" : ""
+              }`}
+            >
+              <CardContent className="p-5 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1">
+                    {card.title}
+                  </p>
+                  <h3 className="text-2xl font-bold text-slate-800 tracking-tight leading-none mb-1.5">
+                    {card.value}
+                  </h3>
+                  <p className="text-xs text-slate-500 line-clamp-1">{card.description}</p>
+                </div>
+                <div className={`p-2.5 rounded-xl shrink-0 ${card.color}`}>
+                  <Icon size={20} />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // --- SALESPERSON DASHBOARD ---
+  const kpis = data || {};
   const cards = [
     {
-      title: "Total Revenue",
-      value: formatCurrency(data.totalRevenue.current),
-      change: data.totalRevenue.changePercent,
-      trend: data.totalRevenue.trend,
-      description: "Approved quotations in period",
-      icon: DollarSign,
-      iconColor: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20",
+      title: "Assigned Categories",
+      value: Array.isArray(kpis.assignedCategories) ? kpis.assignedCategories.length.toString() : "0",
+      description: kpis.assignedCategories?.join(", ") || "No categories",
+      icon: Layers,
+      color: "text-violet-600 bg-violet-50/60 dark:bg-violet-950/20",
     },
     {
-      title: "Potential Revenue",
-      value: formatCurrency(data.potentialRevenue.current),
-      change: data.potentialRevenue.changePercent,
-      trend: data.potentialRevenue.trend,
-      description: "Pipeline (Draft & Sent quotes)",
-      icon: TrendingUp,
-      iconColor: "text-blue-500 bg-blue-50 dark:bg-blue-950/20",
+      title: "Today's Follow-ups",
+      value: (kpis.todayFollowups ?? 0).toString(),
+      description: "My reminders due today",
+      icon: Calendar,
+      color: "text-teal-600 bg-teal-50/60 dark:bg-teal-950/20",
     },
     {
-      title: "Total Leads",
-      value: data.totalLeads.current.toString(),
-      change: data.totalLeads.changePercent,
-      trend: data.totalLeads.trend,
-      description: "Leads created in period",
-      icon: Target,
-      iconColor: "text-pink-500 bg-pink-50 dark:bg-pink-950/20",
+      title: "Yesterday's Pending",
+      value: (kpis.yesterdayPendingFollowups ?? 0).toString(),
+      description: "Overdue follow-ups",
+      icon: AlertCircle,
+      color: "text-red-600 bg-red-50/60 dark:bg-red-950/20",
+      isWarning: (kpis.yesterdayPendingFollowups ?? 0) > 0,
     },
     {
-      title: "Active Customers",
-      value: data.activeCustomers.current.toString(),
-      change: data.activeCustomers.changePercent,
-      trend: data.activeCustomers.trend,
-      description: "New active customers",
-      icon: Users,
-      iconColor: "text-violet-500 bg-violet-50 dark:bg-violet-950/20",
+      title: "New Opportunities",
+      value: (kpis.newOpportunities ?? 0).toString(),
+      description: "Untouched assigned leads",
+      icon: Activity,
+      color: "text-blue-600 bg-blue-50/60 dark:bg-blue-950/20",
     },
     {
-      title: "Active Projects",
-      value: data.activeProjects.current.toString(),
-      change: data.activeProjects.changePercent,
-      trend: data.activeProjects.trend,
-      description: "Active pipelines",
-      icon: Briefcase,
-      iconColor: "text-orange-500 bg-orange-50 dark:bg-orange-950/20",
-    },
-    {
-      title: "Pending Quotations",
-      value: data.pendingQuotations.current.toString(),
-      change: data.pendingQuotations.changePercent,
-      trend: data.pendingQuotations.trend,
-      description: "Drafts and Sent quotes",
+      title: "Quotation Pending",
+      value: (kpis.quotationPending ?? 0).toString(),
+      description: "Awaiting cost details",
       icon: FileText,
-      iconColor: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/20",
+      color: "text-amber-600 bg-amber-50/60 dark:bg-amber-950/20",
     },
     {
-      title: "Low Stock Products",
-      value: data.lowStockProducts.current.toString(),
-      change: data.lowStockProducts.changePercent,
-      trend: data.lowStockProducts.trend,
-      description: "Stock quantity <= 10",
-      icon: AlertTriangle,
-      iconColor: "text-amber-500 bg-amber-50 dark:bg-amber-950/20",
-      isWarning: data.lowStockProducts.current > 0,
+      title: "Negotiations",
+      value: (kpis.negotiations ?? 0).toString(),
+      description: "Under active discussion",
+      icon: TrendingUp,
+      color: "text-cyan-600 bg-cyan-50/60 dark:bg-cyan-950/20",
     },
     {
-      title: "Pending Reminders",
-      value: data.pendingReminders.current.toString(),
-      change: data.pendingReminders.changePercent,
-      trend: data.pendingReminders.trend,
-      description: "Reminders due in period",
-      icon: Bell,
-      iconColor: "text-rose-500 bg-rose-50 dark:bg-rose-950/20",
+      title: "Won This Month",
+      value: (kpis.wonThisMonth ?? 0).toString(),
+      description: "Deals converted in period",
+      icon: CheckCircle2,
+      color: "text-green-600 bg-green-50/60 dark:bg-green-950/20",
+    },
+    {
+      title: "Lost This Month",
+      value: (kpis.lostThisMonth ?? 0).toString(),
+      description: "Closed lost in period",
+      icon: XCircle,
+      color: "text-rose-600 bg-rose-50/60 dark:bg-rose-950/20",
     },
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       {cards.map((card, i) => {
         const Icon = card.icon;
-        const trendColor =
-          card.trend === "up"
-            ? "text-emerald-600 dark:text-emerald-400"
-            : card.trend === "down"
-            ? "text-rose-600 dark:text-rose-400"
-            : "text-muted-foreground";
-
-        const TrendIcon =
-          card.trend === "up" ? (
-            <ArrowUpRight size={16} className="inline mr-0.5" />
-          ) : card.trend === "down" ? (
-            <ArrowDownRight size={16} className="inline mr-0.5" />
-          ) : (
-            <Minus size={16} className="inline mr-0.5" />
-          );
-
         return (
           <Card
             key={i}
-            className="h-full flex flex-col transition-all hover:shadow-md border border-foreground/10 hover:border-foreground/20 rounded-xl overflow-hidden bg-card"
+            className={`transition-all hover:shadow-md border border-slate-100 hover:border-slate-200 rounded-2xl bg-white ${
+              card.isWarning ? "ring-1 ring-red-100 bg-red-50/10" : ""
+            }`}
           >
-            <CardContent className="p-5 flex-1 flex flex-col justify-between">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground tracking-wider uppercase mb-1 truncate" title={card.title}>
-                    {card.title}
-                  </p>
-                  <h3 className="text-2xl font-bold text-foreground leading-none tracking-tight truncate" title={card.value}>
-                    {card.value}
-                  </h3>
-                </div>
-                <div className={`p-2.5 rounded-lg shrink-0 ${card.iconColor}`}>
-                  <Icon size={20} />
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between gap-2">
-                <span className={`text-xs font-semibold flex items-center shrink-0 ${trendColor}`}>
-                  {TrendIcon}
-                  {Math.abs(card.change)}%
-                </span>
-                <span className="text-[11px] text-muted-foreground truncate" title={card.description}>
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1">
+                  {card.title}
+                </p>
+                <h3 className="text-2xl font-bold text-slate-800 tracking-tight leading-none mb-1.5">
+                  {card.value}
+                </h3>
+                <p className="text-xs text-slate-500 line-clamp-1" title={card.description}>
                   {card.description}
-                </span>
+                </p>
+              </div>
+              <div className={`p-2.5 rounded-xl shrink-0 ${card.color}`}>
+                <Icon size={20} />
               </div>
             </CardContent>
           </Card>
@@ -160,12 +247,4 @@ export function DashboardCards({ data }: DashboardCardsProps) {
       })}
     </div>
   );
-}
-
-function formatCurrency(val: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(val);
 }

@@ -12,9 +12,8 @@ import {
   FileText,
   Briefcase,
   Users,
-  UserPlus,
-  Settings as SettingsIcon,
   ListTodo,
+  Inbox,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -51,28 +50,23 @@ export default function DashboardPage() {
         return (
           <div className="flex flex-wrap gap-3">
             <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
-              <Link to="/leads?create=true" className="flex items-center gap-1.5">
-                <PlusCircle size={15} /> Create Lead
+              <Link to="/enquiries" className="flex items-center gap-1.5">
+                <Inbox size={15} /> Open Enquiry Inbox
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
-              <Link to="/customers?create=true" className="flex items-center gap-1.5">
-                <UserPlus size={15} /> Create Customer
+              <Link to="/pipelines" className="flex items-center gap-1.5">
+                <Briefcase size={15} /> Open Product Pipelines
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
-              <Link to="/projects?create=true" className="flex items-center gap-1.5">
-                <Briefcase size={15} /> Create Project
+              <Link to="/enquiries?create=true" className="flex items-center gap-1.5">
+                <PlusCircle size={15} /> Create Manual Enquiry
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
               <Link to="/quotations?create=true" className="flex items-center gap-1.5">
                 <FileText size={15} /> Create Quotation
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
-              <Link to="/settings?tab=products&create=true" className="flex items-center gap-1.5">
-                <SettingsIcon size={15} /> Add Product
               </Link>
             </Button>
           </div>
@@ -81,8 +75,8 @@ export default function DashboardPage() {
         return (
           <div className="flex flex-wrap gap-3">
             <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
-              <Link to="/leads?create=true" className="flex items-center gap-1.5">
-                <PlusCircle size={15} /> Create Lead
+              <Link to="/pipelines" className="flex items-center gap-1.5">
+                <Briefcase size={15} /> Open Product Pipelines
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
@@ -91,8 +85,8 @@ export default function DashboardPage() {
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
-              <Link to="/leads" className="flex items-center gap-1.5">
-                <Users size={15} /> View My Leads
+              <Link to="/customers" className="flex items-center gap-1.5">
+                <Users size={15} /> View Customers
               </Link>
             </Button>
           </div>
@@ -106,8 +100,8 @@ export default function DashboardPage() {
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
-              <Link to="/settings?tab=products" className="flex items-center gap-1.5">
-                <SettingsIcon size={15} /> Manage Products
+              <Link to="/payments" className="flex items-center gap-1.5">
+                <PlusCircle size={15} /> Manage Payments
               </Link>
             </Button>
           </div>
@@ -118,11 +112,6 @@ export default function DashboardPage() {
             <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
               <Link to="/tasks" className="flex items-center gap-1.5">
                 <ListTodo size={15} /> View Tasks
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline" className="border-foreground/10 hover:border-foreground/20">
-              <Link to="/projects" className="flex items-center gap-1.5">
-                <Briefcase size={15} /> View Projects
               </Link>
             </Button>
           </div>

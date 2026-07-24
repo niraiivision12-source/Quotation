@@ -28,6 +28,7 @@ exports.updateSettingsSchema = zod_1.z.object({
     projectAssignmentMethod: zod_1.z.enum(["MANUAL", "PERCENTAGE", "PHASE_BASED"]),
     projectSalesmanPercentages: zod_1.z.record(zod_1.z.string(), zod_1.z.coerce.number()).default({}),
     projectPhaseAssignment: zod_1.z.record(zod_1.z.string(), zod_1.z.string()).default({}),
+    categorySalesmanAssignment: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional().default({}),
     // Quotation Settings
     quoteValidityDays: zod_1.z.coerce.number().min(1, "Validity must be at least 1 day"),
     quoteDefaultNotes: zod_1.z.string().optional(),

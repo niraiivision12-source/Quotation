@@ -10,5 +10,6 @@ const router = Router();
 router.use(authenticate);
 
 router.get("/summary", asyncHandler(DashboardController.getSummary));
+router.get("/", asyncHandler(DashboardController.getSummary));
 
 export default router;

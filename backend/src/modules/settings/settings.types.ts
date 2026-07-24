@@ -84,4 +84,6 @@ export interface SystemSettingsDTO
     GeneralSettings,
     RolePermissionSettings,
     ProductPricingSettings,
-    PaymentSettings {}
+    PaymentSettings {
+  categorySalesmanAssignment?: Record<string, string>;
+}

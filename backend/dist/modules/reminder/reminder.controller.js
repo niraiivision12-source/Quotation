@@ -16,8 +16,8 @@ class ReminderController {
     static async myReminders(req, res) {
         const page = Number(req.query.page || 1);
         const limit = Number(req.query.limit || 20);
-        const projectId = req.query.projectId?.toString();
-        const reminders = await reminder_service_1.ReminderService.getMyReminders(req.user.id, req.user.role, page, limit, projectId);
+        const opportunityId = req.query.opportunityId?.toString();
+        const reminders = await reminder_service_1.ReminderService.getMyReminders(req.user.id, req.user.role, page, limit, opportunityId);
         return res.status(200).json({
             success: true,
             data: reminders,

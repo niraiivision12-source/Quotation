@@ -1,6 +1,7 @@
 import { prisma } from "../../config/prisma";
 import { AppError } from "../../utils/app-error";
 import { SettingsService } from "../settings/settings.service";
+import { OpportunityService } from "../opportunity/opportunity.service";
 import {
   Prisma,
   ProjectPhase,
@@ -8,12 +9,14 @@ import {
   QuotationStatus,
   QuotationType,
   ReminderPriority,
+  OpportunityStatus,
 } from "@prisma/client";
 
 type CreateQuotationInput = {
   createdById?: string;
   type?: QuotationType;
   leadId?: string;
+  opportunityId?: string;
   customerId?: string;
   projectId?: string;
   phase?: ProjectPhase | null;
@@ -61,7 +64,46 @@ async function updateLeadNextFollowUp(tx: Prisma.TransactionClient, leadId: stri
 
 export class QuotationService {
   static async create(userId: string, data: CreateQuotationInput) {
-    const type = data.type ?? (data.leadId ? QuotationType.LEAD : data.customerId ? QuotationType.CUSTOMER : QuotationType.WALK_IN_CUSTOMER);
+    if (data.opportunityId) {
+      const opportunity = await prisma.opportunity.findUnique({
+        where: { id: data.opportunityId },
+      });
+      if (!opportunity) {
+        throw new AppError("Opportunity not found", 404);
+      }
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
+      if (user.role !== "OWNER") {
+        const settings = await prisma.systemSettings.findUnique({
+          where: { id: "default" },
+        });
+        const mappings = (settings?.categorySalesmanAssignment as Record<string, any>) || {};
+        const config = mappings[opportunity.category];
+        let authorized = false;
+        if (typeof config === "string") {
+          authorized = config === userId;
+        } else if (config && typeof config === "object") {
+          const isPrimary = config.primarySalespersonId === userId;
+          const isBackup = config.backupSalespersonId === userId;
+          const isAdditional = Array.isArray(config.additionalEditors) && config.additionalEditors.includes(userId);
+          authorized = isPrimary || isBackup || isAdditional;
+        }
+        if (opportunity.assignedToId === userId) {
+          authorized = true;
+        }
+        if (!authorized) {
+          throw new AppError("You do not have permission to create quotations for this pipeline category", 403);
+        }
+      }
+      data.customerId = opportunity.customerId;
+      data.type = QuotationType.CUSTOMER;
+    }
+
+    const type = data.type ?? (data.opportunityId ? QuotationType.CUSTOMER : data.leadId ? QuotationType.LEAD : data.customerId ? QuotationType.CUSTOMER : QuotationType.WALK_IN_CUSTOMER);
 
     if (type === QuotationType.LEAD && !data.leadId) {
       throw new AppError("Quotation must belong to a lead", 400);
@@ -123,7 +165,11 @@ export class QuotationService {
     const lastQuotation = type === QuotationType.WALK_IN_CUSTOMER
       ? null
       : await prisma.quotation.findFirst({
-          where: data.projectId
+          where: data.opportunityId
+            ? {
+                opportunityId: data.opportunityId,
+              }
+            : data.projectId
             ? {
                 projectId: data.projectId,
                 phase: data.phase ?? undefined,
@@ -282,6 +328,7 @@ export class QuotationService {
           customerId: type === QuotationType.CUSTOMER ? data.customerId : null,
           projectId: type === QuotationType.CUSTOMER ? data.projectId : null,
           phase: type === QuotationType.CUSTOMER ? data.phase : null,
+          opportunityId: data.opportunityId ?? null,
           walkInName: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInName : null,
           walkInMobile: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInMobile : null,
           walkInEmail: type === QuotationType.WALK_IN_CUSTOMER ? data.walkInEmail : null,
@@ -764,6 +811,28 @@ export class QuotationService {
             },
           });
         }
+      }
+
+      if (quotation.opportunityId) {
+        let activityType = `QUOTATION_${status}`;
+
+        if (status === QuotationStatus.APPROVED) {
+          await OpportunityService.update(
+            quotation.opportunityId,
+            userId,
+            user.role,
+            { status: OpportunityStatus.WON }
+          );
+        }
+
+        await tx.opportunityActivity.create({
+          data: {
+            opportunityId: quotation.opportunityId,
+            userId,
+            type: activityType,
+            message: `Quotation ${updatedQuotation.quotationNumber} status updated to ${status.toLowerCase()}`,
+          },
+        });
       }
 
       if (quotation.projectId) {

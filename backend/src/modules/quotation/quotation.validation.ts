@@ -22,6 +22,8 @@ export const createQuotationSchema = z.object({
 
   customerId: z.uuid().optional(),
 
+  opportunityId: z.string().uuid().optional(),
+
   projectId: z.uuid().optional(),
 
   phase: z.nativeEnum(ProjectPhase).nullable().optional(),
@@ -57,6 +59,9 @@ export const createQuotationSchema = z.object({
 
   followUp: followUpSchema,
 }).superRefine((data, ctx) => {
+  if (data.opportunityId) {
+    return;
+  }
   if (data.type === QuotationType.LEAD) {
     if (!data.leadId) {
       ctx.addIssue({

@@ -14,6 +14,7 @@ exports.createQuotationSchema = zod_1.z.object({
     type: zod_1.z.nativeEnum(client_1.QuotationType).default(client_1.QuotationType.LEAD),
     leadId: zod_1.z.uuid().optional(),
     customerId: zod_1.z.uuid().optional(),
+    opportunityId: zod_1.z.string().uuid().optional(),
     projectId: zod_1.z.uuid().optional(),
     phase: zod_1.z.nativeEnum(client_1.ProjectPhase).nullable().optional(),
     walkInName: zod_1.z.string().optional(),
@@ -33,6 +34,9 @@ exports.createQuotationSchema = zod_1.z.object({
     })),
     followUp: followUpSchema,
 }).superRefine((data, ctx) => {
+    if (data.opportunityId) {
+        return;
+    }
     if (data.type === client_1.QuotationType.LEAD) {
         if (!data.leadId) {
             ctx.addIssue({

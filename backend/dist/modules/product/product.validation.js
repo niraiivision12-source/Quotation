@@ -8,13 +8,9 @@ exports.createProductSchema = zod_1.z.object({
     brand: zod_1.z.string().optional(),
     category: zod_1.z.string().optional(),
     unit: zod_1.z.string().optional(),
-    costPrice: zod_1.z.coerce.number().positive().optional().nullable(),
-    mrp: zod_1.z.coerce.number().positive().optional().nullable(),
-    stockQty: zod_1.z.coerce.number().int().min(0),
-}).refine((data) => (data.costPrice !== undefined && data.costPrice !== null && data.costPrice > 0) ||
-    (data.mrp !== undefined && data.mrp !== null && data.mrp > 0), {
-    message: "Either Cost Price or MRP must be a positive number",
-    path: ["costPrice"],
+    costPrice: zod_1.z.coerce.number().optional().nullable(),
+    mrp: zod_1.z.coerce.number().optional().nullable(),
+    stockQty: zod_1.z.coerce.number().int().optional().default(0),
 });
 exports.updateProductSchema = zod_1.z.object({
     sku: zod_1.z.string().min(2).optional(),
@@ -22,8 +18,8 @@ exports.updateProductSchema = zod_1.z.object({
     brand: zod_1.z.string().optional().nullable(),
     category: zod_1.z.string().optional().nullable(),
     unit: zod_1.z.string().optional().nullable(),
-    costPrice: zod_1.z.coerce.number().positive().optional().nullable(),
-    mrp: zod_1.z.coerce.number().positive().optional().nullable(),
-    stockQty: zod_1.z.coerce.number().int().min(0).optional(),
+    costPrice: zod_1.z.coerce.number().optional().nullable(),
+    mrp: zod_1.z.coerce.number().optional().nullable(),
+    stockQty: zod_1.z.coerce.number().int().optional(),
 });
 //# sourceMappingURL=product.validation.js.map

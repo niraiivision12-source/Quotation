@@ -8,11 +8,9 @@ import AppLayout from "../layouts/AppLayout";
 import CustomerDetailsPage from "../pages/CustomerDetailsPage";
 import CustomerPage from "../pages/CustomerPage";
 import DashboardPage from "../pages/DashboardPage";
-import LeadDetailPage from "../pages/LeadDetailPage";
-import LeadPage from "../pages/LeadPage";
+import EnquiryInboxPage from "../pages/EnquiryInboxPage";
+import PipelineBoardPage from "../pages/PipelineBoardPage";
 import LoginPage from "../pages/LoginPage";
-import ProjectDetailsPage from "../pages/ProjectDetailsPage";
-import ProjectPage from "../pages/ProjectPage";
 import ProductPage from "../pages/ProductPage";
 import QuotationHistoryListPage from "../pages/QuotationHistoryListPage";
 import QuotationHistoryPage from "../pages/QuotationHistoryPage";
@@ -22,6 +20,7 @@ import TaskPage from "../pages/TaskPage";
 import UserPage from "../pages/UserPage";
 import SettingsPage from "../pages/SettingsPage";
 import PaymentPage from "../pages/PaymentPage";
+import ReportsPage from "../pages/ReportsPage";
 import ApiTestingPage from "../pages/ApiTestingPage";
 
 function OwnerRoute({ children }: { children: React.ReactNode }) {
@@ -51,13 +50,16 @@ export default function AppRouter() {
 
           <Route path="/customers/:id" element={<CustomerDetailsPage />} />
 
-          <Route path="/projects" element={<ProjectPage />} />
+          <Route path="/pipelines" element={<PipelineBoardPage />} />
 
-          <Route path="/projects/:id" element={<ProjectDetailsPage />} />
-
-          <Route path="/leads" element={<LeadPage />} />
-
-          <Route path="/leads/:id" element={<LeadDetailPage />} />
+          <Route
+            path="/enquiries"
+            element={
+              <OwnerRoute>
+                <EnquiryInboxPage />
+              </OwnerRoute>
+            }
+          />
 
           <Route path="/reminders" element={<ReminderPage />} />
 
@@ -77,11 +79,34 @@ export default function AppRouter() {
 
           <Route path="/tasks" element={<TaskPage />} />
 
-          <Route path="/users" element={<UserPage />} />
+          <Route
+            path="/users"
+            element={
+              <OwnerRoute>
+                <UserPage />
+              </OwnerRoute>
+            }
+          />
 
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route
+            path="/settings"
+            element={
+              <OwnerRoute>
+                <SettingsPage />
+              </OwnerRoute>
+            }
+          />
 
           <Route path="/payments" element={<PaymentPage />} />
+
+          <Route
+            path="/reports"
+            element={
+              <OwnerRoute>
+                <ReportsPage />
+              </OwnerRoute>
+            }
+          />
 
           <Route
             path="/api-testing"
