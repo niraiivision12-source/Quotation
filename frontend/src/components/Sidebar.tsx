@@ -12,6 +12,7 @@ import {
   Activity,
   Inbox,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuthStore } from "../store/auth.store";
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
     icon: <LayoutDashboard size={18} />,
     exact: true,
   },
+  { to: "/leads", label: "Leads", icon: <Users size={18} /> },
   { to: "/pipelines", label: "Product Pipelines", icon: <Briefcase size={18} /> },
   { to: "/enquiries", label: "Enquiry Inbox", icon: <Inbox size={18} />, ownerOnly: true },
   { to: "/reminders", label: "Reminders", icon: <Bell size={18} /> },

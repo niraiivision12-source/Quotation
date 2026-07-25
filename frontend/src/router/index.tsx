@@ -9,6 +9,7 @@ import CustomerDetailsPage from "../pages/CustomerDetailsPage";
 import CustomerPage from "../pages/CustomerPage";
 import DashboardPage from "../pages/DashboardPage";
 import EnquiryInboxPage from "../pages/EnquiryInboxPage";
+import LeadPage from "../pages/LeadPage";
 import PipelineBoardPage from "../pages/PipelineBoardPage";
 import LoginPage from "../pages/LoginPage";
 import ProductPage from "../pages/ProductPage";
@@ -51,6 +52,8 @@ export default function AppRouter() {
           <Route path="/customers/:id" element={<CustomerDetailsPage />} />
 
           <Route path="/pipelines" element={<PipelineBoardPage />} />
+
+          <Route path="/leads" element={<LeadPage />} />
 
           <Route
             path="/enquiries"
