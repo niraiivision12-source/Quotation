@@ -7,6 +7,7 @@ export const createEnquirySchema = z.object({
   email: z.string().email().optional().nullable(),
   source: z.string().optional().default("MANUAL"),
   message: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
 });
 
 export const triageEnquirySchema = z.object({

@@ -9,6 +9,7 @@ export class EnquiryService {
     email?: string | null;
     source?: string;
     message?: string | null;
+    city?: string | null;
   }) {
     return prisma.enquiry.create({
       data: {
@@ -17,6 +18,7 @@ export class EnquiryService {
         email: data.email ?? null,
         source: data.source ?? "MANUAL",
         message: data.message ?? null,
+        city: data.city ?? null,
         status: EnquiryStatus.PENDING,
       },
     });
@@ -89,6 +91,7 @@ export class EnquiryService {
             mobile: enquiry.mobile,
             email: enquiry.email,
             source: enquiry.source,
+            city: enquiry.city,
           },
         });
 

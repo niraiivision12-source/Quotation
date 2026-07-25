@@ -24,6 +24,7 @@ import {
   Inbox,
   Filter,
   Plus,
+  MapPin,
 } from "lucide-react";
 
 export default function EnquiryInbox() {
@@ -40,6 +41,7 @@ export default function EnquiryInbox() {
   const [newName, setNewName] = useState("");
   const [newMobile, setNewMobile] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newCity, setNewCity] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
@@ -78,6 +80,7 @@ export default function EnquiryInbox() {
         mobile: newMobile,
         email: newEmail || null,
         message: newMessage || null,
+        city: newCity || null,
         source: "MANUAL",
       });
       toast.success("Enquiry created successfully!");
@@ -85,6 +88,7 @@ export default function EnquiryInbox() {
       setNewName("");
       setNewMobile("");
       setNewEmail("");
+      setNewCity("");
       setNewMessage("");
       // Reload page to reflect new pending enquiry
       window.location.reload();
@@ -235,6 +239,12 @@ export default function EnquiryInbox() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                   <span>{enquiry.mobile}</span>
+                  {enquiry.city && (
+                    <>
+                      <span>•</span>
+                      <span>{enquiry.city}</span>
+                    </>
+                  )}
                   <span>•</span>
                   {getSourceIcon(enquiry.source)}
                 </div>
@@ -266,6 +276,12 @@ export default function EnquiryInbox() {
                     <div className="flex items-center gap-1.5">
                       <Mail size={14} className="text-slate-400" />
                       <span>{selectedEnquiry.email}</span>
+                    </div>
+                  )}
+                  {selectedEnquiry.city && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin size={14} className="text-slate-400" />
+                      <span>{selectedEnquiry.city}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-1.5">
@@ -416,6 +432,16 @@ export default function EnquiryInbox() {
             </div>
 
             <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-slate-600">City (Optional)</label>
+              <Input
+                placeholder="e.g. Mumbai"
+                value={newCity}
+                onChange={(e) => setNewCity(e.target.value)}
+                className="h-9"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
               <label className="font-semibold text-slate-600">Requirement Message (Optional)</label>
               <textarea
                 rows={3}
@@ -435,6 +461,7 @@ export default function EnquiryInbox() {
                 setNewName("");
                 setNewMobile("");
                 setNewEmail("");
+                setNewCity("");
                 setNewMessage("");
               }}
             >

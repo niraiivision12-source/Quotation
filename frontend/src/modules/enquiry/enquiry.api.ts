@@ -19,6 +19,7 @@ export const createEnquiry = async (data: {
   email?: string | null;
   source?: string;
   message?: string | null;
+  city?: string | null;
 }): Promise<Enquiry> => {
   const response = await api.post("/enquiries", data);
   return response.data.data;

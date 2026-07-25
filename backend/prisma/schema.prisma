@@ -716,6 +716,7 @@ model Enquiry {
   message   String?
   status    EnquiryStatus   @default(PENDING)
   category  ProductCategory?
+  city      String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 

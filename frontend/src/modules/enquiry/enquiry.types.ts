@@ -7,6 +7,7 @@ export interface Enquiry {
   email?: string | null;
   source: string;
   message?: string | null;
+  city?: string | null;
   status: EnquiryStatus;
   category?: string | null;
   createdAt: string;
