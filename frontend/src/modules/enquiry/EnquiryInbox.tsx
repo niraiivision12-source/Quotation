@@ -17,15 +17,39 @@ import {
   Phone,
   Mail,
   MessageSquare,
+  MessageCircle,
+  Globe,
+  Footprints,
+  PenSquare,
   Sparkles,
   Search,
   CheckCircle,
   XCircle,
   Inbox,
-  Filter,
   Plus,
   MapPin,
+  Clock,
 } from "lucide-react";
+
+function formatRelativeTime(dateString: string) {
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+function isStale(dateString: string) {
+  return Date.now() - new Date(dateString).getTime() > 24 * 60 * 60 * 1000;
+}
+
+function whatsappLink(mobile: string) {
+  const digits = mobile.replace(/\D/g, "");
+  return `https://wa.me/${digits}`;
+}
 
 export default function EnquiryInbox() {
   const [activeTab, setActiveTab] = useState<"PENDING" | "TRIAGED" | "IGNORED">("PENDING");
@@ -43,11 +67,32 @@ export default function EnquiryInbox() {
   const [newEmail, setNewEmail] = useState("");
   const [newCity, setNewCity] = useState("");
   const [newMessage, setNewMessage] = useState("");
+  const [newSource, setNewSource] = useState("MANUAL");
   const [isCreating, setIsCreating] = useState(false);
 
   // Fetch enquiries list
   const { data: enquiriesData, isLoading } = useEnquiries(page, search, activeTab);
   const { data: usersData } = useUsers(1);
+
+  // Tab counts (lightweight, count-only fetches so reps can see backlog size per tab)
+  const { data: pendingCountData } = useEnquiries(1, "", "PENDING", 1);
+  const { data: triagedCountData } = useEnquiries(1, "", "TRIAGED", 1);
+  const { data: ignoredCountData } = useEnquiries(1, "", "IGNORED", 1);
+  const tabCounts: Record<"PENDING" | "TRIAGED" | "IGNORED", number | undefined> = {
+    PENDING: pendingCountData?.total,
+    TRIAGED: triagedCountData?.total,
+    IGNORED: ignoredCountData?.total,
+  };
+
+  // Auto-select the enquiry when there's exactly one, or when nothing is selected
+  // on this list yet — saves reps a click for the common single/first-item case.
+  useEffect(() => {
+    if (!enquiriesData?.items.length) return;
+    const stillVisible = enquiriesData.items.some((e) => e.id === selectedEnquiryId);
+    if (!stillVisible) {
+      setSelectedEnquiryId(enquiriesData.items[0].id);
+    }
+  }, [enquiriesData]);
 
   // Mutations
   const triageMutation = useTriageEnquiry();
@@ -81,7 +126,7 @@ export default function EnquiryInbox() {
         email: newEmail || null,
         message: newMessage || null,
         city: newCity || null,
-        source: "MANUAL",
+        source: newSource,
       });
       toast.success("Enquiry created successfully!");
       setIsCreateOpen(false);
@@ -90,6 +135,7 @@ export default function EnquiryInbox() {
       setNewEmail("");
       setNewCity("");
       setNewMessage("");
+      setNewSource("MANUAL");
       // Reload page to reflect new pending enquiry
       window.location.reload();
     } catch (err: any) {
@@ -117,16 +163,23 @@ export default function EnquiryInbox() {
     }
   };
 
-  const handleIgnoreConfirm = async () => {
-    if (!selectedEnquiryId) return;
+  const handleIgnoreConfirm = async (id?: string) => {
+    const targetId = id || selectedEnquiryId;
+    if (!targetId) return;
 
     try {
-      await ignoreMutation.mutateAsync(selectedEnquiryId);
+      await ignoreMutation.mutateAsync(targetId);
       toast.success("Enquiry marked as ignored.");
-      setSelectedEnquiryId(null);
+      if (targetId === selectedEnquiryId) setSelectedEnquiryId(null);
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to ignore enquiry");
     }
+  };
+
+  const handleOpenTriage = (id: string) => {
+    setSelectedEnquiryId(id);
+    setSelectedCategory("PIPES");
+    setIsTriageOpen(true);
   };
 
   const getAssignedSalesmanName = (category: string) => {
@@ -143,17 +196,29 @@ export default function EnquiryInbox() {
     return salesman ? salesman.name : "Owner (Fallback)";
   };
 
-  const getSourceIcon = (source: string) => {
+  const getSourceMeta = (source: string) => {
     switch (source.toUpperCase()) {
       case "WHATSAPP":
-        return <span className="text-green-500 font-bold text-xs">WhatsApp</span>;
+        return { label: "WhatsApp", icon: MessageCircle, classes: "bg-green-100 text-green-700" };
       case "WEBSITE":
-        return <span className="text-blue-500 font-bold text-xs">Web</span>;
+        return { label: "Website", icon: Globe, classes: "bg-blue-100 text-blue-700" };
       case "WALK_IN":
-        return <span className="text-purple-500 font-bold text-xs">Walk-In</span>;
+        return { label: "Walk-In", icon: Footprints, classes: "bg-purple-100 text-purple-700" };
+      case "MANUAL":
+        return { label: "Manual", icon: PenSquare, classes: "bg-amber-100 text-amber-700" };
       default:
-        return <span className="text-gray-500 font-bold text-xs">{source}</span>;
+        return { label: source, icon: MessageSquare, classes: "bg-slate-100 text-slate-600" };
     }
+  };
+
+  const SourceBadge = ({ source, size = "sm" }: { source: string; size?: "sm" | "md" }) => {
+    const { label, icon: Icon, classes } = getSourceMeta(source);
+    const sizeClasses = size === "md" ? "text-sm px-3 py-1 gap-1.5" : "text-xs px-2 py-0.5 gap-1";
+    return (
+      <span className={`flex items-center font-bold rounded-full ${sizeClasses} ${classes}`}>
+        <Icon size={size === "md" ? 15 : 12} /> {label}
+      </span>
+    );
   };
 
   return (
@@ -163,15 +228,15 @@ export default function EnquiryInbox() {
         {/* Header and Search */}
         <div className="p-4 border-b border-slate-200/60 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Inbox size={19} className="text-blue-600" /> Enquiry Inbox
+            <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+              <Inbox size={22} className="text-blue-600" /> Enquiry Inbox
             </h2>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-semibold px-2 py-0.5">
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700 font-bold px-2.5 py-1 text-sm">
                 {enquiriesData?.total || 0} Total
               </Badge>
-              <Button size="sm" onClick={() => setIsCreateOpen(true)} className="h-7 px-2 bg-blue-600 text-white hover:bg-blue-700">
-                <Plus size={14} className="mr-0.5" /> New
+              <Button size="sm" onClick={() => setIsCreateOpen(true)} className="h-8 px-3 text-sm bg-blue-600 text-white hover:bg-blue-700">
+                <Plus size={15} className="mr-1" /> New
               </Button>
             </div>
           </div>
@@ -190,24 +255,36 @@ export default function EnquiryInbox() {
           </div>
 
           {/* Status Tabs */}
-          <div className="flex bg-slate-100/80 p-0.5 rounded-lg text-xs font-semibold text-slate-600">
-            {(["PENDING", "TRIAGED", "IGNORED"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => {
-                  setActiveTab(tab);
-                  setPage(1);
-                  setSelectedEnquiryId(null);
-                }}
-                className={`flex-1 py-1.5 rounded-md transition-all ${
-                  activeTab === tab
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "hover:text-slate-900"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+          <div className="flex bg-slate-100/80 p-1 rounded-lg text-sm font-bold text-slate-600 gap-1">
+            {(["PENDING", "TRIAGED", "IGNORED"] as const).map((tab) => {
+              const activeClasses = {
+                PENDING: "bg-amber-500 text-white shadow-sm",
+                TRIAGED: "bg-green-600 text-white shadow-sm",
+                IGNORED: "bg-slate-600 text-white shadow-sm",
+              }[tab];
+              return (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setPage(1);
+                    setSelectedEnquiryId(null);
+                  }}
+                  className={`flex-1 py-2 rounded-md transition-all ${
+                    activeTab === tab ? activeClasses : "hover:text-slate-900 hover:bg-white/60"
+                  }`}
+                >
+                  {tab}
+                  {typeof tabCounts[tab] === "number" && (
+                    <span
+                      className={`ml-1 ${activeTab === tab ? "text-white/80" : "text-slate-400"}`}
+                    >
+                      ({tabCounts[tab]})
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -232,26 +309,74 @@ export default function EnquiryInbox() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-800 text-sm">{enquiry.name}</h3>
-                  <span className="text-[10px] text-slate-400">
-                    {new Date(enquiry.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <span>{enquiry.mobile}</span>
-                  {enquiry.city && (
-                    <>
-                      <span>•</span>
-                      <span>{enquiry.city}</span>
-                    </>
+                  <h3 className="font-bold text-slate-900 text-base">{enquiry.name}</h3>
+                  {enquiry.status === "PENDING" ? (
+                    <span
+                      className={`flex items-center gap-1 text-xs font-bold ${
+                        isStale(enquiry.createdAt) ? "text-red-500" : "text-slate-400"
+                      }`}
+                    >
+                      <Clock size={12} /> {formatRelativeTime(enquiry.createdAt)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400">
+                      {new Date(enquiry.createdAt).toLocaleDateString()}
+                    </span>
                   )}
-                  <span>•</span>
-                  {getSourceIcon(enquiry.source)}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <a
+                    href={`tel:${enquiry.mobile}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1 text-sm font-bold text-blue-700 hover:underline"
+                  >
+                    <Phone size={13} className="text-blue-500" /> {enquiry.mobile}
+                  </a>
+                  {enquiry.city && (
+                    <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">
+                      <MapPin size={11} /> {enquiry.city}
+                    </span>
+                  )}
+                  <SourceBadge source={enquiry.source} />
                 </div>
                 {enquiry.message && (
-                  <p className="text-xs text-slate-500 line-clamp-1 italic">
+                  <p className="text-sm text-slate-700 line-clamp-2 italic bg-amber-50 border border-amber-100 px-2.5 py-1.5 rounded-lg">
                     "{enquiry.message}"
                   </p>
+                )}
+                {enquiry.status === "PENDING" && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <a
+                      href={whatsappLink(enquiry.mobile)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center h-8 px-2.5 rounded-md text-xs font-medium border border-green-200 text-green-700 hover:bg-green-50"
+                    >
+                      <MessageSquare size={13} className="mr-1" /> WhatsApp
+                    </a>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleIgnoreConfirm(enquiry.id);
+                      }}
+                      className="h-8 px-2.5 text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <XCircle size={13} className="mr-1" /> Ignore
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenTriage(enquiry.id);
+                      }}
+                      className="h-8 px-2.5 text-xs bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Sparkles size={13} className="mr-1" /> Triage & Assign
+                    </Button>
+                  </div>
                 )}
               </div>
             ))
@@ -265,44 +390,50 @@ export default function EnquiryInbox() {
           <div className="flex-1 flex flex-col h-full bg-white/40 backdrop-blur-md">
             {/* Header info */}
             <div className="p-6 border-b border-slate-200/50 flex items-start justify-between bg-white">
-              <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-bold text-slate-800">{selectedEnquiry.name}</h3>
-                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
-                  <div className="flex items-center gap-1.5">
-                    <Phone size={14} className="text-slate-400" />
-                    <span>{selectedEnquiry.mobile}</span>
-                  </div>
+              <div className="flex flex-col gap-2.5">
+                <h3 className="text-2xl font-extrabold text-slate-900">{selectedEnquiry.name}</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={`tel:${selectedEnquiry.mobile}`}
+                    className="flex items-center gap-1.5 text-base font-bold text-blue-700 hover:underline"
+                  >
+                    <Phone size={16} className="text-blue-500" />
+                    {selectedEnquiry.mobile}
+                  </a>
                   {selectedEnquiry.email && (
-                    <div className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-600">
                       <Mail size={14} className="text-slate-400" />
-                      <span>{selectedEnquiry.email}</span>
-                    </div>
+                      {selectedEnquiry.email}
+                    </span>
                   )}
                   {selectedEnquiry.city && (
-                    <div className="flex items-center gap-1.5">
-                      <MapPin size={14} className="text-slate-400" />
-                      <span>{selectedEnquiry.city}</span>
-                    </div>
+                    <span className="flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-full bg-teal-100 text-teal-700">
+                      <MapPin size={13} /> {selectedEnquiry.city}
+                    </span>
                   )}
-                  <div className="flex items-center gap-1.5">
-                    <Filter size={14} className="text-slate-400" />
-                    <span>Source:</span>
-                    {getSourceIcon(selectedEnquiry.source)}
-                  </div>
+                  <SourceBadge source={selectedEnquiry.source} size="md" />
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 {selectedEnquiry.status === "PENDING" && (
                   <>
+                    <a
+                      href={whatsappLink(selectedEnquiry.mobile)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center h-9 px-4 rounded-md text-sm font-medium border border-green-200 text-green-700 hover:bg-green-50"
+                    >
+                      <MessageSquare size={15} className="mr-1.5" /> WhatsApp
+                    </a>
                     <Button
                       variant="outline"
-                      onClick={handleIgnoreConfirm}
+                      onClick={() => handleIgnoreConfirm()}
                       className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                     >
                       <XCircle size={15} className="mr-1.5" /> Ignore
                     </Button>
-                    <Button onClick={() => setIsTriageOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={() => handleOpenTriage(selectedEnquiry.id)} className="bg-blue-600 hover:bg-blue-700">
                       <Sparkles size={15} className="mr-1.5" /> Triage & Assign
                     </Button>
                   </>
@@ -442,6 +573,21 @@ export default function EnquiryInbox() {
             </div>
 
             <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-slate-600">Lead Source</label>
+              <select
+                value={newSource}
+                onChange={(e) => setNewSource(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg p-2 text-sm bg-white shadow-sm focus:border-blue-600"
+              >
+                <option value="MANUAL">Manual</option>
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="WEBSITE">Website</option>
+                <option value="WALK_IN">Walk-In</option>
+                <option value="PHONE">Phone</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
               <label className="font-semibold text-slate-600">Requirement Message (Optional)</label>
               <textarea
                 rows={3}
@@ -463,6 +609,7 @@ export default function EnquiryInbox() {
                 setNewEmail("");
                 setNewCity("");
                 setNewMessage("");
+                setNewSource("MANUAL");
               }}
             >
               Cancel

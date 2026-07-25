@@ -30,6 +30,8 @@ export interface Opportunity {
     id: string;
     name: string;
     mobile: string;
+    email?: string | null;
+    city?: string | null;
   };
   assignedTo?: {
     id: string;

@@ -22,16 +22,6 @@ import type { Lead, LeadStatus } from "./lead.types";
 import { useOpportunities } from "../opportunity/opportunity.query";
 import type { Opportunity } from "../opportunity/opportunity.types";
 
-const STATUS_STYLES: Record<LeadStatus, string> = {
-  NEW: "bg-blue-100 text-blue-700",
-  CONTACTED: "bg-amber-100 text-amber-700",
-  NOT_RESPONDING: "bg-gray-100 text-gray-700",
-  QUOTATION_SENT: "bg-purple-100 text-purple-700",
-  NEGOTIATION: "bg-orange-100 text-orange-700",
-  WON: "bg-green-100 text-green-700",
-  LOST: "bg-red-100 text-red-700",
-};
-
 interface LeadRow {
   id: string;
   name: string;
@@ -67,8 +57,8 @@ function opportunityToRow(opportunity: Opportunity): LeadRow {
     id: opportunity.id,
     name: opportunity.customer?.name ?? "-",
     mobile: opportunity.customer?.mobile ?? "-",
-    email: null,
-    city: null,
+    email: opportunity.customer?.email ?? null,
+    city: opportunity.customer?.city ?? null,
     source: opportunity.source ?? null,
     status: opportunity.status,
     category: opportunity.category,
@@ -143,7 +133,6 @@ export default function LeadList() {
             <TableHead>City</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Source</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead>Assigned To</TableHead>
             <TableHead>Created</TableHead>
           </TableRow>
@@ -152,13 +141,13 @@ export default function LeadList() {
         <TableBody>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={10}>Loading...</TableCell>
+              <TableCell colSpan={9}>Loading...</TableCell>
             </TableRow>
           )}
 
           {!isLoading && visibleLeads.length === 0 && (
             <TableRow>
-              <TableCell colSpan={10}>No leads found.</TableCell>
+              <TableCell colSpan={9}>No leads found.</TableCell>
             </TableRow>
           )}
 
@@ -195,12 +184,6 @@ export default function LeadList() {
               <TableCell>{lead.category ? lead.category.replace(/_/g, " ") : "-"}</TableCell>
 
               <TableCell>{lead.source || "-"}</TableCell>
-
-              <TableCell>
-                <Badge className={STATUS_STYLES[lead.status]}>
-                  {lead.status.replace(/_/g, " ")}
-                </Badge>
-              </TableCell>
 
               <TableCell>{lead.assignedTo?.name || "-"}</TableCell>
 

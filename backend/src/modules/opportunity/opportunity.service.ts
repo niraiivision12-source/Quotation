@@ -77,6 +77,8 @@ export class OpportunityService {
             id: true,
             name: true,
             mobile: true,
+            email: true,
+            city: true,
           },
         },
         assignedTo: {
