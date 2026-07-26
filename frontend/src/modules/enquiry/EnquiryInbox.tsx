@@ -29,6 +29,7 @@ import {
   Plus,
   MapPin,
   Clock,
+  Copy,
 } from "lucide-react";
 
 function formatRelativeTime(dateString: string) {
@@ -49,6 +50,13 @@ function isStale(dateString: string) {
 function whatsappLink(mobile: string) {
   const digits = mobile.replace(/\D/g, "");
   return `https://wa.me/${digits}`;
+}
+
+function copyToClipboard(text: string) {
+  navigator.clipboard
+    .writeText(text)
+    .then(() => toast.success("Mobile number copied"))
+    .catch(() => toast.error("Failed to copy"));
 }
 
 export default function EnquiryInbox() {
@@ -224,7 +232,7 @@ export default function EnquiryInbox() {
   return (
     <div className="flex h-[calc(100vh-112px)] overflow-hidden bg-slate-55/30 border border-slate-200/50 rounded-2xl shadow-xl">
       {/* Left panel - Enquiries List */}
-      <div className="w-[38%] border-r border-slate-200/60 bg-white/70 backdrop-blur-md flex flex-col h-full">
+      <div className="w-[62%] border-r border-slate-200/60 bg-white/70 backdrop-blur-md flex flex-col h-full">
         {/* Header and Search */}
         <div className="p-4 border-b border-slate-200/60 flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -289,7 +297,7 @@ export default function EnquiryInbox() {
         </div>
 
         {/* List items */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+        <div className="flex-1 overflow-auto">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-slate-400">Loading enquiries...</div>
           ) : enquiriesData?.items.length === 0 ? (
@@ -298,88 +306,130 @@ export default function EnquiryInbox() {
               No enquiries found
             </div>
           ) : (
-            enquiriesData?.items.map((enquiry) => (
-              <div
-                key={enquiry.id}
-                onClick={() => setSelectedEnquiryId(enquiry.id)}
-                className={`p-4 cursor-pointer transition-colors flex flex-col gap-1.5 ${
-                  selectedEnquiryId === enquiry.id
-                    ? "bg-blue-50/70 border-l-4 border-blue-600"
-                    : "hover:bg-slate-50/60"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-slate-900 text-base">{enquiry.name}</h3>
-                  {enquiry.status === "PENDING" ? (
-                    <span
-                      className={`flex items-center gap-1 text-xs font-bold ${
-                        isStale(enquiry.createdAt) ? "text-red-500" : "text-slate-400"
-                      }`}
-                    >
-                      <Clock size={12} /> {formatRelativeTime(enquiry.createdAt)}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-slate-400">
-                      {new Date(enquiry.createdAt).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <a
-                    href={`tel:${enquiry.mobile}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-1 text-sm font-bold text-blue-700 hover:underline"
+            <table className="w-full border-collapse text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <th className="text-left px-3 py-2 border-b border-r border-slate-200">Name</th>
+                  <th className="text-left px-3 py-2 border-b border-r border-slate-200">Phone</th>
+                  <th className="text-left px-3 py-2 border-b border-r border-slate-200 hidden sm:table-cell">City</th>
+                  <th className="text-left px-3 py-2 border-b border-r border-slate-200">Source</th>
+                  <th className="text-left px-3 py-2 border-b border-r border-slate-200 hidden xl:table-cell">Message</th>
+                  <th className="text-left px-3 py-2 border-b border-r border-slate-200">Date</th>
+                  <th className="text-left px-3 py-2 border-b border-slate-200 w-px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {enquiriesData?.items.map((enquiry) => (
+                  <tr
+                    key={enquiry.id}
+                    onClick={() => setSelectedEnquiryId(enquiry.id)}
+                    className={`group cursor-pointer transition-colors ${
+                      selectedEnquiryId === enquiry.id
+                        ? "bg-blue-50/70"
+                        : "odd:bg-slate-50/40 hover:bg-slate-100/70"
+                    }`}
                   >
-                    <Phone size={13} className="text-blue-500" /> {enquiry.mobile}
-                  </a>
-                  {enquiry.city && (
-                    <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">
-                      <MapPin size={11} /> {enquiry.city}
-                    </span>
-                  )}
-                  <SourceBadge source={enquiry.source} />
-                </div>
-                {enquiry.message && (
-                  <p className="text-sm text-slate-700 line-clamp-2 italic bg-amber-50 border border-amber-100 px-2.5 py-1.5 rounded-lg">
-                    "{enquiry.message}"
-                  </p>
-                )}
-                {enquiry.status === "PENDING" && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <a
-                      href={whatsappLink(enquiry.mobile)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center h-8 px-2.5 rounded-md text-xs font-medium border border-green-200 text-green-700 hover:bg-green-50"
+                    <td
+                      className={`px-3 py-2 border-b border-r border-slate-100 font-bold text-slate-900 max-w-[130px] truncate ${
+                        selectedEnquiryId === enquiry.id ? "border-l-4 border-l-blue-600" : "border-l-4 border-l-transparent"
+                      }`}
+                      title={enquiry.name}
                     >
-                      <MessageSquare size={13} className="mr-1" /> WhatsApp
-                    </a>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleIgnoreConfirm(enquiry.id);
-                      }}
-                      className="h-8 px-2.5 text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      {enquiry.name}
+                    </td>
+                    <td className="px-3 py-2 border-b border-r border-slate-100 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={`tel:${enquiry.mobile}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 font-semibold text-blue-700 hover:underline"
+                        >
+                          <Phone size={12} className="text-blue-500 shrink-0" />
+                          {enquiry.mobile}
+                        </a>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(enquiry.mobile);
+                          }}
+                          title="Copy number"
+                          className="text-slate-500 hover:text-blue-700"
+                        >
+                          <Copy size={13} />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 border-b border-r border-slate-100 hidden sm:table-cell max-w-[110px] truncate">
+                      {enquiry.city && (
+                        <span className="flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 w-fit max-w-full truncate">
+                          <MapPin size={10} className="shrink-0" /> <span className="truncate">{enquiry.city}</span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 border-b border-r border-slate-100 whitespace-nowrap">
+                      <SourceBadge source={enquiry.source} />
+                    </td>
+                    <td
+                      className="px-3 py-2 border-b border-r border-slate-100 hidden xl:table-cell text-slate-600 italic max-w-[220px] truncate"
+                      title={enquiry.message || undefined}
                     >
-                      <XCircle size={13} className="mr-1" /> Ignore
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenTriage(enquiry.id);
-                      }}
-                      className="h-8 px-2.5 text-xs bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Sparkles size={13} className="mr-1" /> Triage & Assign
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))
+                      {enquiry.message && `"${enquiry.message}"`}
+                    </td>
+                    <td className="px-3 py-2 border-b border-r border-slate-100 whitespace-nowrap text-xs">
+                      {enquiry.status === "PENDING" ? (
+                        <span
+                          className={`flex items-center gap-1 font-bold ${
+                            isStale(enquiry.createdAt) ? "text-red-500" : "text-slate-600"
+                          }`}
+                        >
+                          <Clock size={12} /> {formatRelativeTime(enquiry.createdAt)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-600">
+                          {new Date(enquiry.createdAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2 py-2 border-b border-slate-100 whitespace-nowrap">
+                      {enquiry.status === "PENDING" && (
+                        <div className="hidden group-hover:flex items-center gap-1">
+                          <a
+                            href={whatsappLink(enquiry.mobile)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title="WhatsApp"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-green-200 text-green-700 hover:bg-green-50"
+                          >
+                            <MessageSquare size={13} />
+                          </a>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleIgnoreConfirm(enquiry.id);
+                            }}
+                            title="Ignore"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                          >
+                            <XCircle size={13} />
+                          </button>
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenTriage(enquiry.id);
+                            }}
+                            className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Sparkles size={12} className="mr-1" /> Triage
+                          </Button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
@@ -400,6 +450,13 @@ export default function EnquiryInbox() {
                     <Phone size={16} className="text-blue-500" />
                     {selectedEnquiry.mobile}
                   </a>
+                  <button
+                    onClick={() => copyToClipboard(selectedEnquiry.mobile)}
+                    title="Copy number"
+                    className="text-slate-600 hover:text-blue-700"
+                  >
+                    <Copy size={16} />
+                  </button>
                   {selectedEnquiry.email && (
                     <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-600">
                       <Mail size={14} className="text-slate-400" />
@@ -458,7 +515,7 @@ export default function EnquiryInbox() {
                   <span className="flex items-center gap-1"><MessageSquare size={13} /> Original Message</span>
                   <span>Received {new Date(selectedEnquiry.createdAt).toLocaleString()}</span>
                 </div>
-                <p className="text-slate-700 text-sm leading-relaxed italic bg-slate-50/50 p-4 rounded-lg border border-slate-100">
+                <p className="text-slate-700 text-sm leading-relaxed italic bg-slate-50/50 p-4 rounded-lg border border-slate-100 break-words whitespace-pre-wrap">
                   "{selectedEnquiry.message || "No text description provided."}"
                 </p>
               </div>
