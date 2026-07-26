@@ -30,8 +30,8 @@ export const useCreateEnquiry = () => {
 
 export const useTriageEnquiry = () => {
   return useMutation({
-    mutationFn: ({ id, category }: { id: string; category: string }) =>
-      triageEnquiry(id, category),
+    mutationFn: ({ id, category, notes }: { id: string; category: string; notes?: string }) =>
+      triageEnquiry(id, category, notes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["enquiries"] });
       queryClient.invalidateQueries({ queryKey: ["opportunities"] });

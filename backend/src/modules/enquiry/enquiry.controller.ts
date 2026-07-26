@@ -32,9 +32,9 @@ export class EnquiryController {
 
   static async triage(req: Request, res: Response) {
     const { id } = req.params;
-    const { category } = triageEnquirySchema.parse(req.body);
+    const { category, notes } = triageEnquirySchema.parse(req.body);
 
-    const result = await EnquiryService.triage(id as string, category);
+    const result = await EnquiryService.triage(id as string, category, notes);
 
     return res.status(200).json({
       success: true,

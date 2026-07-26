@@ -56,7 +56,7 @@ export class EnquiryService {
     return { items, total, page, limit };
   }
 
-  static async triage(id: string, category: ProductCategory) {
+  static async triage(id: string, category: ProductCategory, notes?: string | null) {
     const enquiry = await prisma.enquiry.findUnique({
       where: { id },
     });
@@ -149,11 +149,15 @@ export class EnquiryService {
       });
 
       // 5. Create Activity Logs
+      const trimmedNotes = notes?.trim() || null;
+
       await tx.opportunityActivity.create({
         data: {
           opportunityId: opportunity.id,
           type: "CREATED",
-          message: `Opportunity created in category ${category} and assigned to salesperson`,
+          message: trimmedNotes
+            ? `Opportunity created in category ${category} and assigned to salesperson. Notes: ${trimmedNotes}`
+            : `Opportunity created in category ${category} and assigned to salesperson`,
         },
       });
 
@@ -161,7 +165,9 @@ export class EnquiryService {
         data: {
           customerId: customer.id,
           type: "OPPORTUNITY_CREATED",
-          message: `Created opportunity for ${category} linked to enquiry triage`,
+          message: trimmedNotes
+            ? `Created opportunity for ${category} linked to enquiry triage. Notes: ${trimmedNotes}`
+            : `Created opportunity for ${category} linked to enquiry triage`,
           metadata: { opportunityId: opportunity.id },
         },
       });

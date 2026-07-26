@@ -66,6 +66,7 @@ export default function EnquiryInbox() {
   const [selectedEnquiryId, setSelectedEnquiryId] = useState<string | null>(null);
   const [isTriageOpen, setIsTriageOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("PIPES");
+  const [triageNotes, setTriageNotes] = useState("");
   const [settings, setSettings] = useState<any>(null);
 
   // Manual create enquiry state
@@ -162,10 +163,12 @@ export default function EnquiryInbox() {
       await triageMutation.mutateAsync({
         id: selectedEnquiryId,
         category: selectedCategory,
+        notes: triageNotes.trim() || undefined,
       });
       toast.success("Enquiry triaged and moved to pipeline successfully!");
       setIsTriageOpen(false);
       setSelectedEnquiryId(null);
+      setTriageNotes("");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to triage enquiry");
     }
@@ -187,6 +190,7 @@ export default function EnquiryInbox() {
   const handleOpenTriage = (id: string) => {
     setSelectedEnquiryId(id);
     setSelectedCategory("PIPES");
+    setTriageNotes("");
     setIsTriageOpen(true);
   };
 
@@ -516,7 +520,7 @@ export default function EnquiryInbox() {
                   <span>Received {new Date(selectedEnquiry.createdAt).toLocaleString()}</span>
                 </div>
                 <p className="text-slate-700 text-sm leading-relaxed italic bg-slate-50/50 p-4 rounded-lg border border-slate-100 break-words whitespace-pre-wrap">
-                  "{selectedEnquiry.message || "No text description provided."}"
+                  "{selectedEnquiry.message?.trim() || "No text description provided."}"
                 </p>
               </div>
             </div>
@@ -553,6 +557,17 @@ export default function EnquiryInbox() {
                 <option value="FANS">Fans</option>
                 <option value="OTHERS">Others</option>
               </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Notes (optional)</label>
+              <textarea
+                value={triageNotes}
+                onChange={(e) => setTriageNotes(e.target.value)}
+                placeholder="Add any context for the salesperson..."
+                rows={3}
+                className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-white shadow-sm focus:border-blue-600 resize-none"
+              />
             </div>
 
             {/* Assignment preview */}
