@@ -182,12 +182,13 @@ export function downloadQuotationPDF({
       item.productName ?? item.search,
       item.quantity.toString(),
       `₹ ${item.sellingPrice.toFixed(2)}`,
+      `${item.gstPercent ?? 18}%`,
       `₹ ${item.totalPrice.toFixed(2)}`,
     ]);
 
   autoTable(doc, {
     startY: startTableY,
-    head: [["Product Description", "Qty", "Selling Price", "Total Selling Price"]],
+    head: [["Product Description", "Qty", "Selling Price", "GST %", "Total Selling Price"]],
     body: rows,
     styles: {
       fontSize: 9.5,
@@ -201,7 +202,8 @@ export function downloadQuotationPDF({
     columnStyles: {
       1: { halign: "center" },
       2: { halign: "right" },
-      3: { halign: "right" },
+      3: { halign: "center" },
+      4: { halign: "right" },
     },
   });
 
@@ -239,16 +241,20 @@ export function downloadQuotationPDF({
   doc.text(`Subtotal:`, 140, nextSectionY + 6);
   doc.text(`₹ ${subtotal.toFixed(2)}`, 196, nextSectionY + 6, { align: "right" });
 
-  doc.text(`Discount:`, 140, nextSectionY + 14);
-  doc.text(`₹ ${discountAmount.toFixed(2)}`, 196, nextSectionY + 14, { align: "right" });
+  doc.text(`Discount:`, 140, nextSectionY + 13);
+  doc.text(`₹ ${discountAmount.toFixed(2)}`, 196, nextSectionY + 13, { align: "right" });
+
+  const totalGst = items.reduce((sum, item) => sum + item.totalPrice * ((item.gstPercent ?? 18) / 100), 0);
+  doc.text(`Total GST:`, 140, nextSectionY + 20);
+  doc.text(`₹ ${totalGst.toFixed(2)}`, 196, nextSectionY + 20, { align: "right" });
 
   doc.setDrawColor(180);
-  doc.line(140, nextSectionY + 19, 196, nextSectionY + 19);
+  doc.line(140, nextSectionY + 24, 196, nextSectionY + 24);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.text(`Grand Total:`, 140, nextSectionY + 26);
-  doc.text(`₹ ${totalAmount.toFixed(2)}`, 196, nextSectionY + 26, { align: "right" });
+  doc.text(`Grand Total:`, 140, nextSectionY + 31);
+  doc.text(`₹ ${totalAmount.toFixed(2)}`, 196, nextSectionY + 31, { align: "right" });
 
   // -----------------------------
   // Terms & Conditions / Signatures

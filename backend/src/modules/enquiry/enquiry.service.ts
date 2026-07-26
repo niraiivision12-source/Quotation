@@ -6,11 +6,33 @@ export class EnquiryService {
   static async checkMobileExists(mobile: string) {
     const existingPending = await prisma.enquiry.findFirst({
       where: { mobile, status: EnquiryStatus.PENDING },
-      select: { id: true },
+      select: { id: true, name: true, mobile: true, status: true },
     });
 
     if (existingPending) {
-      return { exists: true, message: "An enquiry from this mobile number is already pending in the inbox" };
+      return {
+        exists: true,
+        existingId: existingPending.id,
+        existingName: existingPending.name,
+        existingStatus: existingPending.status,
+        message: "An enquiry with this mobile number is already pending in the inbox",
+      };
+    }
+
+    // Also check for triaged enquiries (already converted to opportunity)
+    const existingTriaged = await prisma.enquiry.findFirst({
+      where: { mobile, status: EnquiryStatus.TRIAGED },
+      select: { id: true, name: true, mobile: true, status: true },
+    });
+
+    if (existingTriaged) {
+      return {
+        exists: true,
+        existingId: existingTriaged.id,
+        existingName: existingTriaged.name,
+        existingStatus: existingTriaged.status,
+        message: "An enquiry with this mobile number already exists and has been processed",
+      };
     }
 
     return { exists: false };

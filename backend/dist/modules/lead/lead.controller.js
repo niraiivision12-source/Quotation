@@ -13,6 +13,15 @@ class LeadController {
             data: lead,
         });
     }
+    static async checkMobile(req, res) {
+        const mobile = req.query.mobile?.toString() || "";
+        const result = await lead_service_1.LeadService.checkMobileExists(mobile);
+        return res.status(200).json({
+            success: true,
+            message: "Mobile check completed",
+            data: result,
+        });
+    }
     static async getStats(_req, res) {
         const stats = await lead_service_1.LeadService.getStats();
         return res.status(200).json({ success: true, data: stats });

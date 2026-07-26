@@ -11,6 +11,7 @@ router.use(auth_middleware_1.authenticate);
 router.post("/", (0, permission_middleware_1.checkPermission)("createLeads"), (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.create));
 router.get("/", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.getAll));
 router.get("/stats", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.getStats));
+router.get("/check-mobile", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.checkMobile));
 router.get("/:id", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.getById));
 router.post("/:id/convert", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.convert));
 router.patch("/:id", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.update));

@@ -60,6 +60,8 @@ class OpportunityService {
                         id: true,
                         name: true,
                         mobile: true,
+                        email: true,
+                        city: true,
                     },
                 },
                 assignedTo: {
@@ -316,6 +318,37 @@ class OpportunityService {
             }
         }
         return stats;
+    }
+    static async getStatusCounts(category, search) {
+        const where = { isActive: true };
+        if (category) {
+            where.category = category;
+        }
+        if (search) {
+            where.customer = {
+                OR: [
+                    { name: { contains: search, mode: "insensitive" } },
+                    { mobile: { contains: search } },
+                ],
+            };
+        }
+        const grouped = await prisma_1.prisma.opportunity.groupBy({
+            by: ["status"],
+            where,
+            _count: { _all: true },
+        });
+        const counts = {
+            NEW: 0,
+            CONTACTED: 0,
+            QUOTATION_SENT: 0,
+            NEGOTIATION: 0,
+            WON: 0,
+            LOST: 0,
+        };
+        for (const row of grouped) {
+            counts[row.status] = row._count._all;
+        }
+        return counts;
     }
 }
 exports.OpportunityService = OpportunityService;

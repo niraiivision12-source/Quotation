@@ -31,6 +31,10 @@ export interface QuotationItemForm {
 
   discountPercent?: number;
 
+  gstPercent?: number;
+
+  isManualPrice?: boolean;
+
   sellingPrice: number;
 
   totalPrice: number;
@@ -43,7 +47,7 @@ export interface QuotationItemForm {
 export interface CreateQuotationDTO {
   createdById?: string;
 
-  type?: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
+  type?: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER" | "PURCHASE_ORDER";
 
   leadId?: string;
 
@@ -72,6 +76,7 @@ export interface CreateQuotationDTO {
     quantity: number;
     marginPercent?: number | null;
     discountPercent?: number | null;
+    gstPercent?: number | null;
   }[];
 
   parentQuotationId?: string;
@@ -88,7 +93,7 @@ export interface Quotation {
 
   quotationNumber: string;
 
-  type: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
+  type: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER" | "PURCHASE_ORDER";
 
   leadId?: string;
 
@@ -111,6 +116,8 @@ export interface Quotation {
   status: QuotationStatus;
 
   subtotal: number;
+
+  totalGst?: number;
 
   totalAmount: number;
 
@@ -139,7 +146,7 @@ export interface QuotationListItem {
 
   quotationNumber: string;
 
-  type: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
+  type: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER" | "PURCHASE_ORDER";
 
   phase?: ProjectPhase | null;
 
@@ -181,6 +188,8 @@ export interface QuotationVersion {
   subtotal: number | string;
 
   discountAmount?: number | string | null;
+
+  totalGst?: number | string | null;
 
   totalAmount: number | string;
 

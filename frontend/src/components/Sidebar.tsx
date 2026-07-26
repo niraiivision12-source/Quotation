@@ -30,6 +30,7 @@ const NAV_ITEMS = [
   { to: "/enquiries", label: "Enquiry Inbox", icon: <Inbox size={18} />, ownerOnly: true },
   { to: "/reminders", label: "Reminders", icon: <Bell size={18} /> },
   { to: "/products", label: "Products", icon: <Package size={18} /> },
+  { to: "/dealers", label: "Dealers", icon: <Users size={18} /> },
   // `exact` so this stays unlit while /quotations/history is open.
   {
     to: "/quotations",
@@ -40,6 +41,17 @@ const NAV_ITEMS = [
   {
     to: "/quotations/history",
     label: "Quotation History",
+    icon: <History size={18} />,
+  },
+  {
+    to: "/purchase-orders",
+    label: "Purchase Orders",
+    icon: <ScrollText size={18} />,
+    exact: true,
+  },
+  {
+    to: "/purchase-orders/history",
+    label: "PO History",
     icon: <History size={18} />,
   },
   { to: "/payments", label: "Payments", icon: <CreditCard size={18} /> },

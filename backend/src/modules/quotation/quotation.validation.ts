@@ -54,6 +54,7 @@ export const createQuotationSchema = z.object({
 
       marginPercent: z.number().min(0).optional().nullable(),
       discountPercent: z.number().min(0).optional().nullable(),
+      gstPercent: z.number().min(0).max(100).optional().nullable(),
     }),
   ),
 
@@ -92,6 +93,23 @@ export const createQuotationSchema = z.object({
         message: "Walk-in Customer Mobile is required",
         path: ["walkInMobile"],
       });
+    }
+  } else if (data.type === QuotationType.PURCHASE_ORDER) {
+    if (!data.leadId && !data.customerId) {
+      if (!data.walkInName || !data.walkInName.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Dealer Name is required",
+          path: ["walkInName"],
+        });
+      }
+      if (!data.walkInMobile || !data.walkInMobile.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Dealer Mobile is required",
+          path: ["walkInMobile"],
+        });
+      }
     }
   }
 });

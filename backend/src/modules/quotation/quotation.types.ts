@@ -20,6 +20,8 @@ export interface CreateQuotationDTO {
   items: {
     productId: string;
     quantity: number;
-    marginPercent: number;
+    marginPercent?: number | null;
+    discountPercent?: number | null;
+    gstPercent?: number | null;
   }[];
 }

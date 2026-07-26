@@ -252,7 +252,7 @@ export function DashboardStats({ data, role }: DashboardStatsProps) {
       value: item.sales,
     }));
 
-    const monthlyRevenueChart = (charts.monthlyRevenue || []).map((item) => ({
+    const monthlyRevenueChart = (charts.monthlyRevenue || []).map((item: any) => ({
       label: item.month,
       value: item.revenue,
     }));

@@ -15,9 +15,13 @@ import PipelineBoardPage from "../pages/PipelineBoardPage";
 import OpportunityDetailPage from "../pages/OpportunityDetailPage";
 import LoginPage from "../pages/LoginPage";
 import ProductPage from "../pages/ProductPage";
+import DealerPage from "../pages/DealerPage";
 import QuotationHistoryListPage from "../pages/QuotationHistoryListPage";
 import QuotationHistoryPage from "../pages/QuotationHistoryPage";
 import QuotationPage from "../pages/QuotationPage";
+import PurchaseOrderPage from "../pages/PurchaseOrderPage";
+import PurchaseOrderHistoryListPage from "../pages/PurchaseOrderHistoryListPage";
+import PurchaseOrderHistoryPage from "../pages/PurchaseOrderHistoryPage";
 import ReminderPage from "../pages/ReminderPage";
 import TaskPage from "../pages/TaskPage";
 import UserPage from "../pages/UserPage";
@@ -74,6 +78,8 @@ export default function AppRouter() {
 
           <Route path="/products" element={<ProductPage />} />
 
+          <Route path="/dealers" element={<DealerPage />} />
+
           <Route path="/quotations" element={<QuotationPage />} />
 
           <Route
@@ -84,6 +90,20 @@ export default function AppRouter() {
           <Route
             path="/quotations/:id/history"
             element={<QuotationHistoryPage />}
+          />
+
+          <Route path="/purchase-orders" element={<PurchaseOrderPage />} />
+
+          <Route path="/purchase-orders/:id/edit" element={<PurchaseOrderPage />} />
+
+          <Route
+            path="/purchase-orders/history"
+            element={<PurchaseOrderHistoryListPage />}
+          />
+
+          <Route
+            path="/purchase-orders/:id/history"
+            element={<PurchaseOrderHistoryPage />}
           />
 
           <Route path="/tasks" element={<TaskPage />} />

@@ -27,6 +27,7 @@ interface Props {
   users: User[];
   subtotal: number;
   discountAmount: number;
+  totalGst: number;
   totalAmount: number;
   isCreating: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,6 +46,7 @@ export default function QuotationPreviewDialog({
   users,
   subtotal,
   discountAmount,
+  totalGst,
   totalAmount,
   isCreating,
   onOpenChange,
@@ -100,6 +102,7 @@ export default function QuotationPreviewDialog({
                     <th className="p-3 text-left">Product</th>
                     <th className="p-3 text-right">Qty</th>
                     <th className="p-3 text-right">Selling Price</th>
+                    <th className="p-3 text-right">GST %</th>
                     <th className="p-3 text-right">Total Selling Price</th>
                   </tr>
                 </thead>
@@ -113,6 +116,7 @@ export default function QuotationPreviewDialog({
                       </td>
                       <td className="p-3 text-right">{item.quantity}</td>
                       <td className="p-3 text-right">₹ {item.sellingPrice.toFixed(2)}</td>
+                      <td className="p-3 text-right">{item.gstPercent ?? 18}%</td>
                       <td className="p-3 text-right font-medium">
                         ₹ {item.totalPrice.toFixed(2)}
                       </td>
@@ -132,6 +136,7 @@ export default function QuotationPreviewDialog({
             <div className="ml-auto w-full max-w-sm space-y-2 rounded-lg border bg-white p-3 text-sm">
               <PreviewAmount label="Subtotal" value={subtotal} />
               <PreviewAmount label="Discount" value={discountAmount} />
+              <PreviewAmount label="Total GST" value={totalGst} />
               <div className="border-t pt-2">
                 <PreviewAmount label="Total" value={totalAmount} strong />
               </div>

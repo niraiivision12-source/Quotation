@@ -52,7 +52,9 @@ export default function QuotationList() {
 
   const { data: rawQuotationsData, isLoading } = useQuotations(1, 10000);
 
-  const items: QuotationListItem[] = rawQuotationsData?.items ?? [];
+  const items: QuotationListItem[] = (rawQuotationsData?.items ?? []).filter(
+    (q: QuotationListItem) => q.type !== "PURCHASE_ORDER",
+  );
 
   // Filter by status first
   const statusFiltered = useMemo(() => {

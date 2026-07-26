@@ -88,6 +88,14 @@ export default function EnquiryInbox() {
   const [mobileError, setMobileError] = useState<string | null>(null);
   const [isCheckingMobile, setIsCheckingMobile] = useState(false);
 
+  // Duplicate detection popup state
+  const [duplicateEnquiry, setDuplicateEnquiry] = useState<{
+    id: string;
+    name: string;
+    status: string;
+    message: string;
+  } | null>(null);
+
   // Debounce search input so we don't refetch on every keystroke
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -148,16 +156,38 @@ export default function EnquiryInbox() {
     }
   }, []);
 
+  const resetCreateForm = () => {
+    setNewName("");
+    setNewMobile("");
+    setNewEmail("");
+    setNewCity("");
+    setNewMessage("");
+    setNewSource("MANUAL");
+    setMobileError(null);
+    setDuplicateEnquiry(null);
+  };
+
   const handleMobileBlur = async () => {
     const mobile = newMobile.trim();
     setMobileError(null);
+    setDuplicateEnquiry(null);
     if (mobile.length < 10) return;
 
     setIsCheckingMobile(true);
     try {
       const result = await checkEnquiryMobile(mobile);
       if (result.exists) {
-        setMobileError(result.message || "This mobile number already exists");
+        if (result.existingId) {
+          // Show the duplicate popup instead of inline error
+          setDuplicateEnquiry({
+            id: result.existingId,
+            name: result.existingName || "Unknown",
+            status: result.existingStatus || "PENDING",
+            message: result.message || "An enquiry with this mobile number already exists",
+          });
+        } else {
+          setMobileError(result.message || "This mobile number already exists");
+        }
       }
     } catch {
       // If the check itself fails, don't block the user — the create call will still validate.
@@ -166,9 +196,25 @@ export default function EnquiryInbox() {
     }
   };
 
+  const handleViewExistingEnquiry = (enquiryId: string, enquiryStatus: string) => {
+    // Navigate to the correct tab and select the enquiry
+    const tab = enquiryStatus === "TRIAGED" ? "TRIAGED" : enquiryStatus === "IGNORED" ? "IGNORED" : "PENDING";
+    setActiveTab(tab as "PENDING" | "TRIAGED" | "IGNORED");
+    setPage(1);
+    setSelectedEnquiryId(enquiryId);
+    setDuplicateEnquiry(null);
+    setIsCreateOpen(false);
+    resetCreateForm();
+  };
+
   const handleCreateEnquiry = async () => {
     if (!newName.trim() || !newMobile.trim()) {
       toast.error("Name and mobile number are required");
+      return;
+    }
+
+    // If a duplicate was already detected, show the popup instead of submitting
+    if (duplicateEnquiry) {
       return;
     }
 
@@ -188,17 +234,29 @@ export default function EnquiryInbox() {
       });
       toast.success("Enquiry created successfully!");
       setIsCreateOpen(false);
-      setNewName("");
-      setNewMobile("");
-      setNewEmail("");
-      setNewCity("");
-      setNewMessage("");
-      setNewSource("MANUAL");
-      setMobileError(null);
+      resetCreateForm();
       setActiveTab("PENDING");
       setPage(1);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to create manual enquiry");
+      const errMsg = err.response?.data?.message || "Failed to create manual enquiry";
+      // Backend 409 — show the duplicate popup by fetching the existing enquiry info
+      if (err.response?.status === 409) {
+        try {
+          const checkResult = await checkEnquiryMobile(newMobile.trim());
+          if (checkResult.exists && checkResult.existingId) {
+            setDuplicateEnquiry({
+              id: checkResult.existingId,
+              name: checkResult.existingName || newName,
+              status: checkResult.existingStatus || "PENDING",
+              message: checkResult.message || errMsg,
+            });
+            return;
+          }
+        } catch {
+          // fall through to show toast
+        }
+      }
+      toast.error(errMsg);
     }
   };
 
@@ -739,12 +797,24 @@ export default function EnquiryInbox() {
                 onChange={(e) => {
                   setNewMobile(e.target.value);
                   setMobileError(null);
+                  setDuplicateEnquiry(null);
                 }}
                 onBlur={handleMobileBlur}
-                className={`h-9 ${mobileError ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                className={`h-9 ${mobileError || duplicateEnquiry ? "border-amber-400 focus-visible:ring-amber-400" : ""}`}
               />
               {isCheckingMobile && <span className="text-slate-400">Checking mobile number...</span>}
               {mobileError && <span className="text-red-600 font-semibold">{mobileError}</span>}
+              {duplicateEnquiry && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                  <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-1">
+                    <span className="text-amber-800 font-bold text-[11px]">Existing Enquiry Detected</span>
+                    <span className="text-amber-700 text-[11px]">
+                      {duplicateEnquiry.message} for <strong>{duplicateEnquiry.name}</strong>
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -800,23 +870,60 @@ export default function EnquiryInbox() {
               variant="outline"
               onClick={() => {
                 setIsCreateOpen(false);
-                setNewName("");
-                setNewMobile("");
-                setNewEmail("");
-                setNewCity("");
-                setNewMessage("");
-                setNewSource("MANUAL");
-                setMobileError(null);
+                resetCreateForm();
               }}
             >
               Cancel
             </Button>
+            {duplicateEnquiry ? (
+              <Button
+                onClick={() => handleViewExistingEnquiry(duplicateEnquiry.id, duplicateEnquiry.status)}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                View Existing Enquiry
+              </Button>
+            ) : (
+              <Button
+                onClick={handleCreateEnquiry}
+                disabled={createMutation.isPending || !!mobileError || isCheckingMobile}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {createMutation.isPending ? "Creating..." : "Create Enquiry"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate Enquiry Detected Modal */}
+      <Dialog open={!!duplicateEnquiry && !isCreateOpen} onOpenChange={(open) => { if (!open) setDuplicateEnquiry(null); }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-700">
+              <AlertTriangle className="text-amber-600" size={20} /> Duplicate Enquiry Detected
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 text-sm text-slate-700 space-y-3">
+            <p>
+              An enquiry with this mobile number already exists for{" "}
+              <strong className="text-slate-900">{duplicateEnquiry?.name}</strong>.
+            </p>
+            <p>Would you like to view the existing enquiry record instead of creating a duplicate?</p>
+            <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-800">
+              <strong>Status:</strong> {duplicateEnquiry?.status}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicateEnquiry(null)}>
+              Cancel
+            </Button>
             <Button
-              onClick={handleCreateEnquiry}
-              disabled={createMutation.isPending || !!mobileError || isCheckingMobile}
-              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => duplicateEnquiry && handleViewExistingEnquiry(duplicateEnquiry.id, duplicateEnquiry.status)}
+              className="bg-amber-600 hover:bg-amber-700"
             >
-              {createMutation.isPending ? "Creating..." : "Create Enquiry"}
+              View Existing Enquiry
             </Button>
           </DialogFooter>
         </DialogContent>

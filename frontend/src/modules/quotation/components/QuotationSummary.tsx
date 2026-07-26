@@ -3,15 +3,18 @@ interface Props {
 
   discountAmount: number;
 
+  totalGst: number;
+
   onDiscountChange: (value: number) => void;
 }
 
 export default function QuotationSummary({
   subtotal,
   discountAmount,
+  totalGst,
   onDiscountChange,
 }: Props) {
-  const totalAmount = Math.max(subtotal - discountAmount, 0);
+  const totalAmount = Math.max(subtotal - discountAmount + totalGst, 0);
 
   return (
     <div className="rounded-2xl border bg-white p-6 shadow-sm">
@@ -39,6 +42,13 @@ export default function QuotationSummary({
             className="w-full rounded-xl border p-3 outline-none focus:ring-2 focus:ring-black"
             onChange={(e) => onDiscountChange(Number(e.target.value))}
           />
+        </div>
+
+        {/* Total GST */}
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Total GST</span>
+
+          <span className="font-medium">₹ {totalGst.toFixed(2)}</span>
         </div>
 
         {/* Divider */}

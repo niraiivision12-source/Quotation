@@ -38,6 +38,16 @@ class OpportunityController {
             data: opportunity,
         });
     }
+    static async getCounts(req, res) {
+        const category = req.query.category;
+        const search = req.query.search?.toString();
+        const counts = await opportunity_service_1.OpportunityService.getStatusCounts(category, search);
+        return res.status(200).json({
+            success: true,
+            message: "Opportunity status counts fetched",
+            data: counts,
+        });
+    }
     static async getStats(req, res) {
         const stats = await opportunity_service_1.OpportunityService.getStats(req.user.id, req.user.role);
         return res.status(200).json({

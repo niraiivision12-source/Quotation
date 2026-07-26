@@ -63,9 +63,13 @@ export default function QuotationRow({
 
   const [discountInput, setDiscountInput] = useState(String(item.discountPercent ?? 0));
 
+  const [sellingPriceInput, setSellingPriceInput] = useState(String(item.sellingPrice ?? 0));
+
+  const [gstInput, setGstInput] = useState(String(item.gstPercent ?? 18));
+
   const [quantityInput, setQuantityInput] = useState(String(item.quantity));
 
-  const activeNumberFieldRef = useRef<"cost" | "margin" | "mrp" | "discount" | "quantity" | null>(
+  const activeNumberFieldRef = useRef<"cost" | "margin" | "mrp" | "discount" | "sellingPrice" | "gst" | "quantity" | null>(
     null,
   );
 
@@ -187,16 +191,28 @@ export default function QuotationRow({
   }, [item.discountPercent]);
 
   useEffect(() => {
+    if (activeNumberFieldRef.current === "sellingPrice") return;
+
+    setSellingPriceInput(String(item.sellingPrice ?? 0));
+  }, [item.sellingPrice]);
+
+  useEffect(() => {
+    if (activeNumberFieldRef.current === "gst") return;
+
+    setGstInput(String(item.gstPercent ?? 18));
+  }, [item.gstPercent]);
+
+  useEffect(() => {
     if (activeNumberFieldRef.current === "quantity") return;
 
     setQuantityInput(String(item.quantity));
   }, [item.quantity]);
 
-  function handleNumberFocus(field: "cost" | "margin" | "mrp" | "discount" | "quantity") {
+  function handleNumberFocus(field: "cost" | "margin" | "mrp" | "discount" | "sellingPrice" | "gst" | "quantity") {
     activeNumberFieldRef.current = field;
   }
 
-  function handleNumberBlur(field: "cost" | "margin" | "mrp" | "discount" | "quantity") {
+  function handleNumberBlur(field: "cost" | "margin" | "mrp" | "discount" | "sellingPrice" | "gst" | "quantity") {
     activeNumberFieldRef.current = null;
 
     if (field === "cost" && costPriceInput === "") {
@@ -213,6 +229,14 @@ export default function QuotationRow({
 
     if (field === "discount" && discountInput === "") {
       setDiscountInput("0");
+    }
+
+    if (field === "sellingPrice" && sellingPriceInput === "") {
+      setSellingPriceInput("0");
+    }
+
+    if (field === "gst" && gstInput === "") {
+      setGstInput("18");
     }
 
     if (field === "quantity" && quantityInput === "") {
@@ -256,6 +280,8 @@ export default function QuotationRow({
       marginPercent,
       mrp,
       discountPercent,
+      gstPercent: 18,
+      isManualPrice: false,
       sellingPrice,
       totalPrice,
     });
@@ -269,40 +295,44 @@ export default function QuotationRow({
   // COST PRICE
   function handleCostPriceChange(e: React.ChangeEvent<HTMLInputElement>) {
     const rawValue = e.target.value;
-
     setCostPriceInput(rawValue);
-
     const costPrice = rawValue === "" ? 0 : Number(rawValue);
 
-    const sellingPrice = calculateSellingPrice(costPrice, item.marginPercent || 0);
-
-    const totalPrice = calculateTotal(sellingPrice, item.quantity);
-
-    onUpdate(item.id, {
-      costPrice,
-      sellingPrice,
-      totalPrice,
-      mrp: 0,
-      discountPercent: 0,
-    });
+    if (item.isManualPrice) {
+      const sellingPrice = item.sellingPrice || 0;
+      const marginPercent = sellingPrice === 0 ? 0 : ((sellingPrice - costPrice) / sellingPrice) * 100;
+      onUpdate(item.id, {
+        costPrice,
+        marginPercent,
+        mrp: 0,
+        discountPercent: 0,
+      });
+    } else {
+      const sellingPrice = calculateSellingPrice(costPrice, item.marginPercent || 0);
+      const totalPrice = calculateTotal(sellingPrice, item.quantity);
+      onUpdate(item.id, {
+        costPrice,
+        sellingPrice,
+        totalPrice,
+        mrp: 0,
+        discountPercent: 0,
+      });
+    }
   }
 
   // MARGIN
   function handleMarginChange(e: React.ChangeEvent<HTMLInputElement>) {
     const rawValue = e.target.value;
-
     setMarginInput(rawValue);
-
     const marginPercent = rawValue === "" ? 0 : Number(rawValue);
-
     const sellingPrice = calculateSellingPrice(item.costPrice || 0, marginPercent);
-
     const totalPrice = calculateTotal(sellingPrice, item.quantity);
 
     onUpdate(item.id, {
       marginPercent,
       sellingPrice,
       totalPrice,
+      isManualPrice: false,
       mrp: 0,
       discountPercent: 0,
     });
@@ -311,55 +341,93 @@ export default function QuotationRow({
   // MRP
   function handleMRPChange(e: React.ChangeEvent<HTMLInputElement>) {
     const rawValue = e.target.value;
-
     setMRPInput(rawValue);
-
     const mrp = rawValue === "" ? 0 : Number(rawValue);
 
-    const sellingPrice = calculateSellingPriceFromMRP(mrp, item.discountPercent || 0);
-
-    const totalPrice = calculateTotal(sellingPrice, item.quantity);
-
-    onUpdate(item.id, {
-      mrp,
-      sellingPrice,
-      totalPrice,
-      costPrice: 0,
-      marginPercent: 0,
-    });
+    if (item.isManualPrice) {
+      const sellingPrice = item.sellingPrice || 0;
+      const discountPercent = mrp === 0 ? 0 : ((mrp - sellingPrice) / mrp) * 100;
+      onUpdate(item.id, {
+        mrp,
+        discountPercent,
+        costPrice: 0,
+        marginPercent: 0,
+      });
+    } else {
+      const sellingPrice = calculateSellingPriceFromMRP(mrp, item.discountPercent || 0);
+      const totalPrice = calculateTotal(sellingPrice, item.quantity);
+      onUpdate(item.id, {
+        mrp,
+        sellingPrice,
+        totalPrice,
+        costPrice: 0,
+        marginPercent: 0,
+      });
+    }
   }
 
   // DISCOUNT
   function handleDiscountChange(e: React.ChangeEvent<HTMLInputElement>) {
     const rawValue = e.target.value;
-
     setDiscountInput(rawValue);
-
     const discountPercent = rawValue === "" ? 0 : Number(rawValue);
-
     const sellingPrice = calculateSellingPriceFromMRP(item.mrp || 0, discountPercent);
-
     const totalPrice = calculateTotal(sellingPrice, item.quantity);
 
     onUpdate(item.id, {
       discountPercent,
       sellingPrice,
       totalPrice,
+      isManualPrice: false,
       costPrice: 0,
       marginPercent: 0,
+    });
+  }
+
+  // SELLING PRICE (Manual Entry)
+  function handleSellingPriceChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const rawValue = e.target.value;
+    setSellingPriceInput(rawValue);
+    const sellingPrice = rawValue === "" ? 0 : Number(rawValue);
+    const totalPrice = calculateTotal(sellingPrice, item.quantity);
+
+    if (isMrpActive) {
+      const mrp = item.mrp || 0;
+      const discountPercent = mrp === 0 ? 0 : ((mrp - sellingPrice) / mrp) * 100;
+      onUpdate(item.id, {
+        sellingPrice,
+        totalPrice,
+        discountPercent,
+        isManualPrice: true,
+      });
+    } else {
+      const costPrice = item.costPrice || 0;
+      const marginPercent = sellingPrice === 0 ? 0 : ((sellingPrice - costPrice) / sellingPrice) * 100;
+      onUpdate(item.id, {
+        sellingPrice,
+        totalPrice,
+        marginPercent,
+        isManualPrice: true,
+      });
+    }
+  }
+
+  // GST
+  function handleGSTChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const rawValue = e.target.value;
+    setGstInput(rawValue);
+    const gstPercent = rawValue === "" ? 0 : Number(rawValue);
+    onUpdate(item.id, {
+      gstPercent,
     });
   }
 
   // QUANTITY
   function handleQuantityChange(e: React.ChangeEvent<HTMLInputElement>) {
     const rawValue = e.target.value;
-
     setQuantityInput(rawValue);
-
     const quantity = rawValue === "" ? 0 : Number(rawValue);
-
     const totalPrice = calculateTotal(item.sellingPrice, quantity);
-
     onUpdate(item.id, {
       quantity,
       totalPrice,
@@ -641,9 +709,24 @@ export default function QuotationRow({
       {/* SELLING PRICE */}
       <td className="w-28 p-3 align-top">
         <input
-          value={item.sellingPrice}
-          readOnly
-          className="w-full rounded border bg-gray-50 p-2 text-sm"
+          type="number"
+          value={sellingPriceInput}
+          className="w-full rounded border p-2 text-sm bg-white text-slate-900"
+          onFocus={() => handleNumberFocus("sellingPrice")}
+          onBlur={() => handleNumberBlur("sellingPrice")}
+          onChange={handleSellingPriceChange}
+        />
+      </td>
+
+      {/* GST % */}
+      <td className="w-24 p-3 align-top">
+        <input
+          type="number"
+          value={gstInput}
+          className="w-full rounded border p-2 text-sm bg-white text-slate-900"
+          onFocus={() => handleNumberFocus("gst")}
+          onBlur={() => handleNumberBlur("gst")}
+          onChange={handleGSTChange}
         />
       </td>
 

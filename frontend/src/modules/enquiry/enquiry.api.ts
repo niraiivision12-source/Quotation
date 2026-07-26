@@ -15,7 +15,7 @@ export const getEnquiries = async (
 
 export const checkEnquiryMobile = async (
   mobile: string
-): Promise<{ exists: boolean; message?: string }> => {
+): Promise<{ exists: boolean; message?: string; existingId?: string; existingName?: string; existingStatus?: string }> => {
   const response = await api.get("/enquiries/check-mobile", {
     params: { mobile },
   });

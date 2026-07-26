@@ -136,7 +136,8 @@ export default function QuotationPageMain() {
   }, [currentUser]);
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.totalPrice, 0), [items]);
-  const totalAmount = Math.max(subtotal - discountAmount, 0);
+  const totalGst = useMemo(() => items.reduce((sum, item) => sum + item.totalPrice * ((item.gstPercent ?? 18) / 100), 0), [items]);
+  const totalAmount = Math.max(subtotal - discountAmount + totalGst, 0);
 
   useEffect(() => {
     if (isDiscountFocusedRef.current) return;
@@ -257,6 +258,7 @@ export default function QuotationPageMain() {
         quantity: item.quantity,
         marginPercent: item.marginPercent !== undefined ? item.marginPercent : undefined,
         discountPercent: item.discountPercent !== undefined ? item.discountPercent : undefined,
+        gstPercent: item.gstPercent !== undefined ? item.gstPercent : undefined,
       })),
     } satisfies CreateQuotationDTO;
   }
@@ -437,6 +439,11 @@ export default function QuotationPageMain() {
                 />
               </div>
 
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Total GST</span>
+                <span className="font-medium">₹ {totalGst.toFixed(2)}</span>
+              </div>
+
               <div className="flex items-center justify-between border-t pt-3">
                 <span className="font-semibold">Total</span>
                 <span className="text-xl font-bold text-violet-700">₹ {totalAmount.toFixed(2)}</span>
@@ -467,6 +474,7 @@ export default function QuotationPageMain() {
         users={users}
         subtotal={subtotal}
         discountAmount={discountAmount}
+        totalGst={totalGst}
         totalAmount={totalAmount}
         isCreating={createMutation.isPending}
         onOpenChange={setIsPreviewOpen}

@@ -24,6 +24,8 @@ const sync_routes_1 = __importDefault(require("../modules/sync/sync.routes"));
 const enquiry_routes_1 = __importDefault(require("../modules/enquiry/enquiry.routes"));
 const opportunity_routes_1 = __importDefault(require("../modules/opportunity/opportunity.routes"));
 const report_routes_1 = __importDefault(require("../modules/report/report.routes"));
+const dealer_routes_1 = __importDefault(require("../modules/dealer/dealer.routes"));
+const purchase_order_routes_1 = __importDefault(require("../modules/purchase-order/purchase-order.routes"));
 const dev_routes_1 = __importDefault(require("./dev.routes"));
 const router = (0, express_1.Router)();
 router.get("/health", (_req, res) => {
@@ -41,6 +43,8 @@ router.use("/leads", lead_routes_1.default);
 router.use("/reminders", reminder_routes_1.default);
 router.use("/tasks", task_routes_1.default);
 router.use("/quotations", quotation_routes_1.default);
+router.use("/dealers", dealer_routes_1.default);
+router.use("/purchase-orders", purchase_order_routes_1.default);
 router.use("/lifecycle", lifecycle_routes_1.default);
 router.use("/dashboard", dashboard_routes_1.default);
 router.use("/settings", settings_routes_1.default);

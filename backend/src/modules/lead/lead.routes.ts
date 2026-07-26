@@ -27,6 +27,8 @@ router.patch("/:id", asyncHandler(LeadController.update));
 
 router.patch("/:id/deactivate", asyncHandler(LeadController.deactivate));
 
+router.get("/:id/projects", asyncHandler(LeadController.getProjects));
+
 router.post("/:id/notes", asyncHandler(LeadNoteController.addNote));
 
 router.get("/:id/notes", asyncHandler(LeadNoteController.getNotes));

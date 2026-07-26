@@ -324,6 +324,7 @@ export default function QuotationHistory() {
               quantity: item.quantity,
               marginPercent: item.marginPercent ? Number(item.marginPercent) : undefined,
               discountPercent: item.discountPercent ? Number(item.discountPercent) : undefined,
+              gstPercent: item.gstPercent ? Number(item.gstPercent) : undefined,
             })),
           }}
           quotationType={selectedPreviewQuote.type}
@@ -343,6 +344,7 @@ export default function QuotationHistory() {
             marginPercent: item.marginPercent ? Number(item.marginPercent) : undefined,
             mrp: item.mrp ? Number(item.mrp) : undefined,
             discountPercent: item.discountPercent ? Number(item.discountPercent) : undefined,
+            gstPercent: item.gstPercent ? Number(item.gstPercent) : 18,
             sellingPrice: Number(item.sellingPrice),
             totalPrice: Number(item.totalPrice),
             search: item.product?.name || "",
@@ -351,6 +353,7 @@ export default function QuotationHistory() {
           users={selectedPreviewQuote.createdBy ? [selectedPreviewQuote.createdBy] : []}
           subtotal={Number(selectedPreviewQuote.subtotal)}
           discountAmount={Number(selectedPreviewQuote.discountAmount || 0)}
+          totalGst={Number(selectedPreviewQuote.totalGst || 0)}
           totalAmount={Number(selectedPreviewQuote.totalAmount)}
           isCreating={false}
           onOpenChange={setIsPreviewOpen}

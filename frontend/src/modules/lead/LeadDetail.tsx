@@ -19,14 +19,16 @@ import {
   RefreshCw,
   MessageSquare,
   StickyNote,
+  FolderOpen,
 } from "lucide-react";
 
 import { useLead, useUpdateLead } from "./lead.query";
 import LeadStatusDialog from "./components/LeadStatusDialog";
 import LeadReminders from "./components/LeadReminders";
+import LeadProjectsTab from "./components/LeadProjectsTab";
 import type { LeadStatus } from "./lead.types";
 
-type Tab = "overview" | "quotations" | "reminders" | "timeline";
+type Tab = "overview" | "quotations" | "reminders" | "timeline" | "projects";
 
 const STATUS_STYLES: Record<LeadStatus, string> = {
   NEW: "bg-blue-100 text-blue-700",
@@ -155,6 +157,7 @@ export default function LeadDetail() {
       <div className="flex border-b overflow-x-auto shrink-0 scrollbar-none gap-2">
         {[
           { key: "overview", label: "Overview", icon: User },
+          { key: "projects", label: "Projects", icon: FolderOpen },
           { key: "quotations", label: "Quotations", icon: FileText },
           { key: "reminders", label: "Follow-ups", icon: Calendar },
           { key: "timeline", label: "Notes & Activity", icon: History },
@@ -175,6 +178,10 @@ export default function LeadDetail() {
       </div>
 
       <div>
+        {activeTab === "projects" && (
+          <LeadProjectsTab leadId={lead.id} lead={lead} />
+        )}
+
         {activeTab === "overview" && (
           <Card className="border border-slate-100 bg-white rounded-2xl shadow-sm">
             <CardHeader className="pb-3 border-b">

@@ -61,6 +61,19 @@ async function createNewReminder(tx, leadId, userId, data) {
     return reminder;
 }
 class LeadService {
+    static async checkMobileExists(mobile) {
+        const [existingLead, existingCustomer] = await Promise.all([
+            prisma_1.prisma.lead.findFirst({ where: { mobile }, select: { id: true } }),
+            prisma_1.prisma.customer.findUnique({ where: { mobile }, select: { id: true } }),
+        ]);
+        if (existingLead) {
+            return { exists: true, message: "This person is already registered as a lead" };
+        }
+        if (existingCustomer) {
+            return { exists: true, message: "This person already exists as a customer" };
+        }
+        return { exists: false };
+    }
     static async create(data) {
         const exists = await prisma_1.prisma.lead.findFirst({
             where: {

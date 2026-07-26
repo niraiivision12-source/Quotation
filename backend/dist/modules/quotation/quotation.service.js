@@ -74,6 +74,9 @@ class QuotationService {
         if (type === client_1.QuotationType.WALK_IN_CUSTOMER && (!data.walkInName || !data.walkInMobile)) {
             throw new app_error_1.AppError("Walk-in customer name and mobile are required", 400);
         }
+        if (type === client_1.QuotationType.PURCHASE_ORDER && !data.leadId && !data.customerId && (!data.walkInName || !data.walkInMobile)) {
+            throw new app_error_1.AppError("Dealer name and mobile are required for Purchase Order", 400);
+        }
         const user = await prisma_1.prisma.user.findUnique({
             where: { id: userId },
         });
@@ -111,7 +114,7 @@ class QuotationService {
                 throw new app_error_1.AppError("Customer not found", 404);
             }
         }
-        const lastQuotation = type === client_1.QuotationType.WALK_IN_CUSTOMER
+        const lastQuotation = (type === client_1.QuotationType.WALK_IN_CUSTOMER || type === client_1.QuotationType.PURCHASE_ORDER)
             ? null
             : await prisma_1.prisma.quotation.findFirst({
                 where: data.opportunityId
@@ -151,6 +154,20 @@ class QuotationService {
             if (!product.isActive) {
                 throw new app_error_1.AppError("Product is inactive", 400);
             }
+            if (type === client_1.QuotationType.PURCHASE_ORDER) {
+                itemData.push({
+                    productId: product.id,
+                    quantity: item.quantity,
+                    costPrice: 0,
+                    marginPercent: 0,
+                    mrp: 0,
+                    discountPercent: 0,
+                    gstPercent: 0,
+                    sellingPrice: 0,
+                    totalPrice: 0,
+                });
+                continue;
+            }
             const productMRP = product.mrp !== null ? Number(product.mrp) : null;
             const productCostPrice = product.costPrice !== null ? Number(product.costPrice) : null;
             let isMRPMethod = false;
@@ -184,6 +201,7 @@ class QuotationService {
                     discountPercent,
                     costPrice: null,
                     marginPercent: null,
+                    gstPercent: item.gstPercent ?? 18,
                     sellingPrice,
                     totalPrice,
                 });
@@ -206,7 +224,7 @@ class QuotationService {
                         }
                     }
                 }
-                const sellingPrice = costPrice + (costPrice * marginPercent) / 100;
+                const sellingPrice = costPrice / (1 - marginPercent / 100);
                 const totalPrice = sellingPrice * item.quantity;
                 subtotal += totalPrice;
                 itemData.push({
@@ -216,20 +234,28 @@ class QuotationService {
                     marginPercent,
                     mrp: null,
                     discountPercent: null,
+                    gstPercent: item.gstPercent ?? 18,
                     sellingPrice,
                     totalPrice,
                 });
             }
         }
-        const discountAmount = data.discountAmount || 0;
-        if (user.role === "SALESMAN") {
+        let totalGst = 0;
+        if (type !== client_1.QuotationType.PURCHASE_ORDER) {
+            for (const idata of itemData) {
+                const gstDec = idata.gstPercent ? Number(idata.gstPercent) : 18;
+                totalGst += Number(idata.totalPrice) * (gstDec / 100);
+            }
+        }
+        const discountAmount = type === client_1.QuotationType.PURCHASE_ORDER ? 0 : (data.discountAmount || 0);
+        if (type !== client_1.QuotationType.PURCHASE_ORDER && user.role === "SALESMAN") {
             const maxDiscountPercent = Number(settings.pricingMaxDiscount);
             const maxDiscountAllowed = (subtotal * maxDiscountPercent) / 100;
             if (discountAmount > maxDiscountAllowed) {
                 throw new app_error_1.AppError(`Discount exceeds the maximum allowed discount of ${maxDiscountPercent}% (max allowed: ₹${maxDiscountAllowed.toFixed(2)})`, 400);
             }
         }
-        const totalAmount = Math.max(subtotal - discountAmount, 0);
+        const totalAmount = type === client_1.QuotationType.PURCHASE_ORDER ? 0 : Math.max(subtotal - discountAmount + totalGst, 0);
         return prisma_1.prisma.$transaction(async (tx) => {
             const totalQuotes = await tx.quotation.count();
             const seq = totalQuotes + 1;
@@ -255,18 +281,19 @@ class QuotationService {
                 data: {
                     quotationNumber: finalQuotationNumber,
                     type,
-                    leadId: type === client_1.QuotationType.LEAD ? data.leadId : null,
-                    customerId: type === client_1.QuotationType.CUSTOMER ? data.customerId : null,
-                    projectId: type === client_1.QuotationType.CUSTOMER ? data.projectId : null,
-                    phase: type === client_1.QuotationType.CUSTOMER ? data.phase : null,
+                    leadId: data.leadId || null,
+                    customerId: data.customerId || null,
+                    projectId: data.projectId || null,
+                    phase: data.phase || null,
                     opportunityId: data.opportunityId ?? null,
-                    walkInName: type === client_1.QuotationType.WALK_IN_CUSTOMER ? data.walkInName : null,
-                    walkInMobile: type === client_1.QuotationType.WALK_IN_CUSTOMER ? data.walkInMobile : null,
-                    walkInEmail: type === client_1.QuotationType.WALK_IN_CUSTOMER ? data.walkInEmail : null,
-                    walkInAddress: type === client_1.QuotationType.WALK_IN_CUSTOMER ? data.walkInAddress : null,
+                    walkInName: (type === client_1.QuotationType.WALK_IN_CUSTOMER || type === client_1.QuotationType.PURCHASE_ORDER) ? data.walkInName : null,
+                    walkInMobile: (type === client_1.QuotationType.WALK_IN_CUSTOMER || type === client_1.QuotationType.PURCHASE_ORDER) ? data.walkInMobile : null,
+                    walkInEmail: (type === client_1.QuotationType.WALK_IN_CUSTOMER || type === client_1.QuotationType.PURCHASE_ORDER) ? data.walkInEmail : null,
+                    walkInAddress: (type === client_1.QuotationType.WALK_IN_CUSTOMER || type === client_1.QuotationType.PURCHASE_ORDER) ? data.walkInAddress : null,
                     version,
                     subtotal,
                     discountAmount,
+                    totalGst,
                     totalAmount,
                     notes: data.notes,
                     validUntil,
@@ -796,6 +823,7 @@ class QuotationService {
                     status: "DRAFT",
                     subtotal: quotation.subtotal,
                     discountAmount: quotation.discountAmount,
+                    totalGst: quotation.totalGst,
                     totalAmount: quotation.totalAmount,
                     notes: quotation.notes,
                     validUntil: quotation.validUntil,
@@ -828,6 +856,7 @@ class QuotationService {
                     marginPercent: item.marginPercent,
                     mrp: item.mrp,
                     discountPercent: item.discountPercent,
+                    gstPercent: item.gstPercent,
                     sellingPrice: item.sellingPrice,
                     totalPrice: item.totalPrice,
                 })),

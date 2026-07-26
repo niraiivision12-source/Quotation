@@ -21,6 +21,8 @@ import syncRoutes from "../modules/sync/sync.routes";
 import enquiryRoutes from "../modules/enquiry/enquiry.routes";
 import opportunityRoutes from "../modules/opportunity/opportunity.routes";
 import reportRoutes from "../modules/report/report.routes";
+import dealerRoutes from "../modules/dealer/dealer.routes";
+import purchaseOrderRoutes from "../modules/purchase-order/purchase-order.routes";
 import devRoutes from "./dev.routes";
 
 const router = Router();
@@ -41,6 +43,8 @@ router.use("/leads", leadRoutes);
 router.use("/reminders", reminderRoutes);
 router.use("/tasks", taskRoutes);
 router.use("/quotations", quotationRoutes);
+router.use("/dealers", dealerRoutes);
+router.use("/purchase-orders", purchaseOrderRoutes);
 router.use("/lifecycle", lifecycleRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/settings", settingsRoutes);

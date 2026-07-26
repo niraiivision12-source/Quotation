@@ -5,7 +5,23 @@ const prisma_1 = require("../../config/prisma");
 const app_error_1 = require("../../utils/app-error");
 const client_1 = require("@prisma/client");
 class EnquiryService {
+    static async checkMobileExists(mobile) {
+        const existingPending = await prisma_1.prisma.enquiry.findFirst({
+            where: { mobile, status: client_1.EnquiryStatus.PENDING },
+            select: { id: true },
+        });
+        if (existingPending) {
+            return { exists: true, message: "An enquiry from this mobile number is already pending in the inbox" };
+        }
+        return { exists: false };
+    }
     static async create(data) {
+        const existingPending = await prisma_1.prisma.enquiry.findFirst({
+            where: { mobile: data.mobile, status: client_1.EnquiryStatus.PENDING },
+        });
+        if (existingPending) {
+            throw new app_error_1.AppError("An enquiry from this mobile number is already pending in the inbox", 409);
+        }
         return prisma_1.prisma.enquiry.create({
             data: {
                 name: data.name,
@@ -13,6 +29,7 @@ class EnquiryService {
                 email: data.email ?? null,
                 source: data.source ?? "MANUAL",
                 message: data.message ?? null,
+                city: data.city ?? null,
                 status: client_1.EnquiryStatus.PENDING,
             },
         });
@@ -40,7 +57,7 @@ class EnquiryService {
         ]);
         return { items, total, page, limit };
     }
-    static async triage(id, category) {
+    static async triage(id, category, notes) {
         const enquiry = await prisma_1.prisma.enquiry.findUnique({
             where: { id },
         });
@@ -70,6 +87,7 @@ class EnquiryService {
                         mobile: enquiry.mobile,
                         email: enquiry.email,
                         source: enquiry.source,
+                        city: enquiry.city,
                     },
                 });
                 await tx.customerActivity.create({
@@ -120,18 +138,23 @@ class EnquiryService {
                 },
             });
             // 5. Create Activity Logs
+            const trimmedNotes = notes?.trim() || null;
             await tx.opportunityActivity.create({
                 data: {
                     opportunityId: opportunity.id,
                     type: "CREATED",
-                    message: `Opportunity created in category ${category} and assigned to salesperson`,
+                    message: trimmedNotes
+                        ? `Opportunity created in category ${category} and assigned to salesperson. Notes: ${trimmedNotes}`
+                        : `Opportunity created in category ${category} and assigned to salesperson`,
                 },
             });
             await tx.customerActivity.create({
                 data: {
                     customerId: customer.id,
                     type: "OPPORTUNITY_CREATED",
-                    message: `Created opportunity for ${category} linked to enquiry triage`,
+                    message: trimmedNotes
+                        ? `Created opportunity for ${category} linked to enquiry triage. Notes: ${trimmedNotes}`
+                        : `Created opportunity for ${category} linked to enquiry triage`,
                     metadata: { opportunityId: opportunity.id },
                 },
             });

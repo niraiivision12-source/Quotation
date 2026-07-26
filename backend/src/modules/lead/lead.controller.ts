@@ -108,4 +108,13 @@ export class LeadController {
       data: lead,
     });
   }
+  static async getProjects(req: Request, res: Response) {
+    const result = await LeadService.getProjects(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lead projects fetched",
+      data: result,
+    });
+  }
 }

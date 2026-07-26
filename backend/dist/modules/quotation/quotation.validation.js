@@ -31,6 +31,7 @@ exports.createQuotationSchema = zod_1.z.object({
         quantity: zod_1.z.number().positive(),
         marginPercent: zod_1.z.number().min(0).optional().nullable(),
         discountPercent: zod_1.z.number().min(0).optional().nullable(),
+        gstPercent: zod_1.z.number().min(0).max(100).optional().nullable(),
     })),
     followUp: followUpSchema,
 }).superRefine((data, ctx) => {
@@ -69,6 +70,24 @@ exports.createQuotationSchema = zod_1.z.object({
                 message: "Walk-in Customer Mobile is required",
                 path: ["walkInMobile"],
             });
+        }
+    }
+    else if (data.type === client_1.QuotationType.PURCHASE_ORDER) {
+        if (!data.leadId && !data.customerId) {
+            if (!data.walkInName || !data.walkInName.trim()) {
+                ctx.addIssue({
+                    code: zod_1.z.ZodIssueCode.custom,
+                    message: "Dealer Name is required",
+                    path: ["walkInName"],
+                });
+            }
+            if (!data.walkInMobile || !data.walkInMobile.trim()) {
+                ctx.addIssue({
+                    code: zod_1.z.ZodIssueCode.custom,
+                    message: "Dealer Mobile is required",
+                    path: ["walkInMobile"],
+                });
+            }
         }
     }
 });

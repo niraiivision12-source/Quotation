@@ -13,6 +13,15 @@ class EnquiryController {
             data: enquiry,
         });
     }
+    static async checkMobile(req, res) {
+        const mobile = req.query.mobile?.toString() || "";
+        const result = await enquiry_service_1.EnquiryService.checkMobileExists(mobile);
+        return res.status(200).json({
+            success: true,
+            message: "Mobile check completed",
+            data: result,
+        });
+    }
     static async getAll(req, res) {
         const page = Number(req.query.page || 1);
         const limit = Number(req.query.limit || 20);
@@ -27,8 +36,8 @@ class EnquiryController {
     }
     static async triage(req, res) {
         const { id } = req.params;
-        const { category } = enquiry_validation_1.triageEnquirySchema.parse(req.body);
-        const result = await enquiry_service_1.EnquiryService.triage(id, category);
+        const { category, notes } = enquiry_validation_1.triageEnquirySchema.parse(req.body);
+        const result = await enquiry_service_1.EnquiryService.triage(id, category, notes);
         return res.status(200).json({
             success: true,
             message: "Enquiry triaged successfully",

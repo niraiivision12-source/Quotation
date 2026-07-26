@@ -53,3 +53,11 @@ export const updateLead = async (id: string, data: Partial<Lead>) => {
 
   return response.data;
 };
+
+export const getLeadProjects = async (leadId: string): Promise<{
+  customer: { id: string; name: string; mobile: string } | null;
+  projects: any[];
+}> => {
+  const response = await api.get(`/leads/${leadId}/projects`);
+  return response.data.data;
+};
