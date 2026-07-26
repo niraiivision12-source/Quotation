@@ -42,6 +42,9 @@ export default function PipelineBoard() {
   const [isLostReasonOpen, setIsLostReasonOpen] = useState(false);
   const [lostReasonInput, setLostReasonInput] = useState("");
   const [targetLostOppId, setTargetLostOppId] = useState<string | null>(null);
+  const [isFollowUpOpen, setIsFollowUpOpen] = useState(false);
+  const [followUpDateInput, setFollowUpDateInput] = useState("");
+  const [targetNegotiationOppId, setTargetNegotiationOppId] = useState<string | null>(null);
   const [settings, setSettings] = useState<any>(null);
 
   // Fetch settings on mount
@@ -115,6 +118,13 @@ export default function PipelineBoard() {
       return;
     }
 
+    if (targetStatus === "NEGOTIATION") {
+      setTargetNegotiationOppId(id);
+      setFollowUpDateInput(currentOpp.nextFollowUpAt ? currentOpp.nextFollowUpAt.slice(0, 10) : "");
+      setIsFollowUpOpen(true);
+      return;
+    }
+
     try {
       await updateOppMutation.mutateAsync({
         id,
@@ -127,6 +137,26 @@ export default function PipelineBoard() {
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to update opportunity status");
+    }
+  };
+
+  const handleFollowUpConfirm = async () => {
+    if (!targetNegotiationOppId) return;
+
+    try {
+      await updateOppMutation.mutateAsync({
+        id: targetNegotiationOppId,
+        data: {
+          status: "NEGOTIATION",
+          nextFollowUpAt: new Date(followUpDateInput).toISOString(),
+        },
+      });
+      toast.success("Opportunity moved to Negotiation");
+      setIsFollowUpOpen(false);
+      setFollowUpDateInput("");
+      setTargetNegotiationOppId(null);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update opportunity");
     }
   };
 
@@ -351,6 +381,49 @@ export default function PipelineBoard() {
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Mark Lost
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Follow-up Date Dialog Modal */}
+      <Dialog open={isFollowUpOpen} onOpenChange={setIsFollowUpOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-pink-600">
+              <Calendar size={18} /> Set Follow-up Date
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-2.5">
+            <p className="text-sm text-slate-500 mb-3">
+              Set the next follow-up date for this opportunity as it moves into negotiation.
+            </p>
+            <Input
+              type="date"
+              value={followUpDateInput}
+              onChange={(e) => setFollowUpDateInput(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsFollowUpOpen(false);
+                setFollowUpDateInput("");
+                setTargetNegotiationOppId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleFollowUpConfirm}
+              disabled={!followUpDateInput}
+              className="bg-pink-600 hover:bg-pink-700 text-white"
+            >
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
