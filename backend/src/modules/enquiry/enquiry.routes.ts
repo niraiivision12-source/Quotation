@@ -10,6 +10,7 @@ router.use(authenticate);
 
 router.post("/", asyncHandler(EnquiryController.create));
 router.get("/", asyncHandler(EnquiryController.getAll));
+router.get("/check-mobile", asyncHandler(EnquiryController.checkMobile));
 router.post("/:id/triage", checkPermission("accessSettings"), asyncHandler(EnquiryController.triage)); // Only owner (who can access settings) can triage
 router.post("/:id/ignore", checkPermission("accessSettings"), asyncHandler(EnquiryController.ignore));
 

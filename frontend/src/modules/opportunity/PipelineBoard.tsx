@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useOpportunities, useUpdateOpportunity } from "./opportunity.query";
+import { useOpportunityCounts, useUpdateOpportunity } from "./opportunity.query";
 import { useUsers } from "../user/user.query";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -15,17 +15,15 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   Calendar,
-  DollarSign,
-  User,
   LayoutGrid,
   Filter,
-  Clock,
   Lock,
 } from "lucide-react";
 import type { OpportunityStatus, ProductCategory } from "./opportunity.types";
 import { useAuthStore } from "../../store/auth.store";
 import { api } from "../../lib/axios";
 import { useNavigate } from "react-router-dom";
+import PipelineColumn from "./PipelineColumn";
 
 const COLUMNS: { status: OpportunityStatus; title: string; colorClass: string }[] = [
   { status: "NEW", title: "New", colorClass: "border-t-4 border-t-blue-500 bg-blue-50/10" },
@@ -38,7 +36,7 @@ const COLUMNS: { status: OpportunityStatus; title: string; colorClass: string }[
 export default function PipelineBoard() {
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>("PIPES");
   const [search, setSearch] = useState("");
-  const [draggedOppId, setDraggedOppId] = useState<string | null>(null);
+  const [draggedOpp, setDraggedOpp] = useState<any>(null);
   const [isLostReasonOpen, setIsLostReasonOpen] = useState(false);
   const [lostReasonInput, setLostReasonInput] = useState("");
   const [targetLostOppId, setTargetLostOppId] = useState<string | null>(null);
@@ -75,21 +73,19 @@ export default function PipelineBoard() {
 
   const isEditable = hasEditPermission();
 
-  // Fetch opportunities
-  const { data: oppsData, isLoading } = useOpportunities(1, search, {
-    category: selectedCategory,
-  });
+  // Per-stage counts for column headers (accurate even before a column's cards are loaded)
+  const { data: counts } = useOpportunityCounts(selectedCategory, search);
 
   const { data: usersData } = useUsers(1);
   const updateOppMutation = useUpdateOpportunity();
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
+  const handleDragStart = (e: React.DragEvent, opp: any) => {
     if (!isEditable) {
       e.preventDefault();
       return;
     }
-    e.dataTransfer.setData("text/plain", id);
-    setDraggedOppId(id);
+    e.dataTransfer.setData("text/plain", JSON.stringify(opp));
+    setDraggedOpp(opp);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -103,12 +99,12 @@ export default function PipelineBoard() {
       toast.error("You do not have permission to manage this pipeline category.");
       return;
     }
-    const id = e.dataTransfer.getData("text/plain") || draggedOppId;
-    setDraggedOppId(null);
-    if (!id) return;
-
-    const currentOpp = oppsData?.items.find((o) => o.id === id);
+    const raw = e.dataTransfer.getData("text/plain");
+    const currentOpp = raw ? JSON.parse(raw) : draggedOpp;
+    setDraggedOpp(null);
     if (!currentOpp) return;
+
+    const id = currentOpp.id;
 
     if (currentOpp.status === targetStatus) return;
 
@@ -249,99 +245,24 @@ export default function PipelineBoard() {
 
       {/* Board Columns container */}
       <div className="flex-1 overflow-x-auto flex gap-4 pb-4">
-        {COLUMNS.map((col) => {
-          const colItems = oppsData?.items.filter((item) => item.status === col.status) || [];
-
-          return (
-            <div
-              key={col.status}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, col.status)}
-              className={`flex-1 min-w-[250px] max-w-[320px] rounded-xl flex flex-col h-full border border-slate-200/50 bg-slate-50/50 p-3 ${col.colorClass}`}
-            >
-              {/* Column Header */}
-              <div className="flex items-center justify-between mb-3 px-1">
-                <span className="font-bold text-slate-800 text-sm">{col.title}</span>
-                <Badge variant="secondary" className="bg-slate-200/60 text-slate-700 font-semibold px-2 py-0.5 text-xs">
-                  {colItems.length}
-                </Badge>
-              </div>
-
-              {/* Column Cards content */}
-              <div className="flex-1 overflow-y-auto flex flex-col gap-2.5 pr-1">
-                {isLoading ? (
-                  <div className="text-center text-xs text-slate-400 py-6">Loading...</div>
-                ) : colItems.length === 0 ? (
-                  <div className="text-center text-[11px] text-slate-400 py-8 border border-dashed border-slate-200 rounded-lg bg-white/20">
-                    Drag items here
-                  </div>
-                ) : (
-                  colItems.map((opp) => (
-                    <div
-                      key={opp.id}
-                      draggable={isEditable}
-                      onDragStart={(e) => handleDragStart(e, opp.id)}
-                      className={`bg-white border border-slate-200/60 rounded-xl p-3.5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col gap-2 relative ${
-                        isEditable ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed opacity-90"
-                      }`}
-                    >
-                      {/* Overdue Alert banner */}
-                      {isOverdue(opp.nextFollowUpAt) && col.status !== "WON" && col.status !== "LOST" && (
-                        <div className="absolute top-2 right-2 text-red-500" title="Overdue Follow-up!">
-                          <Clock size={14} className="animate-pulse" />
-                        </div>
-                      )}
-
-                      <div className="flex flex-col gap-0.5 pr-4">
-                        <h4 className="font-bold text-slate-800 text-sm line-clamp-1">
-                          {opp.customer?.name || "Unknown Customer"}
-                        </h4>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          {opp.category} Opportunity
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
-                        <div className="flex items-center gap-1">
-                          <DollarSign size={13} className="text-slate-400" />
-                          <span className="font-semibold text-slate-700">
-                            {opp.estimatedValue ? `₹${Number(opp.estimatedValue).toLocaleString()}` : "₹0"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <Calendar size={13} className="text-slate-400" />
-                          <span
-                            className={
-                              isOverdue(opp.nextFollowUpAt) && col.status !== "WON" && col.status !== "LOST"
-                                ? "text-red-500 font-bold"
-                                : "text-slate-500"
-                            }
-                          >
-                            {formatDate(opp.nextFollowUpAt)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Salesperson display */}
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
-                        <User size={11} />
-                        <span>Salesman: {getSalesmanName(opp.assignedToId)}</span>
-                      </div>
-
-                      {/* Lost Reason if present */}
-                      {opp.status === "LOST" && opp.lostReason && (
-                        <div className="mt-1 bg-red-50 text-red-700 text-[10px] rounded p-1.5 border border-red-100 italic">
-                          Reason: {opp.lostReason}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {COLUMNS.map((col) => (
+          <PipelineColumn
+            key={col.status}
+            category={selectedCategory}
+            status={col.status}
+            title={col.title}
+            colorClass={col.colorClass}
+            count={counts?.[col.status]}
+            search={search}
+            isEditable={isEditable}
+            onDragStartOpp={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            formatDate={formatDate}
+            isOverdue={isOverdue}
+            getSalesmanName={getSalesmanName}
+          />
+        ))}
       </div>
 
       {/* Lost Reason Dialog Modal */}

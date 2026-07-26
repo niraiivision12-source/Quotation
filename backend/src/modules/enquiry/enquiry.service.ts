@@ -3,6 +3,19 @@ import { AppError } from "../../utils/app-error";
 import { EnquiryStatus, OpportunityStatus, ProductCategory } from "@prisma/client";
 
 export class EnquiryService {
+  static async checkMobileExists(mobile: string) {
+    const existingPending = await prisma.enquiry.findFirst({
+      where: { mobile, status: EnquiryStatus.PENDING },
+      select: { id: true },
+    });
+
+    if (existingPending) {
+      return { exists: true, message: "An enquiry from this mobile number is already pending in the inbox" };
+    }
+
+    return { exists: false };
+  }
+
   static async create(data: {
     name: string;
     mobile: string;
@@ -11,6 +24,14 @@ export class EnquiryService {
     message?: string | null;
     city?: string | null;
   }) {
+    const existingPending = await prisma.enquiry.findFirst({
+      where: { mobile: data.mobile, status: EnquiryStatus.PENDING },
+    });
+
+    if (existingPending) {
+      throw new AppError("An enquiry from this mobile number is already pending in the inbox", 409);
+    }
+
     return prisma.enquiry.create({
       data: {
         name: data.name,

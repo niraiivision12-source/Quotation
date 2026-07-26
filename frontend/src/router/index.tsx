@@ -12,6 +12,7 @@ import EnquiryInboxPage from "../pages/EnquiryInboxPage";
 import LeadPage from "../pages/LeadPage";
 import LeadDetailPage from "../pages/LeadDetailPage";
 import PipelineBoardPage from "../pages/PipelineBoardPage";
+import OpportunityDetailPage from "../pages/OpportunityDetailPage";
 import LoginPage from "../pages/LoginPage";
 import ProductPage from "../pages/ProductPage";
 import QuotationHistoryListPage from "../pages/QuotationHistoryListPage";
@@ -57,6 +58,8 @@ export default function AppRouter() {
           <Route path="/leads" element={<LeadPage />} />
 
           <Route path="/leads/:id" element={<LeadDetailPage />} />
+
+          <Route path="/opportunities/:id" element={<OpportunityDetailPage />} />
 
           <Route
             path="/enquiries"

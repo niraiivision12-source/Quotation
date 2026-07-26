@@ -63,6 +63,19 @@ export class OpportunityController {
     });
   }
 
+  static async getCounts(req: Request, res: Response) {
+    const category = req.query.category as ProductCategory | undefined;
+    const search = req.query.search?.toString();
+
+    const counts = await OpportunityService.getStatusCounts(category, search);
+
+    return res.status(200).json({
+      success: true,
+      message: "Opportunity status counts fetched",
+      data: counts,
+    });
+  }
+
   static async getStats(req: Request, res: Response) {
     const stats = await OpportunityService.getStats(
       req.user!.id,

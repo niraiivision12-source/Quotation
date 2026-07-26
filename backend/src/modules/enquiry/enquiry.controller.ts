@@ -15,6 +15,18 @@ export class EnquiryController {
     });
   }
 
+  static async checkMobile(req: Request, res: Response) {
+    const mobile = req.query.mobile?.toString() || "";
+
+    const result = await EnquiryService.checkMobileExists(mobile);
+
+    return res.status(200).json({
+      success: true,
+      message: "Mobile check completed",
+      data: result,
+    });
+  }
+
   static async getAll(req: Request, res: Response) {
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 20);

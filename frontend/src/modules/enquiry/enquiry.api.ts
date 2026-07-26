@@ -13,6 +13,15 @@ export const getEnquiries = async (
   return response.data.data;
 };
 
+export const checkEnquiryMobile = async (
+  mobile: string
+): Promise<{ exists: boolean; message?: string }> => {
+  const response = await api.get("/enquiries/check-mobile", {
+    params: { mobile },
+  });
+  return response.data.data;
+};
+
 export const createEnquiry = async (data: {
   name: string;
   mobile: string;

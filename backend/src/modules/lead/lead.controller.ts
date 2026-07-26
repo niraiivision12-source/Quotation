@@ -20,6 +20,18 @@ export class LeadController {
     });
   }
 
+  static async checkMobile(req: Request, res: Response) {
+    const mobile = req.query.mobile?.toString() || "";
+
+    const result = await LeadService.checkMobileExists(mobile);
+
+    return res.status(200).json({
+      success: true,
+      message: "Mobile check completed",
+      data: result,
+    });
+  }
+
   static async getStats(_req: Request, res: Response) {
     const stats = await LeadService.getStats();
     return res.status(200).json({ success: true, data: stats });

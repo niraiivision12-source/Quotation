@@ -46,7 +46,7 @@ function whatsappLink(mobile: string) {
 export default function LeadDetail() {
   const { id } = useParams();
   const { data: lead, isLoading } = useLead(id || "");
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [activeTab, setActiveTab] = useState<Tab>("timeline");
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
 

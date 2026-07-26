@@ -17,6 +17,8 @@ router.get("/", asyncHandler(LeadController.getAll));
 
 router.get("/stats", asyncHandler(LeadController.getStats));
 
+router.get("/check-mobile", asyncHandler(LeadController.checkMobile));
+
 router.get("/:id", asyncHandler(LeadController.getById));
 
 router.post("/:id/convert", asyncHandler(LeadController.convert));

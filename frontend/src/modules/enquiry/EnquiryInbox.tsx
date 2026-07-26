@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useEnquiries, useCreateEnquiry, useTriageEnquiry, useIgnoreEnquiry } from "./enquiry.query";
+import { checkEnquiryMobile } from "./enquiry.api";
 import { useOpportunities, useOpportunity } from "../opportunity/opportunity.query";
 import { useUsers } from "../user/user.query";
 import { api } from "../../lib/axios";
@@ -84,6 +85,8 @@ export default function EnquiryInbox() {
   const [newCity, setNewCity] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [newSource, setNewSource] = useState("MANUAL");
+  const [mobileError, setMobileError] = useState<string | null>(null);
+  const [isCheckingMobile, setIsCheckingMobile] = useState(false);
 
   // Debounce search input so we don't refetch on every keystroke
   useEffect(() => {
@@ -145,9 +148,32 @@ export default function EnquiryInbox() {
     }
   }, []);
 
+  const handleMobileBlur = async () => {
+    const mobile = newMobile.trim();
+    setMobileError(null);
+    if (mobile.length < 10) return;
+
+    setIsCheckingMobile(true);
+    try {
+      const result = await checkEnquiryMobile(mobile);
+      if (result.exists) {
+        setMobileError(result.message || "This mobile number already exists");
+      }
+    } catch {
+      // If the check itself fails, don't block the user — the create call will still validate.
+    } finally {
+      setIsCheckingMobile(false);
+    }
+  };
+
   const handleCreateEnquiry = async () => {
     if (!newName.trim() || !newMobile.trim()) {
       toast.error("Name and mobile number are required");
+      return;
+    }
+
+    if (mobileError) {
+      toast.error(mobileError);
       return;
     }
 
@@ -168,6 +194,7 @@ export default function EnquiryInbox() {
       setNewCity("");
       setNewMessage("");
       setNewSource("MANUAL");
+      setMobileError(null);
       setActiveTab("PENDING");
       setPage(1);
     } catch (err: any) {
@@ -709,9 +736,15 @@ export default function EnquiryInbox() {
               <Input
                 placeholder="e.g. 9876543210"
                 value={newMobile}
-                onChange={(e) => setNewMobile(e.target.value)}
-                className="h-9"
+                onChange={(e) => {
+                  setNewMobile(e.target.value);
+                  setMobileError(null);
+                }}
+                onBlur={handleMobileBlur}
+                className={`h-9 ${mobileError ? "border-red-400 focus-visible:ring-red-400" : ""}`}
               />
+              {isCheckingMobile && <span className="text-slate-400">Checking mobile number...</span>}
+              {mobileError && <span className="text-red-600 font-semibold">{mobileError}</span>}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -773,11 +806,16 @@ export default function EnquiryInbox() {
                 setNewCity("");
                 setNewMessage("");
                 setNewSource("MANUAL");
+                setMobileError(null);
               }}
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateEnquiry} disabled={createMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={handleCreateEnquiry}
+              disabled={createMutation.isPending || !!mobileError || isCheckingMobile}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               {createMutation.isPending ? "Creating..." : "Create Enquiry"}
             </Button>
           </DialogFooter>

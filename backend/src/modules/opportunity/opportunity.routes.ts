@@ -9,6 +9,7 @@ router.use(authenticate);
 
 router.get("/", asyncHandler(OpportunityController.getAll));
 router.get("/stats", asyncHandler(OpportunityController.getStats));
+router.get("/counts", asyncHandler(OpportunityController.getCounts));
 router.get("/:id", asyncHandler(OpportunityController.getById));
 router.patch("/:id", asyncHandler(OpportunityController.update));
 

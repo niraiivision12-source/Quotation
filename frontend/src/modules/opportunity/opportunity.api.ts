@@ -45,3 +45,13 @@ export const getOpportunityStats = async (): Promise<any> => {
   const response = await api.get("/opportunities/stats");
   return response.data.data;
 };
+
+export const getOpportunityCounts = async (
+  category?: string,
+  search?: string
+): Promise<Record<string, number>> => {
+  const response = await api.get("/opportunities/counts", {
+    params: { category, search },
+  });
+  return response.data.data;
+};

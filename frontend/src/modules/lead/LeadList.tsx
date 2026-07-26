@@ -166,13 +166,12 @@ export default function LeadList() {
               </TableCell>
 
               <TableCell>
-                {lead.origin === "LEAD" ? (
-                  <Link to={`/leads/${lead.id}`} className="text-blue-600 hover:underline">
-                    {highlightText(lead.name, search)}
-                  </Link>
-                ) : (
-                  highlightText(lead.name, search)
-                )}
+                <Link
+                  to={lead.origin === "LEAD" ? `/leads/${lead.id}` : `/opportunities/${lead.id}`}
+                  className="text-blue-600 hover:underline"
+                >
+                  {highlightText(lead.name, search)}
+                </Link>
               </TableCell>
 
               <TableCell>{highlightText(lead.mobile, search)}</TableCell>

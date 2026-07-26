@@ -38,6 +38,16 @@ export const createLead = async (data: {
   return response.data;
 };
 
+export const checkLeadMobile = async (
+  mobile: string
+): Promise<{ exists: boolean; message?: string }> => {
+  const response = await api.get("/leads/check-mobile", {
+    params: { mobile },
+  });
+
+  return response.data.data;
+};
+
 export const updateLead = async (id: string, data: Partial<Lead>) => {
   const response = await api.patch(`/leads/${id}`, data);
 
