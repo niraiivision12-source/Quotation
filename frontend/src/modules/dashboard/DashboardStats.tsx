@@ -252,7 +252,10 @@ export function DashboardStats({ data, role }: DashboardStatsProps) {
       value: item.sales,
     }));
 
-    const monthlyRevenueChart = charts.monthlyRevenue || [];
+    const monthlyRevenueChart = (charts.monthlyRevenue || []).map((item) => ({
+      label: item.month,
+      value: item.revenue,
+    }));
 
     const followupPerformanceChart = [
       { label: "Completed", value: charts.followupPerformance.completed, color: "#10b981" },

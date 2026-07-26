@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useEnquiries, useTriageEnquiry, useIgnoreEnquiry } from "./enquiry.query";
+import { useEnquiries, useCreateEnquiry, useTriageEnquiry, useIgnoreEnquiry } from "./enquiry.query";
+import { useOpportunities, useOpportunity } from "../opportunity/opportunity.query";
 import { useUsers } from "../user/user.query";
 import { api } from "../../lib/axios";
 import { Button } from "../../components/ui/button";
@@ -30,6 +31,10 @@ import {
   MapPin,
   Clock,
   Copy,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  User as UserIcon,
 } from "lucide-react";
 
 function formatRelativeTime(dateString: string) {
@@ -62,7 +67,9 @@ function copyToClipboard(text: string) {
 export default function EnquiryInbox() {
   const [activeTab, setActiveTab] = useState<"PENDING" | "TRIAGED" | "IGNORED">("PENDING");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const limit = 20;
   const [selectedEnquiryId, setSelectedEnquiryId] = useState<string | null>(null);
   const [isTriageOpen, setIsTriageOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("PIPES");
@@ -77,11 +84,27 @@ export default function EnquiryInbox() {
   const [newCity, setNewCity] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [newSource, setNewSource] = useState("MANUAL");
-  const [isCreating, setIsCreating] = useState(false);
+
+  // Debounce search input so we don't refetch on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Fetch enquiries list
-  const { data: enquiriesData, isLoading } = useEnquiries(page, search, activeTab);
+  const { data: enquiriesData, isLoading, isError } = useEnquiries(page, debouncedSearch, activeTab, limit);
   const { data: usersData } = useUsers(1);
+
+  // For a triaged enquiry, look up the resulting opportunity to show who it's assigned to
+  const { data: triagedOpportunityData } = useOpportunities(
+    1,
+    activeTab === "TRIAGED" && selectedEnquiryId ? enquiriesData?.items.find((e) => e.id === selectedEnquiryId)?.mobile || "" : "",
+    undefined,
+    5
+  );
 
   // Tab counts (lightweight, count-only fetches so reps can see backlog size per tab)
   const { data: pendingCountData } = useEnquiries(1, "", "PENDING", 1);
@@ -106,6 +129,7 @@ export default function EnquiryInbox() {
   // Mutations
   const triageMutation = useTriageEnquiry();
   const ignoreMutation = useIgnoreEnquiry();
+  const createMutation = useCreateEnquiry();
 
   // Load assignments settings once
   useEffect(() => {
@@ -128,8 +152,7 @@ export default function EnquiryInbox() {
     }
 
     try {
-      setIsCreating(true);
-      await api.post("/enquiries", {
+      await createMutation.mutateAsync({
         name: newName,
         mobile: newMobile,
         email: newEmail || null,
@@ -145,16 +168,25 @@ export default function EnquiryInbox() {
       setNewCity("");
       setNewMessage("");
       setNewSource("MANUAL");
-      // Reload page to reflect new pending enquiry
-      window.location.reload();
+      setActiveTab("PENDING");
+      setPage(1);
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to create manual enquiry");
-    } finally {
-      setIsCreating(false);
     }
   };
 
   const selectedEnquiry = enquiriesData?.items.find((e) => e.id === selectedEnquiryId);
+
+  // Match the opportunity created for this enquiry (by mobile) so we can show who it went to
+  const matchedOpportunity =
+    selectedEnquiry?.status === "TRIAGED"
+      ? triagedOpportunityData?.items.find((o) => o.customer?.mobile === selectedEnquiry.mobile)
+      : undefined;
+  const { data: matchedOpportunityDetail } = useOpportunity(matchedOpportunity?.id || null);
+  const triageNoteFromActivity = (matchedOpportunityDetail as any)?.activities
+    ?.find((a: any) => a.type === "CREATED" && a.message?.includes("Notes:"))
+    ?.message?.split("Notes:")[1]
+    ?.trim();
 
   const handleTriageConfirm = async () => {
     if (!selectedEnquiryId) return;
@@ -177,6 +209,10 @@ export default function EnquiryInbox() {
   const handleIgnoreConfirm = async (id?: string) => {
     const targetId = id || selectedEnquiryId;
     if (!targetId) return;
+
+    if (!window.confirm("Ignore this enquiry? It will move to the Ignored tab.")) {
+      return;
+    }
 
     try {
       await ignoreMutation.mutateAsync(targetId);
@@ -304,6 +340,11 @@ export default function EnquiryInbox() {
         <div className="flex-1 overflow-auto">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-slate-400">Loading enquiries...</div>
+          ) : isError ? (
+            <div className="p-12 text-center text-sm text-red-500 flex flex-col items-center gap-2">
+              <AlertTriangle size={40} className="text-red-300" />
+              Failed to load enquiries. Please try again.
+            </div>
           ) : enquiriesData?.items.length === 0 ? (
             <div className="p-12 text-center text-sm text-slate-400 flex flex-col items-center gap-2">
               <Inbox size={40} className="text-slate-300" />
@@ -412,8 +453,9 @@ export default function EnquiryInbox() {
                               e.stopPropagation();
                               handleIgnoreConfirm(enquiry.id);
                             }}
+                            disabled={ignoreMutation.isPending && ignoreMutation.variables === enquiry.id}
                             title="Ignore"
-                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <XCircle size={13} />
                           </button>
@@ -436,6 +478,35 @@ export default function EnquiryInbox() {
             </table>
           )}
         </div>
+
+        {/* Pagination */}
+        {!isLoading && !isError && (enquiriesData?.total || 0) > limit && (
+          <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-200/60 bg-white/70 text-xs font-semibold text-slate-500">
+            <span>
+              Page {page} of {Math.max(1, Math.ceil((enquiriesData?.total || 0) / limit))} · {enquiriesData?.total} total
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="flex items-center justify-center h-7 w-7 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                onClick={() =>
+                  setPage((p) =>
+                    p * limit < (enquiriesData?.total || 0) ? p + 1 : p
+                  )
+                }
+                disabled={page * limit >= (enquiriesData?.total || 0)}
+                className="flex items-center justify-center h-7 w-7 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right panel - Details View */}
@@ -490,9 +561,11 @@ export default function EnquiryInbox() {
                     <Button
                       variant="outline"
                       onClick={() => handleIgnoreConfirm()}
+                      disabled={ignoreMutation.isPending && ignoreMutation.variables === selectedEnquiry.id}
                       className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                     >
-                      <XCircle size={15} className="mr-1.5" /> Ignore
+                      <XCircle size={15} className="mr-1.5" />
+                      {ignoreMutation.isPending && ignoreMutation.variables === selectedEnquiry.id ? "Ignoring..." : "Ignore"}
                     </Button>
                     <Button onClick={() => handleOpenTriage(selectedEnquiry.id)} className="bg-blue-600 hover:bg-blue-700">
                       <Sparkles size={15} className="mr-1.5" /> Triage & Assign
@@ -514,6 +587,24 @@ export default function EnquiryInbox() {
 
             {/* Message transcript */}
             <div className="flex-1 p-6 overflow-y-auto">
+              {selectedEnquiry.status === "TRIAGED" && matchedOpportunity && (
+                <div className="max-w-xl bg-green-50/60 border border-green-100 rounded-xl p-5 shadow-sm flex flex-col gap-1 mb-4 text-sm">
+                  <span className="flex items-center gap-1.5 font-bold text-green-800 uppercase tracking-wider text-[10px]">
+                    <UserIcon size={12} /> Assigned To
+                  </span>
+                  <p className="text-green-900 font-semibold">
+                    {matchedOpportunity.assignedTo?.name || "Unassigned"}
+                  </p>
+                  {triageNoteFromActivity && (
+                    <>
+                      <span className="font-bold text-green-800 uppercase tracking-wider text-[10px] mt-2">
+                        Triage Notes
+                      </span>
+                      <p className="text-green-900">{triageNoteFromActivity}</p>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="max-w-xl bg-white border border-slate-200/50 rounded-xl p-5 shadow-sm flex flex-col gap-3">
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   <span className="flex items-center gap-1"><MessageSquare size={13} /> Original Message</span>
@@ -587,8 +678,8 @@ export default function EnquiryInbox() {
             <Button variant="outline" onClick={() => setIsTriageOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleTriageConfirm} className="bg-blue-600 hover:bg-blue-700">
-              Confirm Triage
+            <Button onClick={handleTriageConfirm} disabled={triageMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
+              {triageMutation.isPending ? "Triaging..." : "Confirm Triage"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -686,8 +777,8 @@ export default function EnquiryInbox() {
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateEnquiry} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
-              {isCreating ? "Creating..." : "Create Enquiry"}
+            <Button onClick={handleCreateEnquiry} disabled={createMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
+              {createMutation.isPending ? "Creating..." : "Create Enquiry"}
             </Button>
           </DialogFooter>
         </DialogContent>
