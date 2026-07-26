@@ -25,6 +25,7 @@ import {
 import type { OpportunityStatus, ProductCategory } from "./opportunity.types";
 import { useAuthStore } from "../../store/auth.store";
 import { api } from "../../lib/axios";
+import { useNavigate } from "react-router-dom";
 
 const COLUMNS: { status: OpportunityStatus; title: string; colorClass: string }[] = [
   { status: "NEW", title: "New", colorClass: "border-t-4 border-t-blue-500 bg-blue-50/10" },
@@ -50,6 +51,7 @@ export default function PipelineBoard() {
       .catch((err) => console.error("Failed to load settings in board", err));
   });
 
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const isOwner = user?.role === "OWNER";
 
@@ -119,6 +121,10 @@ export default function PipelineBoard() {
         data: { status: targetStatus },
       });
       toast.success(`Opportunity status updated to ${targetStatus}`);
+
+      if (targetStatus === "QUOTATION_SENT") {
+        navigate(`/quotations?customerId=${currentOpp.customerId}`);
+      }
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to update opportunity status");
     }

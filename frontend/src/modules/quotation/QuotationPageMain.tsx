@@ -35,9 +35,9 @@ export default function QuotationPageMain() {
 
   const [quotationType, setQuotationType] = useState<
     "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER"
-  >("LEAD");
+  >(() => (searchParams.get("customerId") ? "CUSTOMER" : "LEAD"));
   const [leadId, setLeadId] = useState(() => searchParams.get("leadId") ?? "");
-  const [customerId, setCustomerId] = useState("");
+  const [customerId, setCustomerId] = useState(() => searchParams.get("customerId") ?? "");
   const [projectId, setProjectId] = useState("");
   const [phase, setPhase] = useState<ProjectPhase | undefined>();
   const [validUntil, setValidUntil] = useState("");
@@ -118,7 +118,9 @@ export default function QuotationPageMain() {
   }, [editId]);
 
   useEffect(() => {
-    if (searchParams.get("leadId")) setSearchParams({}, { replace: true });
+    if (searchParams.get("leadId") || searchParams.get("customerId")) {
+      setSearchParams({}, { replace: true });
+    }
   }, []);
 
   useEffect(() => {
