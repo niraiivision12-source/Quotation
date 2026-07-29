@@ -117,6 +117,10 @@ export default function EnquiryInbox() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
+  // ─── Ignore confirmation dialog ──────────────────────────────────────────
+  const [isIgnoreOpen, setIsIgnoreOpen] = useState(false);
+  const [ignoreTargetId, setIgnoreTargetId] = useState<string | null>(null);
+
   // ─── Edit dialog ─────────────────────────────────────────────────────────
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
@@ -331,18 +335,23 @@ export default function EnquiryInbox() {
     }
   };
 
-  const handleIgnoreConfirm = async (id?: string) => {
+  // Opens the ignore confirmation modal
+  const handleIgnoreConfirm = (id?: string) => {
     const targetId = id || selectedEnquiryId;
     if (!targetId) return;
+    setIgnoreTargetId(targetId);
+    setIsIgnoreOpen(true);
+  };
 
-    if (!window.confirm("Ignore this enquiry? It will move to the Ignored tab.")) {
-      return;
-    }
-
+  // Called when user confirms the ignore action inside the modal
+  const handleIgnoreConfirmed = async () => {
+    if (!ignoreTargetId) return;
     try {
-      await ignoreMutation.mutateAsync(targetId);
+      await ignoreMutation.mutateAsync(ignoreTargetId);
       toast.success("Enquiry marked as ignored.");
-      if (targetId === selectedEnquiryId) setSelectedEnquiryId(null);
+      if (ignoreTargetId === selectedEnquiryId) setSelectedEnquiryId(null);
+      setIsIgnoreOpen(false);
+      setIgnoreTargetId(null);
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to ignore enquiry");
     }
@@ -761,14 +770,14 @@ export default function EnquiryInbox() {
                     </td>
                     <td className="px-2 py-2 border-b border-slate-100 whitespace-nowrap">
                       {enquiry.status === "PENDING" && (
-                        <div className="hidden group-hover:flex items-center gap-1">
+                        <div className="flex items-center gap-1">
                           <a
                             href={whatsappLink(enquiry.mobile)}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
                             title="WhatsApp"
-                            className="flex items-center justify-center h-7 w-7 rounded-md border border-green-200 text-green-700 hover:bg-green-50"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-green-200 text-green-700 hover:bg-green-50 transition-colors"
                           >
                             <MessageSquare size={13} />
                           </a>
@@ -778,10 +787,20 @@ export default function EnquiryInbox() {
                               handleIgnoreConfirm(enquiry.id);
                             }}
                             disabled={ignoreMutation.isPending && ignoreMutation.variables === enquiry.id}
-                            title="Ignore"
-                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Move to Ignore"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
                             <XCircle size={13} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDelete(enquiry.id);
+                            }}
+                            title="Delete permanently"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 size={13} />
                           </button>
                           <Button
                             size="sm"
@@ -796,7 +815,7 @@ export default function EnquiryInbox() {
                         </div>
                       )}
                       {enquiry.status === "IGNORED" && (
-                        <div className="hidden group-hover:flex items-center gap-1">
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -804,7 +823,7 @@ export default function EnquiryInbox() {
                             }}
                             disabled={restoreMutation.isPending && restoreMutation.variables === enquiry.id}
                             title="Restore to Pending"
-                            className="flex items-center justify-center h-7 w-7 rounded-md border border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-50"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-50 transition-colors"
                           >
                             <RotateCcw size={13} />
                           </button>
@@ -814,21 +833,21 @@ export default function EnquiryInbox() {
                               handleOpenDelete(enquiry.id);
                             }}
                             title="Delete permanently"
-                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
                           >
                             <Trash2 size={13} />
                           </button>
                         </div>
                       )}
                       {enquiry.status === "TRIAGED" && (
-                        <div className="hidden group-hover:flex items-center gap-1">
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenDelete(enquiry.id);
                             }}
                             title="Delete permanently"
-                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -934,10 +953,18 @@ export default function EnquiryInbox() {
                       variant="outline"
                       onClick={() => handleIgnoreConfirm()}
                       disabled={ignoreMutation.isPending && ignoreMutation.variables === selectedEnquiry.id}
-                      className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800"
                     >
                       <XCircle size={15} className="mr-1.5" />
                       {ignoreMutation.isPending && ignoreMutation.variables === selectedEnquiry.id ? "Ignoring..." : "Ignore"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenDelete(selectedEnquiry.id)}
+                      className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 size={14} className="mr-1.5" /> Delete
                     </Button>
                     <Button onClick={() => handleOpenTriage(selectedEnquiry.id)} className="bg-blue-600 hover:bg-blue-700">
                       <Sparkles size={15} className="mr-1.5" /> Triage & Assign
@@ -1401,6 +1428,51 @@ export default function EnquiryInbox() {
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               {bulkDeleteMutation.isPending ? "Deleting..." : `Delete ${selectedIds.size} Enquiry/Enquiries`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Ignore Confirmation Dialog ───────────────────────────────────────── */}
+      <Dialog
+        open={isIgnoreOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsIgnoreOpen(false);
+            setIgnoreTargetId(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-slate-800">
+              <XCircle className="text-slate-600" size={18} /> Move Enquiry to Ignored
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 text-sm text-slate-700 space-y-3">
+            <p>Are you sure you want to move this enquiry to the <strong>Ignored</strong> list?</p>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-600">
+              You can restore ignored enquiries back to Pending at any time from the Ignored tab.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsIgnoreOpen(false);
+                setIgnoreTargetId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleIgnoreConfirmed}
+              disabled={ignoreMutation.isPending}
+              className="bg-slate-700 hover:bg-slate-800 text-white"
+            >
+              {ignoreMutation.isPending ? "Moving..." : "Move to Ignored"}
             </Button>
           </DialogFooter>
         </DialogContent>
