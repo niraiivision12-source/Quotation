@@ -337,13 +337,12 @@ export function downloadQuotationPDF({
     "Validity",
     payload.validUntil
       ? new Date(payload.validUntil).toLocaleDateString("en-IN", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
       : "30 days"
   );
-  addDetailRow("Currency", `INR (${currSym})`);
 
   // ── Separator Before Table ────────────────────────────────────────────────
   const tableStartY = Math.max(leftY, rightY) + 5;
