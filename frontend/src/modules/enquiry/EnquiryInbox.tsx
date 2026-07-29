@@ -1,6 +1,16 @@
 import { useState, useEffect } from "react";
-import { useEnquiries, useCreateEnquiry, useTriageEnquiry, useIgnoreEnquiry } from "./enquiry.query";
-import { checkEnquiryMobile } from "./enquiry.api";
+import {
+  useEnquiries,
+  useCreateEnquiry,
+  useTriageEnquiry,
+  useIgnoreEnquiry,
+  useDeleteEnquiry,
+  useUpdateEnquiry,
+  useRestoreEnquiry,
+  useBulkDeleteEnquiries,
+  useBulkIgnoreEnquiries,
+} from "./enquiry.query";
+import { checkEnquiryMobile, exportEnquiriesCSV } from "./enquiry.api";
 import { useOpportunities, useOpportunity } from "../opportunity/opportunity.query";
 import { useUsers } from "../user/user.query";
 import { api } from "../../lib/axios";
@@ -36,6 +46,13 @@ import {
   ChevronRight,
   AlertTriangle,
   User as UserIcon,
+  Trash2,
+  Pencil,
+  RotateCcw,
+  CheckSquare,
+  Square,
+  Download,
+  X,
 } from "lucide-react";
 
 function formatRelativeTime(dateString: string) {
@@ -96,7 +113,26 @@ export default function EnquiryInbox() {
     message: string;
   } | null>(null);
 
-  // Debounce search input so we don't refetch on every keystroke
+  // ─── Delete confirmation dialog ──────────────────────────────────────────
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  // ─── Edit dialog ─────────────────────────────────────────────────────────
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editMessage, setEditMessage] = useState("");
+  const [editSource, setEditSource] = useState("MANUAL");
+
+  // ─── Bulk selection ──────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+
+  // ─── Export state ────────────────────────────────────────────────────────
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
@@ -104,6 +140,11 @@ export default function EnquiryInbox() {
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Clear bulk selection when tab changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeTab, page, debouncedSearch]);
 
   // Fetch enquiries list
   const { data: enquiriesData, isLoading, isError } = useEnquiries(page, debouncedSearch, activeTab, limit);
@@ -117,7 +158,7 @@ export default function EnquiryInbox() {
     5
   );
 
-  // Tab counts (lightweight, count-only fetches so reps can see backlog size per tab)
+  // Tab counts
   const { data: pendingCountData } = useEnquiries(1, "", "PENDING", 1);
   const { data: triagedCountData } = useEnquiries(1, "", "TRIAGED", 1);
   const { data: ignoredCountData } = useEnquiries(1, "", "IGNORED", 1);
@@ -127,8 +168,7 @@ export default function EnquiryInbox() {
     IGNORED: ignoredCountData?.total,
   };
 
-  // Auto-select the enquiry when there's exactly one, or when nothing is selected
-  // on this list yet — saves reps a click for the common single/first-item case.
+  // Auto-select the first enquiry when the list changes
   useEffect(() => {
     if (!enquiriesData?.items.length) return;
     const stillVisible = enquiriesData.items.some((e) => e.id === selectedEnquiryId);
@@ -141,15 +181,19 @@ export default function EnquiryInbox() {
   const triageMutation = useTriageEnquiry();
   const ignoreMutation = useIgnoreEnquiry();
   const createMutation = useCreateEnquiry();
+  const deleteMutation = useDeleteEnquiry();
+  const updateMutation = useUpdateEnquiry();
+  const restoreMutation = useRestoreEnquiry();
+  const bulkDeleteMutation = useBulkDeleteEnquiries();
+  const bulkIgnoreMutation = useBulkIgnoreEnquiries();
 
-  // Load assignments settings once
+  // Load settings once
   useEffect(() => {
     api
       .get("/settings")
       .then((res) => setSettings(res.data.data))
       .catch((err) => console.error("Failed to load settings in inbox", err));
 
-    // Handle quick-link query param
     const params = new URLSearchParams(window.location.search);
     if (params.get("create") === "true") {
       setIsCreateOpen(true);
@@ -178,7 +222,6 @@ export default function EnquiryInbox() {
       const result = await checkEnquiryMobile(mobile);
       if (result.exists) {
         if (result.existingId) {
-          // Show the duplicate popup instead of inline error
           setDuplicateEnquiry({
             id: result.existingId,
             name: result.existingName || "Unknown",
@@ -190,14 +233,13 @@ export default function EnquiryInbox() {
         }
       }
     } catch {
-      // If the check itself fails, don't block the user — the create call will still validate.
+      // If the check fails, don't block the user
     } finally {
       setIsCheckingMobile(false);
     }
   };
 
   const handleViewExistingEnquiry = (enquiryId: string, enquiryStatus: string) => {
-    // Navigate to the correct tab and select the enquiry
     const tab = enquiryStatus === "TRIAGED" ? "TRIAGED" : enquiryStatus === "IGNORED" ? "IGNORED" : "PENDING";
     setActiveTab(tab as "PENDING" | "TRIAGED" | "IGNORED");
     setPage(1);
@@ -213,7 +255,6 @@ export default function EnquiryInbox() {
       return;
     }
 
-    // If a duplicate was already detected, show the popup instead of submitting
     if (duplicateEnquiry) {
       return;
     }
@@ -239,7 +280,6 @@ export default function EnquiryInbox() {
       setPage(1);
     } catch (err: any) {
       const errMsg = err.response?.data?.message || "Failed to create manual enquiry";
-      // Backend 409 — show the duplicate popup by fetching the existing enquiry info
       if (err.response?.status === 409) {
         try {
           const checkResult = await checkEnquiryMobile(newMobile.trim());
@@ -262,7 +302,7 @@ export default function EnquiryInbox() {
 
   const selectedEnquiry = enquiriesData?.items.find((e) => e.id === selectedEnquiryId);
 
-  // Match the opportunity created for this enquiry (by mobile) so we can show who it went to
+  // Match the opportunity for this triaged enquiry
   const matchedOpportunity =
     selectedEnquiry?.status === "TRIAGED"
       ? triagedOpportunityData?.items.find((o) => o.customer?.mobile === selectedEnquiry.mobile)
@@ -313,6 +353,136 @@ export default function EnquiryInbox() {
     setSelectedCategory("PIPES");
     setTriageNotes("");
     setIsTriageOpen(true);
+  };
+
+  // ─── Delete handlers ──────────────────────────────────────────────────────
+  const handleOpenDelete = (id: string) => {
+    setDeleteTargetId(id);
+    setIsDeleteOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetId) return;
+    try {
+      await deleteMutation.mutateAsync(deleteTargetId);
+      toast.success("Enquiry permanently deleted.");
+      if (deleteTargetId === selectedEnquiryId) setSelectedEnquiryId(null);
+      setIsDeleteOpen(false);
+      setDeleteTargetId(null);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete enquiry");
+    }
+  };
+
+  // ─── Edit handlers ────────────────────────────────────────────────────────
+  const handleOpenEdit = (enquiry: typeof selectedEnquiry) => {
+    if (!enquiry) return;
+    setEditName(enquiry.name);
+    setEditEmail(enquiry.email || "");
+    setEditCity(enquiry.city || "");
+    setEditMessage(enquiry.message || "");
+    setEditSource(enquiry.source || "MANUAL");
+    setIsEditOpen(true);
+  };
+
+  const handleEditConfirm = async () => {
+    if (!selectedEnquiryId) return;
+    try {
+      await updateMutation.mutateAsync({
+        id: selectedEnquiryId,
+        data: {
+          name: editName.trim() || undefined,
+          email: editEmail.trim() || null,
+          city: editCity.trim() || null,
+          message: editMessage.trim() || null,
+          source: editSource,
+        },
+      });
+      toast.success("Enquiry updated successfully.");
+      setIsEditOpen(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update enquiry");
+    }
+  };
+
+  // ─── Restore handler ──────────────────────────────────────────────────────
+  const handleRestore = async (id: string) => {
+    try {
+      await restoreMutation.mutateAsync(id);
+      toast.success("Enquiry restored to Pending.");
+      setActiveTab("PENDING");
+      setPage(1);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to restore enquiry");
+    }
+  };
+
+  // ─── Bulk selection helpers ───────────────────────────────────────────────
+  const allPageIds = enquiriesData?.items.map((e) => e.id) || [];
+  const allSelected = allPageIds.length > 0 && allPageIds.every((id) => selectedIds.has(id));
+  const someSelected = selectedIds.size > 0;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allPageIds));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkIgnore = async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      const result = await bulkIgnoreMutation.mutateAsync(Array.from(selectedIds));
+      toast.success(`${result.ignored} enquiry/enquiries marked as ignored.`);
+      setSelectedIds(new Set());
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to ignore selected enquiries");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      const result = await bulkDeleteMutation.mutateAsync(Array.from(selectedIds));
+      toast.success(`${result.deleted} enquiry/enquiries permanently deleted.`);
+      setSelectedIds(new Set());
+      setIsBulkDeleteOpen(false);
+      if (selectedIds.has(selectedEnquiryId || "")) setSelectedEnquiryId(null);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete selected enquiries");
+    }
+  };
+
+  // ─── Export CSV handler ───────────────────────────────────────────────────
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await exportEnquiriesCSV({
+        search: debouncedSearch || undefined,
+        status: activeTab,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `enquiries-${activeTab.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("CSV export downloaded.");
+    } catch {
+      toast.error("Failed to export enquiries");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getAssignedSalesmanName = (category: string) => {
@@ -368,6 +538,16 @@ export default function EnquiryInbox() {
               <Badge variant="secondary" className="bg-blue-100 text-blue-700 font-bold px-2.5 py-1 text-sm">
                 {enquiriesData?.total || 0} Total
               </Badge>
+              {/* Export CSV Button */}
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                title="Export current view as CSV"
+                className="flex items-center gap-1.5 h-8 px-3 text-xs font-semibold rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Download size={13} />
+                {isExporting ? "Exporting..." : "Export CSV"}
+              </button>
               <Button size="sm" onClick={() => setIsCreateOpen(true)} className="h-8 px-3 text-sm bg-blue-600 text-white hover:bg-blue-700">
                 <Plus size={15} className="mr-1" /> New
               </Button>
@@ -402,6 +582,7 @@ export default function EnquiryInbox() {
                     setActiveTab(tab);
                     setPage(1);
                     setSelectedEnquiryId(null);
+                    setSelectedIds(new Set());
                   }}
                   className={`flex-1 py-2 rounded-md transition-all ${
                     activeTab === tab ? activeClasses : "hover:text-slate-900 hover:bg-white/60"
@@ -421,6 +602,36 @@ export default function EnquiryInbox() {
           </div>
         </div>
 
+        {/* ─── Bulk Action Toolbar ────────────────────────────────────────────── */}
+        {someSelected && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-b border-blue-100 text-sm">
+            <span className="font-bold text-blue-700 mr-1">{selectedIds.size} selected</span>
+            {activeTab === "PENDING" && (
+              <button
+                onClick={handleBulkIgnore}
+                disabled={bulkIgnoreMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-600 text-white text-xs font-semibold hover:bg-slate-700 disabled:opacity-50"
+              >
+                <XCircle size={12} /> Bulk Ignore
+              </button>
+            )}
+            <button
+              onClick={() => setIsBulkDeleteOpen(true)}
+              disabled={bulkDeleteMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-red-600 text-white text-xs font-semibold hover:bg-red-700 disabled:opacity-50"
+            >
+              <Trash2 size={12} /> Bulk Delete
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="ml-auto text-slate-500 hover:text-slate-700"
+              title="Clear selection"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+
         {/* List items */}
         <div className="flex-1 overflow-auto">
           {isLoading ? (
@@ -439,6 +650,16 @@ export default function EnquiryInbox() {
             <table className="w-full border-collapse text-sm">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  {/* Checkbox column */}
+                  <th className="px-2 py-2 border-b border-r border-slate-200 w-8">
+                    <button
+                      onClick={toggleSelectAll}
+                      title={allSelected ? "Deselect all" : "Select all on this page"}
+                      className="text-slate-400 hover:text-blue-600"
+                    >
+                      {allSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                    </button>
+                  </th>
                   <th className="text-left px-3 py-2 border-b border-r border-slate-200">Name</th>
                   <th className="text-left px-3 py-2 border-b border-r border-slate-200">Phone</th>
                   <th className="text-left px-3 py-2 border-b border-r border-slate-200 hidden sm:table-cell">City</th>
@@ -456,9 +677,27 @@ export default function EnquiryInbox() {
                     className={`group cursor-pointer transition-colors ${
                       selectedEnquiryId === enquiry.id
                         ? "bg-blue-50/70"
+                        : selectedIds.has(enquiry.id)
+                        ? "bg-blue-50/40"
                         : "odd:bg-slate-50/40 hover:bg-slate-100/70"
                     }`}
                   >
+                    {/* Checkbox */}
+                    <td className="px-2 py-2 border-b border-r border-slate-100">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelectOne(enquiry.id);
+                        }}
+                        className="text-slate-400 hover:text-blue-600"
+                      >
+                        {selectedIds.has(enquiry.id) ? (
+                          <CheckSquare size={14} className="text-blue-600" />
+                        ) : (
+                          <Square size={14} />
+                        )}
+                      </button>
+                    </td>
                     <td
                       className={`px-3 py-2 border-b border-r border-slate-100 font-bold text-slate-900 max-w-[130px] truncate ${
                         selectedEnquiryId === enquiry.id ? "border-l-4 border-l-blue-600" : "border-l-4 border-l-transparent"
@@ -556,6 +795,45 @@ export default function EnquiryInbox() {
                           </Button>
                         </div>
                       )}
+                      {enquiry.status === "IGNORED" && (
+                        <div className="hidden group-hover:flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRestore(enquiry.id);
+                            }}
+                            disabled={restoreMutation.isPending && restoreMutation.variables === enquiry.id}
+                            title="Restore to Pending"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-50"
+                          >
+                            <RotateCcw size={13} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDelete(enquiry.id);
+                            }}
+                            title="Delete permanently"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
+                      {enquiry.status === "TRIAGED" && (
+                        <div className="hidden group-hover:flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDelete(enquiry.id);
+                            }}
+                            title="Delete permanently"
+                            className="flex items-center justify-center h-7 w-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -632,9 +910,18 @@ export default function EnquiryInbox() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 {selectedEnquiry.status === "PENDING" && (
                   <>
+                    {/* Edit button (PENDING only) */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenEdit(selectedEnquiry)}
+                      className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+                    >
+                      <Pencil size={14} className="mr-1.5" /> Edit
+                    </Button>
                     <a
                       href={whatsappLink(selectedEnquiry.mobile)}
                       target="_blank"
@@ -658,14 +945,47 @@ export default function EnquiryInbox() {
                   </>
                 )}
                 {selectedEnquiry.status === "TRIAGED" && (
-                  <Badge className="bg-green-50 text-green-700 border border-green-200 font-semibold px-2.5 py-1">
-                    <CheckCircle size={13} className="mr-1 inline-block" /> Triaged to {selectedEnquiry.category}
-                  </Badge>
+                  <>
+                    <Badge className="bg-green-50 text-green-700 border border-green-200 font-semibold px-2.5 py-1">
+                      <CheckCircle size={13} className="mr-1 inline-block" /> Triaged to {selectedEnquiry.category}
+                    </Badge>
+                    {/* Delete button for triaged */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenDelete(selectedEnquiry.id)}
+                      className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 size={14} className="mr-1.5" /> Delete
+                    </Button>
+                  </>
                 )}
                 {selectedEnquiry.status === "IGNORED" && (
-                  <Badge className="bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-2.5 py-1">
-                    <XCircle size={13} className="mr-1 inline-block" /> Ignored
-                  </Badge>
+                  <>
+                    <Badge className="bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-2.5 py-1">
+                      <XCircle size={13} className="mr-1 inline-block" /> Ignored
+                    </Badge>
+                    {/* Restore button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRestore(selectedEnquiry.id)}
+                      disabled={restoreMutation.isPending}
+                      className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800"
+                    >
+                      <RotateCcw size={14} className="mr-1.5" />
+                      {restoreMutation.isPending ? "Restoring..." : "Restore to Pending"}
+                    </Button>
+                    {/* Delete button for ignored */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenDelete(selectedEnquiry.id)}
+                      className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 size={14} className="mr-1.5" /> Delete
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -709,7 +1029,7 @@ export default function EnquiryInbox() {
         )}
       </div>
 
-      {/* Triage Dialog Modal */}
+      {/* ─── Triage Dialog Modal ─────────────────────────────────────────────── */}
       <Dialog open={isTriageOpen} onOpenChange={setIsTriageOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -769,7 +1089,8 @@ export default function EnquiryInbox() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Create Manual Enquiry Dialog Modal */}
+
+      {/* ─── Create Manual Enquiry Dialog ───────────────────────────────────── */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -895,7 +1216,7 @@ export default function EnquiryInbox() {
         </DialogContent>
       </Dialog>
 
-      {/* Duplicate Enquiry Detected Modal */}
+      {/* ─── Duplicate Enquiry Detected Modal ───────────────────────────────── */}
       <Dialog open={!!duplicateEnquiry && !isCreateOpen} onOpenChange={(open) => { if (!open) setDuplicateEnquiry(null); }}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
@@ -924,6 +1245,162 @@ export default function EnquiryInbox() {
               className="bg-amber-600 hover:bg-amber-700"
             >
               View Existing Enquiry
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Delete Confirmation Dialog ──────────────────────────────────────── */}
+      <Dialog open={isDeleteOpen} onOpenChange={(open) => { if (!open) { setIsDeleteOpen(false); setDeleteTargetId(null); } }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <Trash2 className="text-red-600" size={18} /> Delete Enquiry Permanently
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 text-sm text-slate-700 space-y-3">
+            <p>
+              Are you sure you want to <strong>permanently delete</strong> this enquiry? This action cannot be undone.
+            </p>
+            {deleteTargetId && (
+              <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-800">
+                <strong>Note:</strong> If this enquiry was already triaged and converted to an opportunity, the customer
+                record and opportunity will not be affected — only this enquiry record will be removed.
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsDeleteOpen(false); setDeleteTargetId(null); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Edit Enquiry Dialog ──────────────────────────────────────────────── */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-slate-800">
+              <Pencil className="text-blue-600" size={18} /> Edit Enquiry
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4 text-xs">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-slate-600">Customer Name *</label>
+              <Input
+                placeholder="e.g. John Doe"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="h-9"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-slate-600">Email Address (Optional)</label>
+              <Input
+                type="email"
+                placeholder="e.g. john@example.com"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                className="h-9"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-slate-600">City (Optional)</label>
+              <Input
+                placeholder="e.g. Mumbai"
+                value={editCity}
+                onChange={(e) => setEditCity(e.target.value)}
+                className="h-9"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-slate-600">Lead Source</label>
+              <select
+                value={editSource}
+                onChange={(e) => setEditSource(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg p-2 text-sm bg-white shadow-sm focus:border-blue-600"
+              >
+                <option value="MANUAL">Manual</option>
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="WEBSITE">Website</option>
+                <option value="WALK_IN">Walk-In</option>
+                <option value="PHONE">Phone</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-slate-600">Requirement Message (Optional)</label>
+              <textarea
+                rows={3}
+                placeholder="Describe details..."
+                value={editMessage}
+                onChange={(e) => setEditMessage(e.target.value)}
+                className="border border-slate-200 rounded-lg p-2 text-sm bg-white shadow-sm focus:border-blue-600 focus:outline-none"
+              />
+            </div>
+
+            <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-700">
+              <strong>Note:</strong> Mobile number cannot be changed after creation to prevent data conflicts.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditConfirm}
+              disabled={updateMutation.isPending || !editName.trim()}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Bulk Delete Confirmation Dialog ────────────────────────────────── */}
+      <Dialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <Trash2 className="text-red-600" size={18} /> Bulk Delete Enquiries
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 text-sm text-slate-700 space-y-3">
+            <p>
+              You are about to <strong>permanently delete {selectedIds.size} enquiry/enquiries</strong>. This action cannot be undone.
+            </p>
+            <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-800">
+              <strong>Note:</strong> Any customers or opportunities that were created from triaged enquiries will not be affected.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {bulkDeleteMutation.isPending ? "Deleting..." : `Delete ${selectedIds.size} Enquiry/Enquiries`}
             </Button>
           </DialogFooter>
         </DialogContent>

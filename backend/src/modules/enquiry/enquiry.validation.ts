@@ -14,3 +14,15 @@ export const triageEnquirySchema = z.object({
   category: z.nativeEnum(ProductCategory),
   notes: z.string().optional().nullable(),
 });
+
+export const updateEnquirySchema = z.object({
+  name: z.string().min(2).optional(),
+  email: z.string().email().optional().nullable(),
+  city: z.string().optional().nullable(),
+  message: z.string().optional().nullable(),
+  source: z.string().optional(),
+});
+
+export const bulkActionSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1, "At least one ID is required"),
+});

@@ -243,4 +243,117 @@ export class EnquiryService {
       },
     });
   }
+
+  // ─── New: Delete (permanent hard delete) ───────────────────────────────────
+  static async delete(id: string) {
+    const enquiry = await prisma.enquiry.findUnique({
+      where: { id },
+    });
+
+    if (!enquiry) {
+      throw new AppError("Enquiry not found", 404);
+    }
+
+    return prisma.enquiry.delete({
+      where: { id },
+    });
+  }
+
+  // ─── New: Update (PENDING only — triaged/ignored are immutable) ────────────
+  static async update(
+    id: string,
+    data: {
+      name?: string;
+      email?: string | null;
+      city?: string | null;
+      message?: string | null;
+      source?: string;
+    }
+  ) {
+    const enquiry = await prisma.enquiry.findUnique({
+      where: { id },
+    });
+
+    if (!enquiry) {
+      throw new AppError("Enquiry not found", 404);
+    }
+
+    if (enquiry.status !== EnquiryStatus.PENDING) {
+      throw new AppError(
+        "Only PENDING enquiries can be edited. Triaged and ignored enquiries are immutable.",
+        400
+      );
+    }
+
+    return prisma.enquiry.update({
+      where: { id },
+      data: {
+        name: data.name ?? enquiry.name,
+        email: data.email !== undefined ? data.email : enquiry.email,
+        city: data.city !== undefined ? data.city : enquiry.city,
+        message: data.message !== undefined ? data.message : enquiry.message,
+        source: data.source ?? enquiry.source,
+      },
+    });
+  }
+
+  // ─── New: Restore IGNORED → PENDING ────────────────────────────────────────
+  static async restore(id: string) {
+    const enquiry = await prisma.enquiry.findUnique({
+      where: { id },
+    });
+
+    if (!enquiry) {
+      throw new AppError("Enquiry not found", 404);
+    }
+
+    if (enquiry.status !== EnquiryStatus.IGNORED) {
+      throw new AppError("Only IGNORED enquiries can be restored to PENDING", 400);
+    }
+
+    return prisma.enquiry.update({
+      where: { id },
+      data: {
+        status: EnquiryStatus.PENDING,
+      },
+    });
+  }
+
+  // ─── New: Bulk Delete ───────────────────────────────────────────────────────
+  static async bulkDelete(ids: string[]) {
+    const count = await prisma.enquiry.deleteMany({
+      where: { id: { in: ids } },
+    });
+
+    return { deleted: count.count };
+  }
+
+  // ─── New: Bulk Ignore (PENDING only) ───────────────────────────────────────
+  static async bulkIgnore(ids: string[]) {
+    const count = await prisma.enquiry.updateMany({
+      where: { id: { in: ids }, status: EnquiryStatus.PENDING },
+      data: { status: EnquiryStatus.IGNORED },
+    });
+
+    return { ignored: count.count };
+  }
+
+  // ─── New: Export (returns all matching records for CSV download) ────────────
+  static async exportAll(search?: string, status?: EnquiryStatus) {
+    const where: any = {};
+    if (status) {
+      where.status = status;
+    }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { mobile: { contains: search } },
+      ];
+    }
+
+    return prisma.enquiry.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
+  }
 }

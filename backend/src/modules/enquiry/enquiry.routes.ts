@@ -8,10 +8,23 @@ const router = Router();
 
 router.use(authenticate);
 
+// Basic CRUD
 router.post("/", asyncHandler(EnquiryController.create));
 router.get("/", asyncHandler(EnquiryController.getAll));
 router.get("/check-mobile", asyncHandler(EnquiryController.checkMobile));
-router.post("/:id/triage", checkPermission("accessSettings"), asyncHandler(EnquiryController.triage)); // Only owner (who can access settings) can triage
+
+// CSV Export (owner-only)
+router.get("/export", checkPermission("accessSettings"), asyncHandler(EnquiryController.exportCSV));
+
+// Bulk actions (owner-only)
+router.post("/bulk-delete", checkPermission("accessSettings"), asyncHandler(EnquiryController.bulkDelete));
+router.post("/bulk-ignore", checkPermission("accessSettings"), asyncHandler(EnquiryController.bulkIgnore));
+
+// Single item actions
+router.patch("/:id", checkPermission("accessSettings"), asyncHandler(EnquiryController.update)); // Update PENDING enquiry (owner-only)
+router.delete("/:id", checkPermission("accessSettings"), asyncHandler(EnquiryController.remove)); // Hard delete (owner-only)
+router.post("/:id/triage", checkPermission("accessSettings"), asyncHandler(EnquiryController.triage)); // Only owner can triage
 router.post("/:id/ignore", checkPermission("accessSettings"), asyncHandler(EnquiryController.ignore));
+router.post("/:id/restore", checkPermission("accessSettings"), asyncHandler(EnquiryController.restore)); // Restore IGNORED → PENDING (owner-only)
 
 export default router;
