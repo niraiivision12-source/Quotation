@@ -25,9 +25,9 @@ exports.updateSettingsSchema = zod_1.z.object({
     leadSalesmanPercentages: zod_1.z.record(zod_1.z.string(), zod_1.z.coerce.number()).default({}),
     lastLeadAssignedUserId: zod_1.z.string().nullable().optional(),
     // Project Assignment
-    projectAssignmentMethod: zod_1.z.enum(["MANUAL", "PERCENTAGE", "PHASE_BASED"]),
-    projectSalesmanPercentages: zod_1.z.record(zod_1.z.string(), zod_1.z.coerce.number()).default({}),
-    projectPhaseAssignment: zod_1.z.record(zod_1.z.string(), zod_1.z.string()).default({}),
+    projectAssignmentMethod: zod_1.z.enum(["MANUAL", "PERCENTAGE", "PHASE_BASED"]).optional(),
+    projectSalesmanPercentages: zod_1.z.record(zod_1.z.string(), zod_1.z.coerce.number()).optional().default({}),
+    projectPhaseAssignment: zod_1.z.record(zod_1.z.string(), zod_1.z.string()).optional().default({}),
     categorySalesmanAssignment: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional().default({}),
     // Quotation Settings
     quoteValidityDays: zod_1.z.coerce.number().min(1, "Validity must be at least 1 day"),
@@ -86,7 +86,7 @@ exports.updateSettingsSchema = zod_1.z.object({
     }
     // Validate Project Assignment Percentages if method is PERCENTAGE
     if (data.projectAssignmentMethod === "PERCENTAGE") {
-        const percentages = Object.values(data.projectSalesmanPercentages);
+        const percentages = Object.values(data.projectSalesmanPercentages || {});
         if (percentages.length === 0) {
             ctx.addIssue({
                 code: zod_1.z.ZodIssueCode.custom,
