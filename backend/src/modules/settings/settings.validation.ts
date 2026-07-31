@@ -25,9 +25,9 @@ export const updateSettingsSchema = z.object({
   lastLeadAssignedUserId: z.string().nullable().optional(),
 
   // Project Assignment
-  projectAssignmentMethod: z.enum(["MANUAL", "PERCENTAGE", "PHASE_BASED"]),
-  projectSalesmanPercentages: z.record(z.string(), z.coerce.number()).default({}),
-  projectPhaseAssignment: z.record(z.string(), z.string()).default({}),
+  projectAssignmentMethod: z.enum(["MANUAL", "PERCENTAGE", "PHASE_BASED"]).optional(),
+  projectSalesmanPercentages: z.record(z.string(), z.coerce.number()).optional().default({}),
+  projectPhaseAssignment: z.record(z.string(), z.string()).optional().default({}),
   categorySalesmanAssignment: z.record(z.string(), z.any()).optional().default({}),
 
   // Quotation Settings
@@ -92,7 +92,7 @@ export const updateSettingsSchema = z.object({
 
   // Validate Project Assignment Percentages if method is PERCENTAGE
   if (data.projectAssignmentMethod === "PERCENTAGE") {
-    const percentages = Object.values(data.projectSalesmanPercentages) as number[];
+    const percentages = Object.values(data.projectSalesmanPercentages || {}) as number[];
     if (percentages.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

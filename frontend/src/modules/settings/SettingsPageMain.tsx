@@ -54,6 +54,10 @@ export default function SettingsPageMain() {
   const [leadAssignmentMethod, setLeadAssignmentMethod] = useState<"MANUAL" | "PERCENTAGE" | "ROUND_ROBIN">("MANUAL");
   const [leadSalesmanPercentages, setLeadSalesmanPercentages] = useState<Record<string, number>>({});
 
+  const [projectAssignmentMethod, setProjectAssignmentMethod] = useState<"MANUAL" | "PERCENTAGE" | "PHASE_BASED">("MANUAL");
+  const [projectSalesmanPercentages, setProjectSalesmanPercentages] = useState<Record<string, number>>({});
+  const [projectPhaseAssignment, setProjectPhaseAssignment] = useState<Record<string, string>>({});
+
   const [categorySalesmanAssignment, setCategorySalesmanAssignment] = useState<Record<string, any>>({
     PIPES: { primarySalespersonId: "", backupSalespersonId: "", additionalEditors: [] },
     WIRES: { primarySalespersonId: "", backupSalespersonId: "", additionalEditors: [] },
@@ -141,6 +145,10 @@ export default function SettingsPageMain() {
 
         setLeadAssignmentMethod(settings.leadAssignmentMethod || "MANUAL");
         setLeadSalesmanPercentages(settings.leadSalesmanPercentages || {});
+
+        setProjectAssignmentMethod(settings.projectAssignmentMethod || "MANUAL");
+        setProjectSalesmanPercentages(settings.projectSalesmanPercentages || {});
+        setProjectPhaseAssignment(settings.projectPhaseAssignment || {});
 
         const raw = settings.categorySalesmanAssignment || {};
         const normalized: Record<string, any> = {};
@@ -271,6 +279,10 @@ export default function SettingsPageMain() {
 
         leadAssignmentMethod,
         leadSalesmanPercentages,
+
+        projectAssignmentMethod,
+        projectSalesmanPercentages,
+        projectPhaseAssignment,
 
         categorySalesmanAssignment,
 
