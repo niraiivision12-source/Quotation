@@ -922,6 +922,49 @@ class LeadService {
             },
         });
     }
+    static async getProjects(leadId) {
+        const lead = await prisma_1.prisma.lead.findUnique({
+            where: { id: leadId, isActive: true },
+            include: {
+                customer: {
+                    include: {
+                        projects: {
+                            where: { isActive: true },
+                            include: {
+                                phaseTracking: {
+                                    orderBy: { createdAt: "asc" },
+                                },
+                                assignedTo: {
+                                    select: { id: true, name: true },
+                                },
+                                quotations: {
+                                    select: {
+                                        id: true,
+                                        quotationNumber: true,
+                                        status: true,
+                                        totalAmount: true,
+                                        createdAt: true,
+                                    },
+                                    orderBy: { createdAt: "desc" },
+                                    take: 1,
+                                },
+                            },
+                            orderBy: { createdAt: "desc" },
+                        },
+                    },
+                },
+            },
+        });
+        if (!lead) {
+            throw new app_error_1.AppError("Lead not found", 404);
+        }
+        return {
+            customer: lead.customer
+                ? { id: lead.customer.id, name: lead.customer.name, mobile: lead.customer.mobile }
+                : null,
+            projects: lead.customer?.projects ?? [],
+        };
+    }
 }
 exports.LeadService = LeadService;
 //# sourceMappingURL=lead.service.js.map

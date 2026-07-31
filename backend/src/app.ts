@@ -4,7 +4,6 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import { errorHandler } from "./middlewares/error.middleware";
-import { devRequestTracer } from "./middlewares/dev.middleware";
 import routes from "./routes";
 
 const app = express();
@@ -20,8 +19,6 @@ app.use(express.urlencoded({
     extended: true,
     limit: '10mb'
 }));
-
-app.use(devRequestTracer);
 
 app.use("/api", routes);
 

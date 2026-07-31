@@ -80,6 +80,14 @@ class LeadController {
             data: lead,
         });
     }
+    static async getProjects(req, res) {
+        const result = await lead_service_1.LeadService.getProjects(req.params.id);
+        return res.status(200).json({
+            success: true,
+            message: "Lead projects fetched",
+            data: result,
+        });
+    }
 }
 exports.LeadController = LeadController;
 //# sourceMappingURL=lead.controller.js.map

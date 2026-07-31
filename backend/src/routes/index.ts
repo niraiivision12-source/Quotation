@@ -23,7 +23,6 @@ import opportunityRoutes from "../modules/opportunity/opportunity.routes";
 import reportRoutes from "../modules/report/report.routes";
 import dealerRoutes from "../modules/dealer/dealer.routes";
 import purchaseOrderRoutes from "../modules/purchase-order/purchase-order.routes";
-import devRoutes from "./dev.routes";
 
 const router = Router();
 
@@ -54,8 +53,4 @@ router.use("/enquiries", enquiryRoutes);
 router.use("/opportunities", opportunityRoutes);
 router.use("/reports", authenticate, authorize(UserRole.OWNER), reportRoutes);
 
-// Dev Explorer routes, restricted to OWNER role
-router.use("/dev", authenticate, authorize(UserRole.OWNER), devRoutes);
-
 export default router;
-

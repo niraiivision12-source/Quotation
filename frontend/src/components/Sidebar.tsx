@@ -9,7 +9,6 @@ import {
   UserRound,
   Settings,
   CreditCard,
-  Activity,
   Inbox,
   TrendingUp,
   Users,
@@ -59,7 +58,6 @@ const NAV_ITEMS = [
   { to: "/reports", label: "Reports", icon: <TrendingUp size={18} />, ownerOnly: true },
   { to: "/users", label: "Users", icon: <UserRound size={18} />, ownerOnly: true },
   { to: "/settings", label: "Settings", icon: <Settings size={18} />, ownerOnly: true },
-  { to: "/api-testing", label: "API Explorer", icon: <Activity size={18} />, ownerOnly: true },
 ];
 
 export default function Sidebar({

@@ -26,7 +26,6 @@ const opportunity_routes_1 = __importDefault(require("../modules/opportunity/opp
 const report_routes_1 = __importDefault(require("../modules/report/report.routes"));
 const dealer_routes_1 = __importDefault(require("../modules/dealer/dealer.routes"));
 const purchase_order_routes_1 = __importDefault(require("../modules/purchase-order/purchase-order.routes"));
-const dev_routes_1 = __importDefault(require("./dev.routes"));
 const router = (0, express_1.Router)();
 router.get("/health", (_req, res) => {
     res.status(200).json({
@@ -53,7 +52,5 @@ router.use("/sync", sync_routes_1.default);
 router.use("/enquiries", enquiry_routes_1.default);
 router.use("/opportunities", opportunity_routes_1.default);
 router.use("/reports", auth_middleware_1.authenticate, (0, role_middleware_1.authorize)(client_1.UserRole.OWNER), report_routes_1.default);
-// Dev Explorer routes, restricted to OWNER role
-router.use("/dev", auth_middleware_1.authenticate, (0, role_middleware_1.authorize)(client_1.UserRole.OWNER), dev_routes_1.default);
 exports.default = router;
 //# sourceMappingURL=index.js.map

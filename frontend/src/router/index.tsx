@@ -28,7 +28,6 @@ import UserPage from "../pages/UserPage";
 import SettingsPage from "../pages/SettingsPage";
 import PaymentPage from "../pages/PaymentPage";
 import ReportsPage from "../pages/ReportsPage";
-import ApiTestingPage from "../pages/ApiTestingPage";
 
 function OwnerRoute({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
@@ -133,15 +132,6 @@ export default function AppRouter() {
             element={
               <OwnerRoute>
                 <ReportsPage />
-              </OwnerRoute>
-            }
-          />
-
-          <Route
-            path="/api-testing"
-            element={
-              <OwnerRoute>
-                <ApiTestingPage />
               </OwnerRoute>
             }
           />

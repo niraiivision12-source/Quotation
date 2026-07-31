@@ -8,10 +8,30 @@ class EnquiryService {
     static async checkMobileExists(mobile) {
         const existingPending = await prisma_1.prisma.enquiry.findFirst({
             where: { mobile, status: client_1.EnquiryStatus.PENDING },
-            select: { id: true },
+            select: { id: true, name: true, mobile: true, status: true },
         });
         if (existingPending) {
-            return { exists: true, message: "An enquiry from this mobile number is already pending in the inbox" };
+            return {
+                exists: true,
+                existingId: existingPending.id,
+                existingName: existingPending.name,
+                existingStatus: existingPending.status,
+                message: "An enquiry with this mobile number is already pending in the inbox",
+            };
+        }
+        // Also check for triaged enquiries (already converted to opportunity)
+        const existingTriaged = await prisma_1.prisma.enquiry.findFirst({
+            where: { mobile, status: client_1.EnquiryStatus.TRIAGED },
+            select: { id: true, name: true, mobile: true, status: true },
+        });
+        if (existingTriaged) {
+            return {
+                exists: true,
+                existingId: existingTriaged.id,
+                existingName: existingTriaged.name,
+                existingStatus: existingTriaged.status,
+                message: "An enquiry with this mobile number already exists and has been processed",
+            };
         }
         return { exists: false };
     }
@@ -180,6 +200,90 @@ class EnquiryService {
             data: {
                 status: client_1.EnquiryStatus.IGNORED,
             },
+        });
+    }
+    // ─── New: Delete (permanent hard delete) ───────────────────────────────────
+    static async delete(id) {
+        const enquiry = await prisma_1.prisma.enquiry.findUnique({
+            where: { id },
+        });
+        if (!enquiry) {
+            throw new app_error_1.AppError("Enquiry not found", 404);
+        }
+        return prisma_1.prisma.enquiry.delete({
+            where: { id },
+        });
+    }
+    // ─── New: Update (PENDING only — triaged/ignored are immutable) ────────────
+    static async update(id, data) {
+        const enquiry = await prisma_1.prisma.enquiry.findUnique({
+            where: { id },
+        });
+        if (!enquiry) {
+            throw new app_error_1.AppError("Enquiry not found", 404);
+        }
+        if (enquiry.status !== client_1.EnquiryStatus.PENDING) {
+            throw new app_error_1.AppError("Only PENDING enquiries can be edited. Triaged and ignored enquiries are immutable.", 400);
+        }
+        return prisma_1.prisma.enquiry.update({
+            where: { id },
+            data: {
+                name: data.name ?? enquiry.name,
+                email: data.email !== undefined ? data.email : enquiry.email,
+                city: data.city !== undefined ? data.city : enquiry.city,
+                message: data.message !== undefined ? data.message : enquiry.message,
+                source: data.source ?? enquiry.source,
+            },
+        });
+    }
+    // ─── New: Restore IGNORED → PENDING ────────────────────────────────────────
+    static async restore(id) {
+        const enquiry = await prisma_1.prisma.enquiry.findUnique({
+            where: { id },
+        });
+        if (!enquiry) {
+            throw new app_error_1.AppError("Enquiry not found", 404);
+        }
+        if (enquiry.status !== client_1.EnquiryStatus.IGNORED) {
+            throw new app_error_1.AppError("Only IGNORED enquiries can be restored to PENDING", 400);
+        }
+        return prisma_1.prisma.enquiry.update({
+            where: { id },
+            data: {
+                status: client_1.EnquiryStatus.PENDING,
+            },
+        });
+    }
+    // ─── New: Bulk Delete ───────────────────────────────────────────────────────
+    static async bulkDelete(ids) {
+        const count = await prisma_1.prisma.enquiry.deleteMany({
+            where: { id: { in: ids } },
+        });
+        return { deleted: count.count };
+    }
+    // ─── New: Bulk Ignore (PENDING only) ───────────────────────────────────────
+    static async bulkIgnore(ids) {
+        const count = await prisma_1.prisma.enquiry.updateMany({
+            where: { id: { in: ids }, status: client_1.EnquiryStatus.PENDING },
+            data: { status: client_1.EnquiryStatus.IGNORED },
+        });
+        return { ignored: count.count };
+    }
+    // ─── New: Export (returns all matching records for CSV download) ────────────
+    static async exportAll(search, status) {
+        const where = {};
+        if (status) {
+            where.status = status;
+        }
+        if (search) {
+            where.OR = [
+                { name: { contains: search, mode: "insensitive" } },
+                { mobile: { contains: search } },
+            ];
+        }
+        return prisma_1.prisma.enquiry.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
         });
     }
 }

@@ -8,7 +8,6 @@ const express_1 = __importDefault(require("express"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const error_middleware_1 = require("./middlewares/error.middleware");
-const dev_middleware_1 = require("./middlewares/dev.middleware");
 const routes_1 = __importDefault(require("./routes"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -21,7 +20,6 @@ app.use(express_1.default.urlencoded({
     extended: true,
     limit: '10mb'
 }));
-app.use(dev_middleware_1.devRequestTracer);
 app.use("/api", routes_1.default);
 app.use(error_middleware_1.errorHandler);
 exports.default = app;

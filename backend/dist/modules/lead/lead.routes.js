@@ -16,6 +16,7 @@ router.get("/:id", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadContr
 router.post("/:id/convert", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.convert));
 router.patch("/:id", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.update));
 router.patch("/:id/deactivate", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.deactivate));
+router.get("/:id/projects", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.getProjects));
 router.post("/:id/notes", (0, async_handler_1.asyncHandler)(lead_note_controller_1.LeadNoteController.addNote));
 router.get("/:id/notes", (0, async_handler_1.asyncHandler)(lead_note_controller_1.LeadNoteController.getNotes));
 router.get("/stats", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.getStats));
