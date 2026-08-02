@@ -106,7 +106,7 @@ function isTotalRow(name) {
     if (!name)
         return false;
     const cleaned = name.trim().toLowerCase();
-    return cleaned === "total" || cleaned === "grand total" || cleaned.includes("total");
+    return cleaned === "total" || cleaned === "grand total" || cleaned.includes("total") || cleaned === "delete items";
 }
 function generateSku(name) {
     const prefix = "SKU-";

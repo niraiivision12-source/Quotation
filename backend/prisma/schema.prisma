@@ -435,7 +435,7 @@ model SystemSettings {
   quoteDefaultNotes              String   @default("")
   quoteDefaultDiscount           Decimal  @default(0.00) @db.Decimal(5, 2)
   quoteCurrencySymbol            String   @default("₹")
-  quoteNumberFormat              String   @default("QTN-{YYYY}-{NNN}")
+  quoteNumberFormat              String   @default("QTN-{YYYY}-{MM}-{DD}-{NNN}")
   quoteTaxDisplay                String   @default("GST_BREAKUP")
   quotePdfHeaderFooter           Json     @default("{}")
   notificationReminderTime       String   @default("09:00")

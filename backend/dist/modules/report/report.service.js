@@ -3,6 +3,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReportService = void 0;
 const prisma_1 = require("../../config/prisma");
 const client_1 = require("@prisma/client");
+function mapProjectPhaseToProductCategory(phase) {
+    switch (phase) {
+        case "PIPES":
+            return "PIPES";
+        case "WIRING":
+            return "WIRES";
+        case "SWITCHES":
+            return "SWITCHES";
+        case "LIGHTS":
+            return "LIGHTS";
+        case "FANS":
+            return "FANS";
+        case "OTHERS":
+        default:
+            return "OTHERS";
+    }
+}
 class ReportService {
     static async getSummary(startDateStr, endDateStr) {
         const start = startDateStr ? new Date(startDateStr) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -13,7 +30,7 @@ class ReportService {
                 lte: end,
             },
         };
-        const [wonOpps, lostOpps, paymentsAgg, oppsByStage, oppsByCategory,] = await Promise.all([
+        const [wonOpps, lostOpps, paymentsAgg, oppsByStage, oppsByCategory, approvedQuotes,] = await Promise.all([
             // Won opportunities
             prisma_1.prisma.opportunity.findMany({
                 where: {
@@ -69,6 +86,22 @@ class ReportService {
                 _sum: { estimatedValue: true },
                 where: { isActive: true, ...dateFilter },
             }),
+            // Approved quotations in the range
+            prisma_1.prisma.quotation.findMany({
+                where: {
+                    status: client_1.QuotationStatus.APPROVED,
+                    OR: [
+                        { approvedAt: { gte: start, lte: end } },
+                        {
+                            approvedAt: null,
+                            createdAt: { gte: start, lte: end },
+                        },
+                    ],
+                },
+                include: {
+                    opportunity: true,
+                },
+            }),
         ]);
         // Conversion rate
         const totalClosed = wonOpps.length + lostOpps.length;
@@ -91,10 +124,32 @@ class ReportService {
             stage: o.status,
             count: o._count.id,
         }));
-        const opportunitiesByCategory = oppsByCategory.map((o) => ({
-            category: o.category,
-            count: o._count.id,
-            value: Number(o._sum.estimatedValue || 0),
+        const categories = ["PIPES", "WIRES", "SWITCHES", "LIGHTS", "FANS", "OTHERS"];
+        const categoryStatsMap = {};
+        for (const cat of categories) {
+            categoryStatsMap[cat] = { count: 0, value: 0 };
+        }
+        for (const o of oppsByCategory) {
+            if (categoryStatsMap[o.category]) {
+                categoryStatsMap[o.category].count = o._count.id;
+            }
+        }
+        for (const quote of approvedQuotes) {
+            let category = quote.opportunity?.category;
+            if (!category && quote.phase) {
+                category = mapProjectPhaseToProductCategory(quote.phase);
+            }
+            if (!category) {
+                category = "OTHERS";
+            }
+            if (categoryStatsMap[category]) {
+                categoryStatsMap[category].value += Number(quote.totalAmount || 0);
+            }
+        }
+        const opportunitiesByCategory = Object.entries(categoryStatsMap).map(([category, stats]) => ({
+            category,
+            count: stats.count,
+            value: stats.value,
         }));
         return {
             salesConversionRate,

@@ -1,5 +1,23 @@
 import { prisma } from "../../config/prisma";
-import { OpportunityStatus } from "@prisma/client";
+import { OpportunityStatus, QuotationStatus } from "@prisma/client";
+
+function mapProjectPhaseToProductCategory(phase: string): string {
+  switch (phase) {
+    case "PIPES":
+      return "PIPES";
+    case "WIRING":
+      return "WIRES";
+    case "SWITCHES":
+      return "SWITCHES";
+    case "LIGHTS":
+      return "LIGHTS";
+    case "FANS":
+      return "FANS";
+    case "OTHERS":
+    default:
+      return "OTHERS";
+  }
+}
 
 export class ReportService {
   static async getSummary(startDateStr?: string, endDateStr?: string) {
@@ -19,6 +37,7 @@ export class ReportService {
       paymentsAgg,
       oppsByStage,
       oppsByCategory,
+      approvedQuotes,
     ] = await Promise.all([
       // Won opportunities
       prisma.opportunity.findMany({
@@ -75,6 +94,22 @@ export class ReportService {
         _sum: { estimatedValue: true },
         where: { isActive: true, ...dateFilter },
       }),
+      // Approved quotations in the range
+      prisma.quotation.findMany({
+        where: {
+          status: QuotationStatus.APPROVED,
+          OR: [
+            { approvedAt: { gte: start, lte: end } },
+            {
+              approvedAt: null,
+              createdAt: { gte: start, lte: end },
+            },
+          ],
+        },
+        include: {
+          opportunity: true,
+        },
+      }),
     ]);
 
     // Conversion rate
@@ -102,10 +137,35 @@ export class ReportService {
       count: o._count.id,
     }));
 
-    const opportunitiesByCategory = oppsByCategory.map((o) => ({
-      category: o.category,
-      count: o._count.id,
-      value: Number(o._sum.estimatedValue || 0),
+    const categories = ["PIPES", "WIRES", "SWITCHES", "LIGHTS", "FANS", "OTHERS"];
+    const categoryStatsMap: Record<string, { count: number; value: number }> = {};
+    for (const cat of categories) {
+      categoryStatsMap[cat] = { count: 0, value: 0 };
+    }
+
+    for (const o of oppsByCategory) {
+      if (categoryStatsMap[o.category]) {
+        categoryStatsMap[o.category].count = o._count.id;
+      }
+    }
+
+    for (const quote of approvedQuotes) {
+      let category = quote.opportunity?.category;
+      if (!category && quote.phase) {
+        category = mapProjectPhaseToProductCategory(quote.phase);
+      }
+      if (!category) {
+        category = "OTHERS";
+      }
+      if (categoryStatsMap[category]) {
+        categoryStatsMap[category].value += Number(quote.totalAmount || 0);
+      }
+    }
+
+    const opportunitiesByCategory = Object.entries(categoryStatsMap).map(([category, stats]) => ({
+      category,
+      count: stats.count,
+      value: stats.value,
     }));
 
     return {

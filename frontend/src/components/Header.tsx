@@ -133,7 +133,7 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
                             <p className="text-sm font-medium truncate">{task.title}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                                task.priority === "URGENT" ? "bg-red-100 text-red-600" :
+                                task.priority === "CRITICAL" ? "bg-red-100 text-red-600" :
                                 task.priority === "HIGH" ? "bg-orange-100 text-orange-600" :
                                 "bg-blue-100 text-blue-600"
                               }`}>

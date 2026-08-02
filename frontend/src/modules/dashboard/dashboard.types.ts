@@ -3,7 +3,7 @@ export type UserRole = "OWNER" | "SALESMAN" | "ATTENDANT" | "ACCOUNTANT";
 export type ProjectCategory = "PIPES" | "WIRES" | "SWITCHES" | "LIGHTS" | "FANS" | "OTHERS";
 
 export interface DashboardSummaryQuery {
-  period?: "today" | "this_week" | "this_month" | "this_year" | "custom";
+  period?: "today" | "this_week" | "this_month" | "this_year" | "all_time" | "custom";
   startDate?: string;
   endDate?: string;
 }

@@ -423,6 +423,9 @@ export class DashboardService {
     } else if (period === "this_year") {
       start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
       end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    } else if (period === "all_time") {
+      start = new Date(0);
+      end = new Date(now.getFullYear() + 20, 11, 31, 23, 59, 59, 999);
     } else if (period === "custom" && startDateStr && endDateStr) {
       start = new Date(startDateStr);
       start.setHours(0, 0, 0, 0);

@@ -37,7 +37,7 @@ const DEFAULT_SETTINGS = {
     quoteDefaultNotes: "Standard structural design work quotation.",
     quoteDefaultDiscount: 0,
     quoteCurrencySymbol: "₹",
-    quoteNumberFormat: "QTN-{YYYY}-{NNN}",
+    quoteNumberFormat: "QTN-{YYYY}-{MM}-{DD}-{NNN}",
     quoteTaxDisplay: "GST_BREAKUP",
     quotePdfHeaderFooter: {},
     notificationReminderTime: "09:00",

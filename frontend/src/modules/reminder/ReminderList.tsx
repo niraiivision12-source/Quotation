@@ -89,7 +89,7 @@ function isOverdue(r: Reminder) {
   return r.status === "PENDING" && new Date(r.dueAt) < new Date();
 }
 
-function formatDue(dueAt: string) {
+function formatDue(dueAt: string, status?: string) {
   const d = new Date(dueAt);
   const now = new Date();
   const diffMs = d.getTime() - now.getTime();
@@ -99,7 +99,8 @@ function formatDue(dueAt: string) {
 
   if (diffMs < 0) {
     const d2 = Math.floor(-diffMs / (1000 * 60 * 60 * 24));
-    return { label: d2 === 0 ? "Overdue today" : `Overdue ${d2}d`, sub: dateStr + " " + timeStr, urgent: true };
+    const isPending = !status || status === "PENDING";
+    return { label: isPending ? (d2 === 0 ? "Overdue today" : `Overdue ${d2}d`) : (dateStr + " " + timeStr), sub: dateStr + " " + timeStr, urgent: isPending };
   }
   if (diffDays === 0) return { label: "Today", sub: timeStr, urgent: true };
   if (diffDays === 1) return { label: "Tomorrow", sub: dateStr + " " + timeStr, urgent: false };
@@ -415,7 +416,7 @@ function MobileReminderCard({
   onDelete: (id: string) => void;
 }) {
   const overdue = isOverdue(reminder);
-  const due = formatDue(reminder.dueAt);
+  const due = formatDue(reminder.dueAt, reminder.status);
 
   return (
     <div className={`bg-white rounded-xl border p-4 space-y-3 ${overdue ? "border-l-4 border-l-red-400" : ""}`}>
@@ -605,7 +606,7 @@ export default function ReminderList() {
             ) : (
               reminders.map((r) => {
                 const overdue = isOverdue(r);
-                const due = formatDue(r.dueAt);
+                const due = formatDue(r.dueAt, r.status);
                 return (
                   <TableRow key={r.id} className={overdue ? "bg-red-50/40" : ""}>
                     <TableCell className="py-3 max-w-xs">

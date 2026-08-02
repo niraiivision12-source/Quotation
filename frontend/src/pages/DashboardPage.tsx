@@ -17,13 +17,13 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-type PeriodType = "today" | "this_week" | "this_month" | "this_year" | "custom";
+type PeriodType = "today" | "this_week" | "this_month" | "this_year" | "all_time" | "custom";
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const role = user?.role || "SALESMAN";
 
-  const [period, setPeriod] = useState<PeriodType>("this_month");
+  const [period, setPeriod] = useState<PeriodType>("all_time");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
@@ -135,7 +135,7 @@ export default function DashboardPage() {
         {/* Date Filter Bar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="inline-flex rounded-lg border border-foreground/10 p-0.5 bg-muted/20">
-            {(["today", "this_week", "this_month", "this_year", "custom"] as const).map((p) => (
+            {(["today", "this_week", "this_month", "this_year", "all_time", "custom"] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => handlePeriodChange(p)}
@@ -151,6 +151,8 @@ export default function DashboardPage() {
                   ? "This Month"
                   : p === "this_year"
                   ? "This Year"
+                  : p === "all_time"
+                  ? "All Time"
                   : p.charAt(0).toUpperCase() + p.slice(1)}
               </button>
             ))}
