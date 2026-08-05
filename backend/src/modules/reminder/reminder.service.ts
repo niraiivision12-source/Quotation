@@ -7,6 +7,7 @@ import {
   ReminderStatus,
   ReminderType,
 } from "@prisma/client";
+import { OpportunityService } from "../opportunity/opportunity.service";
 
 async function updateOpportunityNextFollowUp(tx: Prisma.TransactionClient, opportunityId: string) {
   const nextReminder = await tx.reminder.findFirst({
@@ -107,7 +108,18 @@ export class ReminderService {
 
     const where: Prisma.ReminderWhereInput = {};
     if (userRole !== "OWNER") {
-      where.userId = userId;
+      const assignedCats = await OpportunityService.getAssignedCategories(userId);
+      where.OR = [
+        { userId: userId },
+        {
+          opportunity: {
+            OR: [
+              { category: { in: assignedCats } },
+              { assignedToId: userId },
+            ],
+          },
+        },
+      ];
     }
     if (opportunityId) {
       where.opportunityId = opportunityId;

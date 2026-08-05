@@ -92,6 +92,7 @@ export default function EnquiryInbox() {
   const [isTriageOpen, setIsTriageOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("PIPES");
   const [triageNotes, setTriageNotes] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [settings, setSettings] = useState<any>(null);
 
   // Manual create enquiry state
@@ -325,11 +326,13 @@ export default function EnquiryInbox() {
         id: selectedEnquiryId,
         category: selectedCategory,
         notes: triageNotes.trim() || undefined,
+        projectName: projectName.trim() || undefined,
       });
       toast.success("Enquiry triaged and moved to pipeline successfully!");
       setIsTriageOpen(false);
       setSelectedEnquiryId(null);
       setTriageNotes("");
+      setProjectName("");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to triage enquiry");
     }
@@ -361,6 +364,8 @@ export default function EnquiryInbox() {
     setSelectedEnquiryId(id);
     setSelectedCategory("PIPES");
     setTriageNotes("");
+    const enquiry = enquiriesData?.items.find((e) => e.id === id);
+    setProjectName(enquiry?.name || "");
     setIsTriageOpen(true);
   };
 
@@ -1066,6 +1071,16 @@ export default function EnquiryInbox() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Project Name</label>
+              <Input
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                placeholder="Enter project name..."
+                className="h-9"
+              />
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Category</label>
               <select

@@ -27,6 +27,7 @@ import {
 import { createLead, getLeadById, updateLead } from "../../lead/lead.api";
 
 import { getCustomers, getLeads, getProjects } from "../quotation.api";
+import { getProjectById } from "../../project/project.api";
 
 interface Props {
   quotationType: "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER";
@@ -269,6 +270,45 @@ export default function QuotationInfoCard({
 
     loadCustomerDetails();
   }, [customerId, onPreviewDetailsChange, quotationType]);
+
+  const loadedProjectIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!projectId || loadedProjectIdRef.current === projectId) return;
+
+    async function loadProjectDetails() {
+      try {
+        const project = await getProjectById(projectId as string);
+        if (project) {
+          loadedProjectIdRef.current = projectId || null;
+          if (project.customerId && project.customerId !== customerId) {
+            onCustomerChange(project.customerId as string);
+          }
+
+          setProjects((prev) => {
+            if (prev.some((p) => p.id === project.id)) return prev;
+            return [
+              ...prev,
+              {
+                id: project.id,
+                projectName: project.projectName,
+                currentPhase: project.currentPhase,
+              },
+            ];
+          });
+
+          onPreviewDetailsChange?.({
+            targetName: project.customer?.name,
+            projectName: project.projectName,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load project details by ID:", error);
+      }
+    }
+
+    loadProjectDetails();
+  }, [projectId, customerId, onCustomerChange, onPreviewDetailsChange]);
 
   useEffect(() => {
     if (quotationType !== "CUSTOMER") return;

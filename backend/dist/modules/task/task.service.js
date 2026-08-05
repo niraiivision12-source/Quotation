@@ -47,6 +47,9 @@ class TaskService {
             ...(filters.paymentId && {
                 paymentId: filters.paymentId,
             }),
+            ...(filters.opportunityId && {
+                opportunityId: filters.opportunityId,
+            }),
             ...(filters.search && {
                 OR: [
                     { title: { contains: filters.search, mode: "insensitive" } },
@@ -103,6 +106,12 @@ class TaskService {
                             },
                         },
                     },
+                    opportunity: {
+                        select: {
+                            id: true,
+                            category: true,
+                        },
+                    },
                 },
                 orderBy: {
                     [sortBy]: sortOrder,
@@ -138,6 +147,12 @@ class TaskService {
                 lead: true,
                 customer: true,
                 project: true,
+                opportunity: {
+                    select: {
+                        id: true,
+                        category: true,
+                    },
+                },
             },
         });
         if (!task) {

@@ -19,6 +19,7 @@ import { useLeads } from "../lead/lead.query";
 import { useCustomers } from "../customer/customer.query";
 import { useProjects } from "../project/project.query";
 import { usePayments } from "../payment/payment.query";
+import { useOpportunities } from "../opportunity/opportunity.query";
 
 const schema = z.object({
   title: z.string().min(2, "Title is required"),
@@ -41,13 +42,14 @@ export default function TaskForm({ onSuccess, leadId, customerId, projectId }: P
   const mutation = useCreateTask();
   const { data: usersData } = useUsers(1);
 
-  const [linkType, setLinkType] = useState<"none" | "lead" | "customer" | "project" | "payment">("none");
+  const [linkType, setLinkType] = useState<"none" | "lead" | "customer" | "project" | "payment" | "opportunity">("none");
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
 
   const { data: leadsData } = useLeads(1, "");
   const { data: customersData } = useCustomers(1, "");
   const { data: projectsData } = useProjects(1, "");
   const { data: paymentsData } = usePayments({ page: 1, limit: 100 });
+  const { data: opportunitiesData } = useOpportunities(1, "");
 
   const showSelectors = !leadId && !customerId && !projectId;
 
@@ -64,6 +66,7 @@ export default function TaskForm({ onSuccess, leadId, customerId, projectId }: P
       customerId: customerId || (linkType === "customer" ? selectedEntityId : undefined),
       projectId: projectId || (linkType === "project" ? selectedEntityId : undefined),
       paymentId: linkType === "payment" ? selectedEntityId : undefined,
+      opportunityId: linkType === "opportunity" ? selectedEntityId : undefined,
     });
     form.reset({ priority: "MEDIUM" });
     onSuccess?.();
@@ -142,6 +145,7 @@ export default function TaskForm({ onSuccess, leadId, customerId, projectId }: P
                 <SelectItem value="customer">Customer</SelectItem>
                 <SelectItem value="project">Project</SelectItem>
                 <SelectItem value="payment">Payment</SelectItem>
+                <SelectItem value="opportunity">Opportunity</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -176,6 +180,12 @@ export default function TaskForm({ onSuccess, leadId, customerId, projectId }: P
                     (paymentsData?.data?.items || paymentsData?.items || []).map((p: any) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.billNumber} / {p.project?.projectName || "—"}
+                      </SelectItem>
+                    ))}
+                  {linkType === "opportunity" &&
+                    (opportunitiesData?.items || []).map((o: any) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        {o.customer?.name || "No Customer"} - {o.category} ({o.status})
                       </SelectItem>
                     ))}
                 </SelectContent>

@@ -70,6 +70,18 @@ class OpportunityService {
                         name: true,
                     },
                 },
+                project: {
+                    select: {
+                        id: true,
+                        projectName: true,
+                    },
+                },
+                quotations: {
+                    select: {
+                        id: true,
+                        status: true,
+                    },
+                },
             },
             orderBy: [
                 { createdAt: "asc" }, // FIFO default
@@ -118,6 +130,7 @@ class OpportunityService {
                         payments: true,
                     },
                 },
+                project: true,
                 assignedTo: {
                     select: {
                         id: true,
@@ -172,14 +185,40 @@ class OpportunityService {
         if (userRole !== client_1.UserRole.OWNER) {
             const assignedCats = await this.getAssignedCategories(userId);
             const isAssignedCat = assignedCats.includes(opportunity.category);
-            const isAssignedUser = opportunity.assignedToId === userId;
-            if (!isAssignedCat && !isAssignedUser) {
+            if (!isAssignedCat) {
                 throw new app_error_1.AppError("You do not have permission to edit this opportunity", 403);
             }
         }
         return prisma_1.prisma.$transaction(async (tx) => {
             const originalStatus = opportunity.status;
             const newStatus = data.status ?? originalStatus;
+            if (originalStatus !== newStatus && (newStatus === client_1.OpportunityStatus.WON || newStatus === client_1.OpportunityStatus.LOST)) {
+                if (!data.followUp || !data.followUp.dueAt) {
+                    throw new app_error_1.AppError("Follow-up is required when marking an opportunity as Won or Lost", 400);
+                }
+                if (newStatus === client_1.OpportunityStatus.LOST && (!data.lostReason || !data.lostReason.trim())) {
+                    throw new app_error_1.AppError("Lost reason is required when marking an opportunity as Lost", 400);
+                }
+                if (!data.nextPhase) {
+                    throw new app_error_1.AppError("Next phase is required when marking an opportunity as Won or Lost", 400);
+                }
+                // Prevent duplicate follow-ups by removing existing pending reminders
+                await tx.reminder.deleteMany({
+                    where: {
+                        opportunityId: id,
+                        status: "PENDING",
+                    },
+                });
+            }
+            // Enforce business rules: status can only be QUOTATION_SENT if at least one quotation exists.
+            if (newStatus === client_1.OpportunityStatus.QUOTATION_SENT) {
+                const quotesCount = await tx.quotation.count({
+                    where: { opportunityId: id },
+                });
+                if (quotesCount === 0) {
+                    throw new app_error_1.AppError("Opportunity status cannot be set to Quote Sent because no quotations exist for this opportunity.", 400);
+                }
+            }
             // 1. Update opportunity
             const updatedOpportunity = await tx.opportunity.update({
                 where: { id },
@@ -189,8 +228,63 @@ class OpportunityService {
                     assignedToId: data.assignedToId !== undefined ? data.assignedToId : undefined,
                     nextFollowUpAt: data.nextFollowUpAt !== undefined ? data.nextFollowUpAt : undefined,
                     lostReason: newStatus === client_1.OpportunityStatus.LOST ? data.lostReason : null,
+                    projectId: data.projectId !== undefined ? data.projectId : undefined,
+                    nextPhase: (newStatus === client_1.OpportunityStatus.WON || newStatus === client_1.OpportunityStatus.LOST) ? data.nextPhase : null,
                 },
             });
+            // Handle lifecycle progression if transitioned to WON or LOST
+            if (originalStatus !== newStatus && (newStatus === client_1.OpportunityStatus.WON || newStatus === client_1.OpportunityStatus.LOST)) {
+                if (data.nextPhase) {
+                    // A. Update linked project current phase
+                    if (opportunity.projectId) {
+                        await tx.project.update({
+                            where: { id: opportunity.projectId },
+                            data: {
+                                currentPhase: data.nextPhase,
+                            },
+                        });
+                        await tx.projectActivity.create({
+                            data: {
+                                projectId: opportunity.projectId,
+                                userId,
+                                type: "PHASE_PROGRESSED",
+                                message: `Project progressed to phase ${data.nextPhase} upon opportunity ${newStatus.toLowerCase()}`,
+                            },
+                        });
+                    }
+                    // B. Progress/Create opportunity for the next category
+                    const nextCategory = this.mapPhaseToCategory(data.nextPhase);
+                    const existingNextOpp = await tx.opportunity.findFirst({
+                        where: {
+                            customerId: opportunity.customerId,
+                            projectId: opportunity.projectId,
+                            category: nextCategory,
+                        },
+                    });
+                    if (existingNextOpp) {
+                        if (!existingNextOpp.isActive) {
+                            await tx.opportunity.update({
+                                where: { id: existingNextOpp.id },
+                                data: { isActive: true },
+                            });
+                        }
+                    }
+                    else {
+                        await tx.opportunity.create({
+                            data: {
+                                customerId: opportunity.customerId,
+                                projectId: opportunity.projectId,
+                                category: nextCategory,
+                                status: client_1.OpportunityStatus.NEW,
+                                assignedToId: opportunity.assignedToId,
+                                estimatedValue: null,
+                                source: opportunity.source,
+                                isActive: true,
+                            },
+                        });
+                    }
+                }
+            }
             // 2. Log activity if status changed
             if (originalStatus !== newStatus) {
                 await tx.opportunityActivity.create({
@@ -349,6 +443,17 @@ class OpportunityService {
             counts[row.status] = row._count._all;
         }
         return counts;
+    }
+    static mapPhaseToCategory(phase) {
+        switch (phase) {
+            case client_1.ProjectPhase.PIPES: return client_1.ProductCategory.PIPES;
+            case client_1.ProjectPhase.WIRING: return client_1.ProductCategory.WIRES;
+            case client_1.ProjectPhase.SWITCHES: return client_1.ProductCategory.SWITCHES;
+            case client_1.ProjectPhase.LIGHTS: return client_1.ProductCategory.LIGHTS;
+            case client_1.ProjectPhase.FANS: return client_1.ProductCategory.FANS;
+            case client_1.ProjectPhase.OTHERS: return client_1.ProductCategory.OTHERS;
+            default: return client_1.ProductCategory.OTHERS;
+        }
     }
 }
 exports.OpportunityService = OpportunityService;

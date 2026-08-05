@@ -48,6 +48,7 @@ import { useLeads } from "../lead/lead.query";
 import { useCustomers } from "../customer/customer.query";
 import { useProjects } from "../project/project.query";
 import { usePayments } from "../payment/payment.query";
+import { useOpportunities } from "../opportunity/opportunity.query";
 
 import {
   useCompleteReminder,
@@ -79,9 +80,10 @@ const TYPE_STYLES: Record<ReminderType, string> = {
   QUOTATION: "bg-orange-100 text-orange-700",
   TASK: "bg-gray-100 text-gray-600",
   PAYMENT: "bg-teal-100 text-teal-700",
+  OPPORTUNITY: "bg-rose-100 text-rose-700",
 };
 
-const TYPES: ReminderType[] = ["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK", "PAYMENT"];
+const TYPES: ReminderType[] = ["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK", "PAYMENT", "OPPORTUNITY"];
 const PRIORITIES: ReminderPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const STATUSES: ReminderStatus[] = ["PENDING", "COMPLETED", "MISSED", "CANCELLED"];
 
@@ -111,7 +113,7 @@ function formatDue(dueAt: string, status?: string) {
 const reminderSchema = z.object({
   title: z.string().min(2, "Title required"),
   description: z.string().optional(),
-  type: z.enum(["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK", "PAYMENT"]),
+  type: z.enum(["LEAD", "PROJECT", "CUSTOMER", "QUOTATION", "TASK", "PAYMENT", "OPPORTUNITY"]),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
   dueAt: z.string().min(1, "Due date required"),
   repeatType: z.enum(["NONE", "DAILY", "WEEKLY", "MONTHLY"]).optional(),
@@ -119,6 +121,7 @@ const reminderSchema = z.object({
   customerId: z.string().optional(),
   projectId: z.string().optional(),
   paymentId: z.string().optional(),
+  opportunityId: z.string().optional(),
 });
 type ReminderFormData = z.infer<typeof reminderSchema>;
 
@@ -158,6 +161,7 @@ function EditReminderForm({ reminder, onSuccess }: { reminder: Reminder; onSucce
       customerId: reminder.customerId ?? "",
       projectId: reminder.projectId ?? "",
       paymentId: reminder.paymentId ?? "",
+      opportunityId: reminder.opportunityId ?? "",
     },
   });
 
@@ -173,6 +177,7 @@ function EditReminderForm({ reminder, onSuccess }: { reminder: Reminder; onSucce
       customerId: reminder.customerId ?? "",
       projectId: reminder.projectId ?? "",
       paymentId: reminder.paymentId ?? "",
+      opportunityId: reminder.opportunityId ?? "",
     });
   }, [reminder.id]);
 
@@ -208,6 +213,7 @@ function ReminderFormFields({
   const { data: customersData } = useCustomers(1, "");
   const { data: projectsData } = useProjects(1, "");
   const { data: paymentsData } = usePayments({ page: 1, limit: 100 });
+  const { data: opportunitiesData } = useOpportunities(1, "");
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -231,6 +237,7 @@ function ReminderFormFields({
               form.setValue("customerId", "");
               form.setValue("projectId", "");
               form.setValue("paymentId", "");
+              form.setValue("opportunityId", "");
             }}
           >
             <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
@@ -326,6 +333,21 @@ function ReminderFormFields({
           </Select>
         </div>
       )}
+      {selectedType === "OPPORTUNITY" && (
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Select Opportunity *</label>
+          <Select value={form.watch("opportunityId") || ""} onValueChange={(v) => form.setValue("opportunityId", v)}>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Select Opportunity" /></SelectTrigger>
+            <SelectContent>
+              {(opportunitiesData?.items || []).map((o: any) => (
+                <SelectItem key={o.id} value={o.id}>
+                  {o.customer?.name || "No Customer"} - {o.category} ({o.status})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <Button type="submit" disabled={isPending} className="w-full">
         {isPending ? "Saving..." : label}
@@ -398,6 +420,13 @@ function LinkedTo({ reminder }: { reminder: Reminder }) {
     return (
       <Link to={`/payments?search=${reminder.payment.billNumber}`} className="text-xs text-blue-600 hover:underline">
         Payment: {reminder.payment.billNumber} / {projName}
+      </Link>
+    );
+  }
+  if (reminder.opportunity) {
+    return (
+      <Link to={`/opportunities/${reminder.opportunity.id}`} className="text-xs text-blue-600 hover:underline">
+        Opportunity: {reminder.opportunity.category}
       </Link>
     );
   }

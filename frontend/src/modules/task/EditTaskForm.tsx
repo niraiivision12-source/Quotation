@@ -20,6 +20,7 @@ import { useLeads } from "../lead/lead.query";
 import { useCustomers } from "../customer/customer.query";
 import { useProjects } from "../project/project.query";
 import { usePayments } from "../payment/payment.query";
+import { useOpportunities } from "../opportunity/opportunity.query";
 
 const schema = z.object({
   title: z.string().min(2, "Title is required"),
@@ -36,23 +37,26 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
   const mutation = useUpdateTask();
   const { data: usersData } = useUsers(1);
 
-  const [linkType, setLinkType] = useState<"none" | "lead" | "customer" | "project" | "payment">(
+  const [linkType, setLinkType] = useState<"none" | "lead" | "customer" | "project" | "payment" | "opportunity">(
     task.lead ? "lead" :
     task.customer ? "customer" :
     task.project ? "project" :
-    task.payment ? "payment" : "none"
+    task.payment ? "payment" :
+    task.opportunity ? "opportunity" : "none"
   );
   const [selectedEntityId, setSelectedEntityId] = useState<string>(
     task.lead?.id ||
     task.customer?.id ||
     task.project?.id ||
-    task.payment?.id || ""
+    task.payment?.id ||
+    task.opportunity?.id || ""
   );
 
   const { data: leadsData } = useLeads(1, "");
   const { data: customersData } = useCustomers(1, "");
   const { data: projectsData } = useProjects(1, "");
   const { data: paymentsData } = usePayments({ page: 1, limit: 100 });
+  const { data: opportunitiesData } = useOpportunities(1, "");
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -79,13 +83,15 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
       task.lead ? "lead" :
       task.customer ? "customer" :
       task.project ? "project" :
-      task.payment ? "payment" : "none"
+      task.payment ? "payment" :
+      task.opportunity ? "opportunity" : "none"
     );
     setSelectedEntityId(
       task.lead?.id ||
       task.customer?.id ||
       task.project?.id ||
-      task.payment?.id || ""
+      task.payment?.id ||
+      task.opportunity?.id || ""
     );
   }, [task]);
 
@@ -100,6 +106,7 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
         customerId: linkType === "customer" ? selectedEntityId : null,
         projectId: linkType === "project" ? selectedEntityId : null,
         paymentId: linkType === "payment" ? selectedEntityId : null,
+        opportunityId: linkType === "opportunity" ? selectedEntityId : null,
       },
     });
     onSuccess?.();
@@ -195,6 +202,7 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
               <SelectItem value="customer">Customer</SelectItem>
               <SelectItem value="project">Project</SelectItem>
               <SelectItem value="payment">Payment</SelectItem>
+              <SelectItem value="opportunity">Opportunity</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -229,6 +237,12 @@ export default function EditTaskForm({ task, onSuccess }: { task: Task; onSucces
                   (paymentsData?.data?.items || paymentsData?.items || []).map((p: any) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.billNumber} / {p.project?.projectName || "—"}
+                    </SelectItem>
+                  ))}
+                {linkType === "opportunity" &&
+                  (opportunitiesData?.items || []).map((o: any) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.customer?.name || "No Customer"} - {o.category} ({o.status})
                     </SelectItem>
                   ))}
               </SelectContent>

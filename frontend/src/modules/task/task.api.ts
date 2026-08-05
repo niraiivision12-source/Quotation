@@ -13,6 +13,7 @@ export const getTasks = async (
     customerId?: string;
     projectId?: string;
     paymentId?: string;
+    opportunityId?: string;
     search?: string;
     sortBy?: string;
     sortOrder?: string;
@@ -39,6 +40,7 @@ export const createTask = async (data: {
   customerId?: string;
   projectId?: string;
   paymentId?: string;
+  opportunityId?: string;
 }) => {
   const response = await api.post("/tasks", data);
   return response.data.data;
@@ -57,6 +59,7 @@ export const updateTask = async (
     customerId?: string | null;
     projectId?: string | null;
     paymentId?: string | null;
+    opportunityId?: string | null;
   },
 ) => {
   const response = await api.patch(`/tasks/${id}`, data);

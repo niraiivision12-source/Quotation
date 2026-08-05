@@ -37,9 +37,14 @@ export const createEnquiry = async (data: {
 export const triageEnquiry = async (
   id: string,
   category: string,
-  notes?: string
+  notes?: string,
+  projectName?: string
 ): Promise<{ enquiry: Enquiry; customer: any; opportunity: any }> => {
-  const response = await api.post(`/enquiries/${id}/triage`, { category, notes: notes || null });
+  const response = await api.post(`/enquiries/${id}/triage`, {
+    category,
+    notes: notes || null,
+    projectName: projectName || null,
+  });
   return response.data.data;
 };
 

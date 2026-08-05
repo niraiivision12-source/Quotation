@@ -35,7 +35,7 @@ export default function QuotationPageMain() {
 
   const [quotationType, setQuotationType] = useState<
     "LEAD" | "CUSTOMER" | "WALK_IN_CUSTOMER"
-  >(() => (searchParams.get("customerId") ? "CUSTOMER" : "LEAD"));
+  >(() => (searchParams.get("customerId") || searchParams.get("projectId") ? "CUSTOMER" : "LEAD"));
   const [leadId, setLeadId] = useState(() => searchParams.get("leadId") ?? "");
   const [customerId, setCustomerId] = useState(() => searchParams.get("customerId") ?? "");
   const [projectId, setProjectId] = useState(() => searchParams.get("projectId") ?? "");
@@ -44,6 +44,18 @@ export default function QuotationPageMain() {
     const p = searchParams.get("phase");
     return p ? (p as ProjectPhase) : undefined;
   });
+
+  const handleCustomerChange = useCallback((id: string) => {
+    setCustomerId(id);
+    setProjectId("");
+    setOpportunityId("");
+    setPhase(undefined);
+  }, []);
+
+  const handleProjectChange = useCallback((id: string) => {
+    setProjectId(id);
+    setOpportunityId("");
+  }, []);
   const [validUntil, setValidUntil] = useState("");
   const [notes, setNotes] = useState("");
   const [walkInName, setWalkInName] = useState("");
@@ -370,8 +382,8 @@ export default function QuotationPageMain() {
             walkInEmail={walkInEmail}
             walkInAddress={walkInAddress}
             onLeadChange={setLeadId}
-            onCustomerChange={setCustomerId}
-            onProjectChange={setProjectId}
+            onCustomerChange={handleCustomerChange}
+            onProjectChange={handleProjectChange}
             onPhaseChange={(value) => setPhase(value as ProjectPhase)}
             onValidUntilChange={setValidUntil}
             onNotesChange={setNotes}

@@ -5,7 +5,8 @@ export type ReminderType =
   | "CUSTOMER"
   | "QUOTATION"
   | "TASK"
-  | "PAYMENT";
+  | "PAYMENT"
+  | "OPPORTUNITY";
 export type ReminderPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type ReminderRepeatType = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
 
@@ -45,10 +46,12 @@ export interface Reminder {
   customerId?: string | null;
   projectId?: string | null;
   paymentId?: string | null;
+  opportunityId?: string | null;
   lead?: ReminderLead | null;
   customer?: { id: string; name: string } | null;
   project?: { id: string; projectName: string } | null;
   payment?: { id: string; billNumber: string; project?: { projectName: string } | null } | null;
+  opportunity?: { id: string; category: string } | null;
   user?: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
@@ -72,4 +75,5 @@ export interface CreateReminderInput {
   customerId?: string;
   projectId?: string;
   paymentId?: string;
+  opportunityId?: string;
 }

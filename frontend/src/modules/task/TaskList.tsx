@@ -112,6 +112,13 @@ function LinkedTo({ task }: { task: Task }) {
       </Link>
     );
   }
+  if (task.opportunity) {
+    return (
+      <Link to={`/opportunities/${task.opportunity.id}`} className="text-xs text-blue-600 hover:underline">
+        Opportunity: {task.opportunity.category}
+      </Link>
+    );
+  }
   return <span className="text-xs text-muted-foreground">—</span>;
 }
 

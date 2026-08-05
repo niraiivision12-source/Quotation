@@ -16,6 +16,8 @@ export interface Task {
   customer?: { id: string; name: string } | null;
   project?: { id: string; projectName: string } | null;
   payment?: { id: string; billNumber: string; project?: { projectName: string } | null } | null;
+  opportunityId?: string | null;
+  opportunity?: { id: string; category: string } | null;
 }
 
 export interface TaskListResponse {

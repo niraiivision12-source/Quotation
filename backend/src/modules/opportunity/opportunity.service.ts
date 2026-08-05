@@ -235,9 +235,8 @@ export class OpportunityService {
     if (userRole !== UserRole.OWNER) {
       const assignedCats = await this.getAssignedCategories(userId);
       const isAssignedCat = assignedCats.includes(opportunity.category);
-      const isAssignedUser = opportunity.assignedToId === userId;
 
-      if (!isAssignedCat && !isAssignedUser) {
+      if (!isAssignedCat) {
         throw new AppError("You do not have permission to edit this opportunity", 403);
       }
     }

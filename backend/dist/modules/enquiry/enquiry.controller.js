@@ -36,8 +36,8 @@ class EnquiryController {
     }
     static async triage(req, res) {
         const { id } = req.params;
-        const { category, notes } = enquiry_validation_1.triageEnquirySchema.parse(req.body);
-        const result = await enquiry_service_1.EnquiryService.triage(id, category, notes);
+        const { category, notes, projectName } = enquiry_validation_1.triageEnquirySchema.parse(req.body);
+        const result = await enquiry_service_1.EnquiryService.triage(id, category, notes, projectName);
         return res.status(200).json({
             success: true,
             message: "Enquiry triaged successfully",

@@ -1,6 +1,6 @@
 import { prisma } from "../../config/prisma";
 import { AppError } from "../../utils/app-error";
-import { EnquiryStatus, OpportunityStatus, ProductCategory } from "@prisma/client";
+import { EnquiryStatus, OpportunityStatus, ProductCategory, ProjectPhase, LifecycleStatus } from "@prisma/client";
 
 export class EnquiryService {
   static async checkMobileExists(mobile: string) {
@@ -99,7 +99,7 @@ export class EnquiryService {
     return { items, total, page, limit };
   }
 
-  static async triage(id: string, category: ProductCategory, notes?: string | null) {
+  static async triage(id: string, category: ProductCategory, notes?: string | null, projectName?: string | null) {
     const enquiry = await prisma.enquiry.findUnique({
       where: { id },
     });
@@ -111,6 +111,24 @@ export class EnquiryService {
     if (enquiry.status !== EnquiryStatus.PENDING) {
       throw new AppError("Enquiry has already been triaged or ignored", 400);
     }
+
+    const mapCategoryToPhase = (cat: ProductCategory): ProjectPhase => {
+      switch (cat) {
+        case ProductCategory.PIPES:
+          return ProjectPhase.PIPES;
+        case ProductCategory.WIRES:
+          return ProjectPhase.WIRING;
+        case ProductCategory.SWITCHES:
+          return ProjectPhase.SWITCHES;
+        case ProductCategory.LIGHTS:
+          return ProjectPhase.LIGHTS;
+        case ProductCategory.FANS:
+          return ProjectPhase.FANS;
+        case ProductCategory.OTHERS:
+        default:
+          return ProjectPhase.OTHERS;
+      }
+    };
 
     return prisma.$transaction(async (tx) => {
       // 1. Update Enquiry status and category
@@ -180,10 +198,96 @@ export class EnquiryService {
         assignedToId = owner?.id || null;
       }
 
+      // Create or Update Project
+      const resolvedProjectName = projectName?.trim() || enquiry.name;
+      let project = await tx.project.findFirst({
+        where: { customerId: customer.id, projectName: resolvedProjectName, isActive: true },
+      });
+
+      if (!project) {
+        project = await tx.project.create({
+          data: {
+            customerId: customer.id,
+            projectName: resolvedProjectName,
+            currentPhase: mapCategoryToPhase(category),
+            assignedToId,
+          },
+        });
+
+        // Initialize project phase tracking
+        const phases = [
+          ProjectPhase.PIPES,
+          ProjectPhase.WIRING,
+          ProjectPhase.SWITCHES,
+          ProjectPhase.LIGHTS,
+          ProjectPhase.FANS,
+          ProjectPhase.OTHERS,
+        ];
+        const selectedPhase = mapCategoryToPhase(category);
+        const selectedIndex = phases.indexOf(selectedPhase);
+        const phaseTrackings = [];
+
+        for (let i = 0; i < phases.length; i++) {
+          const phase = phases[i];
+          let phaseAssignedToId: string | null = null;
+
+          if (settings?.projectAssignmentMethod === "PHASE_BASED") {
+            const phaseAssignment = (settings.projectPhaseAssignment as Record<string, string>) || {};
+            const salesmanId = phaseAssignment[phase];
+            if (salesmanId) {
+              phaseAssignedToId = salesmanId;
+            }
+          }
+
+          let status: LifecycleStatus = LifecycleStatus.NOT_STARTED;
+          let startedAt: Date | null = null;
+          let completedAt: Date | null = null;
+
+          if (i < selectedIndex) {
+            status = LifecycleStatus.COMPLETED;
+            startedAt = new Date();
+            completedAt = new Date();
+          } else if (i === selectedIndex) {
+            status = LifecycleStatus.IN_PROGRESS;
+            startedAt = new Date();
+          }
+
+          phaseTrackings.push({
+            projectId: project.id,
+            phase,
+            status,
+            startedAt,
+            completedAt,
+            assignedToId: phaseAssignedToId,
+          });
+        }
+
+        await tx.projectPhaseTracking.createMany({
+          data: phaseTrackings,
+        });
+
+        await tx.projectActivity.create({
+          data: {
+            projectId: project.id,
+            type: "CREATED",
+            message: "Project created automatically from enquiry triage",
+          },
+        });
+      } else {
+        project = await tx.project.update({
+          where: { id: project.id },
+          data: {
+            currentPhase: mapCategoryToPhase(category),
+            assignedToId,
+          },
+        });
+      }
+
       // 4. Create Opportunity
       const opportunity = await tx.opportunity.create({
         data: {
           customerId: customer.id,
+          projectId: project.id,
           category,
           status: OpportunityStatus.NEW,
           assignedToId,

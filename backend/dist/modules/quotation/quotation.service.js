@@ -381,6 +381,22 @@ class QuotationService {
                     },
                 });
             }
+            if (quotation.opportunityId) {
+                await tx.opportunity.update({
+                    where: { id: quotation.opportunityId },
+                    data: {
+                        status: client_1.OpportunityStatus.QUOTATION_SENT,
+                    },
+                });
+                await tx.opportunityActivity.create({
+                    data: {
+                        opportunityId: quotation.opportunityId,
+                        userId,
+                        type: "STATUS_CHANGED",
+                        message: `Opportunity status moved to QUOTATION_SENT automatically upon quotation creation`,
+                    },
+                });
+            }
             return quotation;
         });
     }
@@ -695,7 +711,40 @@ class QuotationService {
             if (quotation.opportunityId) {
                 let activityType = `QUOTATION_${status}`;
                 if (status === client_1.QuotationStatus.APPROVED) {
-                    await opportunity_service_1.OpportunityService.update(quotation.opportunityId, userId, user.role, { status: client_1.OpportunityStatus.WON });
+                    const currentPhase = quotation.phase;
+                    let nextPhase = client_1.ProjectPhase.WIRING;
+                    if (currentPhase) {
+                        switch (currentPhase) {
+                            case client_1.ProjectPhase.PIPES:
+                                nextPhase = client_1.ProjectPhase.WIRING;
+                                break;
+                            case client_1.ProjectPhase.WIRING:
+                                nextPhase = client_1.ProjectPhase.SWITCHES;
+                                break;
+                            case client_1.ProjectPhase.SWITCHES:
+                                nextPhase = client_1.ProjectPhase.LIGHTS;
+                                break;
+                            case client_1.ProjectPhase.LIGHTS:
+                                nextPhase = client_1.ProjectPhase.FANS;
+                                break;
+                            case client_1.ProjectPhase.FANS:
+                                nextPhase = client_1.ProjectPhase.OTHERS;
+                                break;
+                            case client_1.ProjectPhase.OTHERS:
+                                nextPhase = client_1.ProjectPhase.OTHERS;
+                                break;
+                        }
+                    }
+                    await opportunity_service_1.OpportunityService.update(quotation.opportunityId, userId, user.role, {
+                        status: client_1.OpportunityStatus.WON,
+                        nextPhase: nextPhase,
+                        followUp: {
+                            title: "Post-Sale Follow-up",
+                            description: `Automatically scheduled follow-up after quotation ${quotation.quotationNumber} approval.`,
+                            priority: "MEDIUM",
+                            dueAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days later
+                        }
+                    });
                 }
                 await tx.opportunityActivity.create({
                     data: {

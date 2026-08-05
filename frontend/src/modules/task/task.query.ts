@@ -21,6 +21,7 @@ export const useTasks = (
     customerId?: string;
     projectId?: string;
     paymentId?: string;
+    opportunityId?: string;
     search?: string;
     sortBy?: string;
     sortOrder?: string;

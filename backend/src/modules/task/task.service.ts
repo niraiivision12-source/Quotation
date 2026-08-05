@@ -17,6 +17,7 @@ export class TaskService {
       customerId?: string;
       projectId?: string;
       paymentId?: string;
+      opportunityId?: string;
     },
   ) {
     const assignedUser = await prisma.user.findUnique({
@@ -48,6 +49,7 @@ export class TaskService {
       customerId?: string;
       projectId?: string;
       paymentId?: string;
+      opportunityId?: string;
       search?: string;
       sortBy?: string;
       sortOrder?: "asc" | "desc";
@@ -87,6 +89,10 @@ export class TaskService {
 
       ...(filters.paymentId && {
         paymentId: filters.paymentId,
+      }),
+
+      ...(filters.opportunityId && {
+        opportunityId: filters.opportunityId,
       }),
 
       ...(filters.search && {
@@ -153,6 +159,13 @@ export class TaskService {
               },
             },
           },
+
+          opportunity: {
+            select: {
+              id: true,
+              category: true,
+            },
+          },
         },
 
         orderBy: {
@@ -197,6 +210,13 @@ export class TaskService {
         customer: true,
 
         project: true,
+
+        opportunity: {
+          select: {
+            id: true,
+            category: true,
+          },
+        },
       },
     });
 
@@ -228,6 +248,8 @@ export class TaskService {
       projectId?: string | null;
 
       paymentId?: string | null;
+
+      opportunityId?: string | null;
     },
   ) {
     const task = await prisma.task.findUnique({

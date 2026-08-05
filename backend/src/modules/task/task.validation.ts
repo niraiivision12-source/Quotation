@@ -20,6 +20,8 @@ export const createTaskSchema = z.object({
   projectId: z.uuid().optional(),
 
   paymentId: z.uuid().optional(),
+
+  opportunityId: z.string().uuid().optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -42,4 +44,6 @@ export const updateTaskSchema = z.object({
   projectId: z.uuid().optional().nullable(),
 
   paymentId: z.uuid().optional().nullable(),
+
+  opportunityId: z.string().uuid().optional().nullable(),
 });

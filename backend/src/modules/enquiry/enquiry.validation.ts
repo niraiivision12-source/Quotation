@@ -13,6 +13,7 @@ export const createEnquirySchema = z.object({
 export const triageEnquirySchema = z.object({
   category: z.nativeEnum(ProductCategory),
   notes: z.string().optional().nullable(),
+  projectName: z.string().optional().nullable(),
 });
 
 export const updateEnquirySchema = z.object({

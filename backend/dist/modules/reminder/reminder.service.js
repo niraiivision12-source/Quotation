@@ -4,6 +4,7 @@ exports.ReminderService = void 0;
 const prisma_1 = require("../../config/prisma");
 const app_error_1 = require("../../utils/app-error");
 const client_1 = require("@prisma/client");
+const opportunity_service_1 = require("../opportunity/opportunity.service");
 async function updateOpportunityNextFollowUp(tx, opportunityId) {
     const nextReminder = await tx.reminder.findFirst({
         where: {
@@ -77,7 +78,18 @@ class ReminderService {
         const skip = (page - 1) * limit;
         const where = {};
         if (userRole !== "OWNER") {
-            where.userId = userId;
+            const assignedCats = await opportunity_service_1.OpportunityService.getAssignedCategories(userId);
+            where.OR = [
+                { userId: userId },
+                {
+                    opportunity: {
+                        OR: [
+                            { category: { in: assignedCats } },
+                            { assignedToId: userId },
+                        ],
+                    },
+                },
+            ];
         }
         if (opportunityId) {
             where.opportunityId = opportunityId;

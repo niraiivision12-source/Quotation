@@ -13,7 +13,6 @@ import {
 } from "../../components/ui/dialog";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
   Calendar,
   LayoutGrid,
   Filter,
@@ -45,9 +44,6 @@ export default function PipelineBoard() {
 
   const [search, setSearch] = useState("");
   const [draggedOpp, setDraggedOpp] = useState<any>(null);
-  const [isLostReasonOpen, setIsLostReasonOpen] = useState(false);
-  const [lostReasonInput, setLostReasonInput] = useState("");
-  const [targetLostOppId, setTargetLostOppId] = useState<string | null>(null);
   const [isFollowUpOpen, setIsFollowUpOpen] = useState(false);
   const [followUpDateInput, setFollowUpDateInput] = useState("");
   const [targetNegotiationOppId, setTargetNegotiationOppId] = useState<string | null>(null);
@@ -186,7 +182,8 @@ const mapCategoryToPhase = (category: string): string => {
           console.error("Failed to load customer projects", err);
         }
       }
-      navigate(`/quotations?customerId=${currentOpp.customerId}&projectId=${resolvedProjectId}&opportunityId=${currentOpp.id}`);
+      const mappedPhase = mapCategoryToPhase(currentOpp.category);
+      navigate(`/quotations?customerId=${currentOpp.customerId}&projectId=${resolvedProjectId}&opportunityId=${currentOpp.id}&phase=${mappedPhase}`);
       return;
     }
 
