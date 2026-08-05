@@ -13,7 +13,6 @@ import {
 } from "../../components/ui/dialog";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
   Calendar,
   LayoutGrid,
   Filter,
@@ -45,9 +44,6 @@ export default function PipelineBoard() {
 
   const [search, setSearch] = useState("");
   const [draggedOpp, setDraggedOpp] = useState<any>(null);
-  const [isLostReasonOpen, setIsLostReasonOpen] = useState(false);
-  const [lostReasonInput, setLostReasonInput] = useState("");
-  const [targetLostOppId, setTargetLostOppId] = useState<string | null>(null);
   const [isFollowUpOpen, setIsFollowUpOpen] = useState(false);
   const [followUpDateInput, setFollowUpDateInput] = useState("");
   const [targetNegotiationOppId, setTargetNegotiationOppId] = useState<string | null>(null);
@@ -118,25 +114,6 @@ export default function PipelineBoard() {
     if (!isEditable) return;
     e.preventDefault();
   };
-
-const mapCategoryToPhase = (category: string): string => {
-  switch (category) {
-    case "PIPES":
-      return "PIPES";
-    case "WIRES":
-      return "WIRING";
-    case "SWITCHES":
-      return "SWITCHES";
-    case "LIGHTS":
-      return "LIGHTS";
-    case "FANS":
-      return "FANS";
-    case "OTHERS":
-      return "OTHERS";
-    default:
-      return "OTHERS";
-  }
-};
 
   const handleDrop = async (e: React.DragEvent, targetStatus: OpportunityStatus) => {
     e.preventDefault();

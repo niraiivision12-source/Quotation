@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.runMigration = runMigration;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 function mapLeadStatusToOpportunityStatus(status) {
@@ -174,6 +175,7 @@ async function runMigration() {
                 const opportunity = await tx.opportunity.create({
                     data: {
                         customerId: project.customerId,
+                        projectId: project.id,
                         category,
                         status: tracker.status === 'COMPLETED' ? client_1.OpportunityStatus.WON : client_1.OpportunityStatus.NEW,
                         assignedToId: tracker.assignedToId || project.assignedToId,
