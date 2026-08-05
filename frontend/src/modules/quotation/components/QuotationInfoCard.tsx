@@ -297,6 +297,16 @@ export default function QuotationInfoCard({
     selectedCustomer?.name,
   ]);
 
+  useEffect(() => {
+    if (quotationType === "CUSTOMER" && projectId && projects.length > 0) {
+      const match = projects.find((p) => p.id === projectId);
+      if (match && !phase) {
+        onPhaseChange(match.currentPhase);
+      }
+    }
+  }, [projectId, projects, phase, quotationType, onPhaseChange]);
+
+
   function updateDetailField(field: keyof DetailForm, value: string) {
     setDetailForm((prev) => ({ ...prev, [field]: value }));
   }

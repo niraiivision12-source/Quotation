@@ -41,7 +41,7 @@ function mapProjectPhaseToProductCategory(phase: string): ProductCategory {
   }
 }
 
-async function runMigration() {
+export async function runMigration() {
   console.log('Starting data migration to new Opportunity system...');
 
   await prisma.$transaction(async (tx) => {
@@ -197,6 +197,7 @@ async function runMigration() {
         const opportunity = await tx.opportunity.create({
           data: {
             customerId: project.customerId,
+            projectId: project.id,
             category,
             status: tracker.status === 'COMPLETED' ? OpportunityStatus.WON : OpportunityStatus.NEW,
             assignedToId: tracker.assignedToId || project.assignedToId,

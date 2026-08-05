@@ -20,6 +20,7 @@ import {
 } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { dummyProducts } from "./dummy-products";
+import { runMigration } from "../../src/scripts/data-migration";
 
 const prisma = new PrismaClient();
 
@@ -1152,7 +1153,9 @@ async function main() {
     });
   }
 
-  console.log("DB Seeding complete! Database is fully populated.");
+  console.log("DB Seeding complete! Database is seeded. Running data migration...");
+  await runMigration();
+  console.log("DB Seeding and Migration complete!");
 }
 
 main()

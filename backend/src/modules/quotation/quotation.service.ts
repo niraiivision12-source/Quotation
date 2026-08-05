@@ -463,6 +463,24 @@ export class QuotationService {
         });
       }
 
+      if (quotation.opportunityId) {
+        await tx.opportunity.update({
+          where: { id: quotation.opportunityId },
+          data: {
+            status: OpportunityStatus.QUOTATION_SENT,
+          },
+        });
+
+        await tx.opportunityActivity.create({
+          data: {
+            opportunityId: quotation.opportunityId,
+            userId,
+            type: "STATUS_CHANGED",
+            message: `Opportunity status moved to QUOTATION_SENT automatically upon quotation creation`,
+          },
+        });
+      }
+
       return quotation;
     });
   }
@@ -848,11 +866,33 @@ export class QuotationService {
         let activityType = `QUOTATION_${status}`;
 
         if (status === QuotationStatus.APPROVED) {
+          const currentPhase = quotation.phase as ProjectPhase | null;
+          let nextPhase: ProjectPhase = ProjectPhase.WIRING;
+          if (currentPhase) {
+            switch (currentPhase) {
+              case ProjectPhase.PIPES: nextPhase = ProjectPhase.WIRING; break;
+              case ProjectPhase.WIRING: nextPhase = ProjectPhase.SWITCHES; break;
+              case ProjectPhase.SWITCHES: nextPhase = ProjectPhase.LIGHTS; break;
+              case ProjectPhase.LIGHTS: nextPhase = ProjectPhase.FANS; break;
+              case ProjectPhase.FANS: nextPhase = ProjectPhase.OTHERS; break;
+              case ProjectPhase.OTHERS: nextPhase = ProjectPhase.OTHERS; break;
+            }
+          }
+
           await OpportunityService.update(
             quotation.opportunityId,
             userId,
             user.role,
-            { status: OpportunityStatus.WON }
+            {
+              status: OpportunityStatus.WON,
+              nextPhase: nextPhase,
+              followUp: {
+                title: "Post-Sale Follow-up",
+                description: `Automatically scheduled follow-up after quotation ${quotation.quotationNumber} approval.`,
+                priority: "MEDIUM",
+                dueAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days later
+              }
+            }
           );
         }
 

@@ -217,6 +217,7 @@ model Project {
   reminders          Reminder[]
   tasks              Task[]
   payments           Payment[]
+  opportunities      Opportunity[]
 
   @@index([customerId])
   @@index([assignedToId])
@@ -733,6 +734,7 @@ model Enquiry {
 model Opportunity {
   id             String            @id @default(uuid())
   customerId     String
+  projectId      String?
   category       ProductCategory
   status         OpportunityStatus @default(NEW)
   assignedToId   String?
@@ -740,11 +742,13 @@ model Opportunity {
   source         String?
   lostReason     String?
   nextFollowUpAt DateTime?
+  nextPhase      ProjectPhase?
   isActive       Boolean           @default(true)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   customer     Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project      Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   assignedTo   User?                @relation(fields: [assignedToId], references: [id])
   quotations   Quotation[]
   reminders    Reminder[]
@@ -753,6 +757,7 @@ model Opportunity {
   activities   OpportunityActivity[]
 
   @@index([customerId])
+  @@index([projectId])
   @@index([status])
   @@index([category])
   @@index([assignedToId])

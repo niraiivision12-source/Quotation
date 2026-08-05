@@ -55,6 +55,8 @@ export interface CreateQuotationDTO {
 
   projectId?: string;
 
+  opportunityId?: string;
+
   phase?: ProjectPhase | null;
 
   walkInName?: string;
@@ -100,6 +102,8 @@ export interface Quotation {
   customerId?: string;
 
   projectId?: string;
+
+  opportunityId?: string;
 
   phase?: ProjectPhase | null;
 

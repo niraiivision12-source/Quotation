@@ -38,8 +38,12 @@ export default function QuotationPageMain() {
   >(() => (searchParams.get("customerId") ? "CUSTOMER" : "LEAD"));
   const [leadId, setLeadId] = useState(() => searchParams.get("leadId") ?? "");
   const [customerId, setCustomerId] = useState(() => searchParams.get("customerId") ?? "");
-  const [projectId, setProjectId] = useState("");
-  const [phase, setPhase] = useState<ProjectPhase | undefined>();
+  const [projectId, setProjectId] = useState(() => searchParams.get("projectId") ?? "");
+  const [opportunityId, setOpportunityId] = useState(() => searchParams.get("opportunityId") ?? "");
+  const [phase, setPhase] = useState<ProjectPhase | undefined>(() => {
+    const p = searchParams.get("phase");
+    return p ? (p as ProjectPhase) : undefined;
+  });
   const [validUntil, setValidUntil] = useState("");
   const [notes, setNotes] = useState("");
   const [walkInName, setWalkInName] = useState("");
@@ -242,6 +246,7 @@ export default function QuotationPageMain() {
       leadId: quotationType === "LEAD" ? leadId : undefined,
       customerId: quotationType === "CUSTOMER" ? customerId : undefined,
       projectId: quotationType === "CUSTOMER" ? projectId : undefined,
+      opportunityId: (quotationType === "CUSTOMER" && opportunityId) ? opportunityId : undefined,
       phase: quotationType === "CUSTOMER" ? phase : undefined,
       walkInName: quotationType === "WALK_IN_CUSTOMER" ? walkInName : undefined,
       walkInMobile: quotationType === "WALK_IN_CUSTOMER" ? walkInMobile : undefined,
@@ -304,8 +309,10 @@ export default function QuotationPageMain() {
       });
       toast.success(parentQuotationId ? "New quotation version created" : "Quotation created");
       
-      if (previewPayload.projectId) {
-        navigate(`/projects/${previewPayload.projectId}`);
+      if (previewPayload.opportunityId) {
+        navigate(`/opportunities/${previewPayload.opportunityId}`);
+      } else if (previewPayload.projectId) {
+        navigate(`/pipelines`);
       } else if (previewPayload.leadId) {
         if (parentQuotationId) {
           navigate(`/leads/${previewPayload.leadId}`);

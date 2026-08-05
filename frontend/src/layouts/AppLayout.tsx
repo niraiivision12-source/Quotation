@@ -27,7 +27,7 @@ export default function AppLayout() {
         keys: "alt+j",
         description: "Go to Pipelines (Projects)",
         category: "Global Navigation",
-        action: () => navigate("/projects"),
+        action: () => navigate("/pipelines"),
       },
       {
         id: "nav-leads",

@@ -17,6 +17,8 @@ export type ProductCategory =
 export interface Opportunity {
   id: string;
   customerId: string;
+  projectId?: string | null;
+  project?: { id: string; projectName: string } | null;
   category: ProductCategory;
   status: OpportunityStatus;
   assignedToId?: string | null;

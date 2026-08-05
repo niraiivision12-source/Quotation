@@ -1,6 +1,6 @@
 import { prisma } from "../../config/prisma";
 import { AppError } from "../../utils/app-error";
-import { OpportunityStatus, ProductCategory, Prisma, UserRole } from "@prisma/client";
+import { OpportunityStatus, ProductCategory, Prisma, UserRole, ProjectPhase } from "@prisma/client";
 
 export class OpportunityService {
   static async getAssignedCategories(userId: string): Promise<ProductCategory[]> {
@@ -87,6 +87,18 @@ export class OpportunityService {
             name: true,
           },
         },
+        project: {
+          select: {
+            id: true,
+            projectName: true,
+          },
+        },
+        quotations: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
       },
       orderBy: [
         { createdAt: "asc" }, // FIFO default
@@ -142,6 +154,7 @@ export class OpportunityService {
             payments: true,
           },
         },
+        project: true,
         assignedTo: {
           select: {
             id: true,
@@ -200,6 +213,8 @@ export class OpportunityService {
       assignedToId?: string | null;
       nextFollowUpAt?: Date | null;
       lostReason?: string | null;
+      projectId?: string | null;
+      nextPhase?: ProjectPhase | null;
       followUp?: {
         title?: string;
         description?: string;
@@ -231,6 +246,36 @@ export class OpportunityService {
       const originalStatus = opportunity.status;
       const newStatus = data.status ?? originalStatus;
 
+      if (originalStatus !== newStatus && (newStatus === OpportunityStatus.WON || newStatus === OpportunityStatus.LOST)) {
+        if (!data.followUp || !data.followUp.dueAt) {
+          throw new AppError("Follow-up is required when marking an opportunity as Won or Lost", 400);
+        }
+        if (newStatus === OpportunityStatus.LOST && (!data.lostReason || !data.lostReason.trim())) {
+          throw new AppError("Lost reason is required when marking an opportunity as Lost", 400);
+        }
+        if (!data.nextPhase) {
+          throw new AppError("Next phase is required when marking an opportunity as Won or Lost", 400);
+        }
+
+        // Prevent duplicate follow-ups by removing existing pending reminders
+        await tx.reminder.deleteMany({
+          where: {
+            opportunityId: id,
+            status: "PENDING",
+          },
+        });
+      }
+
+      // Enforce business rules: status can only be QUOTATION_SENT if at least one quotation exists.
+      if (newStatus === OpportunityStatus.QUOTATION_SENT) {
+        const quotesCount = await tx.quotation.count({
+          where: { opportunityId: id },
+        });
+        if (quotesCount === 0) {
+          throw new AppError("Opportunity status cannot be set to Quote Sent because no quotations exist for this opportunity.", 400);
+        }
+      }
+
       // 1. Update opportunity
       const updatedOpportunity = await tx.opportunity.update({
         where: { id },
@@ -240,8 +285,66 @@ export class OpportunityService {
           assignedToId: data.assignedToId !== undefined ? data.assignedToId : undefined,
           nextFollowUpAt: data.nextFollowUpAt !== undefined ? data.nextFollowUpAt : undefined,
           lostReason: newStatus === OpportunityStatus.LOST ? data.lostReason : null,
+          projectId: data.projectId !== undefined ? data.projectId : undefined,
+          nextPhase: (newStatus === OpportunityStatus.WON || newStatus === OpportunityStatus.LOST) ? data.nextPhase : null,
         },
       });
+
+      // Handle lifecycle progression if transitioned to WON or LOST
+      if (originalStatus !== newStatus && (newStatus === OpportunityStatus.WON || newStatus === OpportunityStatus.LOST)) {
+        if (data.nextPhase) {
+          // A. Update linked project current phase
+          if (opportunity.projectId) {
+            await tx.project.update({
+              where: { id: opportunity.projectId },
+              data: {
+                currentPhase: data.nextPhase,
+              },
+            });
+
+            await tx.projectActivity.create({
+              data: {
+                projectId: opportunity.projectId,
+                userId,
+                type: "PHASE_PROGRESSED",
+                message: `Project progressed to phase ${data.nextPhase} upon opportunity ${newStatus.toLowerCase()}`,
+              },
+            });
+          }
+
+          // B. Progress/Create opportunity for the next category
+          const nextCategory = this.mapPhaseToCategory(data.nextPhase);
+          const existingNextOpp = await tx.opportunity.findFirst({
+            where: {
+              customerId: opportunity.customerId,
+              projectId: opportunity.projectId,
+              category: nextCategory,
+            },
+          });
+
+          if (existingNextOpp) {
+            if (!existingNextOpp.isActive) {
+              await tx.opportunity.update({
+                where: { id: existingNextOpp.id },
+                data: { isActive: true },
+              });
+            }
+          } else {
+            await tx.opportunity.create({
+              data: {
+                customerId: opportunity.customerId,
+                projectId: opportunity.projectId,
+                category: nextCategory,
+                status: OpportunityStatus.NEW,
+                assignedToId: opportunity.assignedToId,
+                estimatedValue: null,
+                source: opportunity.source,
+                isActive: true,
+              },
+            });
+          }
+        }
+      }
 
       // 2. Log activity if status changed
       if (originalStatus !== newStatus) {
@@ -434,5 +537,16 @@ export class OpportunityService {
     }
 
     return counts;
+  }
+  static mapPhaseToCategory(phase: ProjectPhase): ProductCategory {
+    switch (phase) {
+      case ProjectPhase.PIPES: return ProductCategory.PIPES;
+      case ProjectPhase.WIRING: return ProductCategory.WIRES;
+      case ProjectPhase.SWITCHES: return ProductCategory.SWITCHES;
+      case ProjectPhase.LIGHTS: return ProductCategory.LIGHTS;
+      case ProjectPhase.FANS: return ProductCategory.FANS;
+      case ProjectPhase.OTHERS: return ProductCategory.OTHERS;
+      default: return ProductCategory.OTHERS;
+    }
   }
 }
