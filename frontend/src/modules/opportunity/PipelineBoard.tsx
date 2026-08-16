@@ -115,25 +115,6 @@ export default function PipelineBoard() {
     e.preventDefault();
   };
 
-const mapCategoryToPhase = (category: string): string => {
-  switch (category) {
-    case "PIPES":
-      return "PIPES";
-    case "WIRES":
-      return "WIRING";
-    case "SWITCHES":
-      return "SWITCHES";
-    case "LIGHTS":
-      return "LIGHTS";
-    case "FANS":
-      return "FANS";
-    case "OTHERS":
-      return "OTHERS";
-    default:
-      return "OTHERS";
-  }
-};
-
   const handleDrop = async (e: React.DragEvent, targetStatus: OpportunityStatus) => {
     e.preventDefault();
     if (!isEditable) {

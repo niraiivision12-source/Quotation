@@ -93,6 +93,7 @@ export default function QuotationPageMain() {
         setLeadId(q.leadId ?? "");
         setCustomerId(q.customerId ?? "");
         setProjectId(q.projectId ?? "");
+	setOpportunityId(q.opportunityId ?? "");
         setPhase(q.phase ?? undefined);
         setValidUntil(q.validUntil ? q.validUntil.slice(0, 10) : "");
         setNotes(q.notes ?? "");
@@ -134,10 +135,15 @@ export default function QuotationPageMain() {
   }, [editId]);
 
   useEffect(() => {
-    if (searchParams.get("leadId") || searchParams.get("customerId")) {
-      setSearchParams({}, { replace: true });
-    }
-  }, []);
+  if (
+    searchParams.get("leadId") ||
+    searchParams.get("customerId") ||
+    searchParams.get("projectId") ||
+    searchParams.get("opportunityId")
+  ) {
+    setSearchParams({}, { replace: true });
+  }
+}, []);
 
   useEffect(() => {
     async function loadUsers() {
