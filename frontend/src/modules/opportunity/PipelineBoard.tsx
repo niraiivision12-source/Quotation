@@ -24,6 +24,25 @@ import { api } from "../../lib/axios";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PipelineColumn from "./PipelineColumn";
 
+const mapCategoryToPhase = (category: string): string => {
+  switch (category) {
+    case "PIPES":
+      return "PIPES";
+    case "WIRES":
+      return "WIRING";
+    case "SWITCHES":
+      return "SWITCHES";
+    case "LIGHTS":
+      return "LIGHTS";
+    case "FANS":
+      return "FANS";
+    case "OTHERS":
+      return "OTHERS";
+    default:
+      return "OTHERS";
+  }
+};
+
 const COLUMNS: { status: OpportunityStatus; title: string; colorClass: string }[] = [
   { status: "NEW", title: "New", colorClass: "border-t-4 border-t-blue-500 bg-blue-50/10" },
   { status: "QUOTATION_SENT", title: "Quote Sent", colorClass: "border-t-4 border-t-purple-500 bg-purple-50/10" },
