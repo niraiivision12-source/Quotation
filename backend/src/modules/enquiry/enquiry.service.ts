@@ -254,8 +254,29 @@ export class EnquiryService {
       throw new AppError("Enquiry not found", 404);
     }
 
-    return prisma.enquiry.delete({
-      where: { id },
+    return prisma.$transaction(async (tx) => {
+      if (enquiry.status === EnquiryStatus.TRIAGED) {
+        const customer = await tx.customer.findUnique({
+          where: { mobile: enquiry.mobile },
+        });
+        if (customer) {
+          const opportunity = await tx.opportunity.findFirst({
+            where: { customerId: customer.id, category: enquiry.category || undefined },
+          });
+          if (opportunity) {
+            await tx.quotation.deleteMany({
+              where: { opportunityId: opportunity.id },
+            });
+            await tx.opportunity.delete({
+              where: { id: opportunity.id },
+            });
+          }
+        }
+      }
+
+      return tx.enquiry.delete({
+        where: { id },
+      });
     });
   }
 

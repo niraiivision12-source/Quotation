@@ -4,9 +4,23 @@ import PageHeader from "../../components/ui/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { Badge } from "../../components/ui/badge";
-import { Phone, Mail, MapPin, Calendar, User, History, FileText, DollarSign } from "lucide-react";
+import { Phone, Mail, MapPin, Calendar, User, History, FileText, DollarSign, Trash2, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "../../components/ui/button";
 
-import { useOpportunity } from "./opportunity.query";
+import { useOpportunity, useDeleteOpportunity } from "./opportunity.query";
+import { formatStatus } from "../../utils/status.utils";
+import { useAuthStore } from "../../store/auth.store";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 
 const STATUS_STYLES: Record<string, string> = {
   NEW: "bg-blue-100 text-blue-700",
@@ -24,7 +38,25 @@ function whatsappLink(mobile: string) {
 
 export default function OpportunityDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: opportunity, isLoading } = useOpportunity(id || null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  const currentUser = useAuthStore((state) => state.user);
+  const isOwner = currentUser?.role === "OWNER";
+
+  const deleteMutation = useDeleteOpportunity();
+
+  const handleDeleteConfirm = async () => {
+    if (!opportunity) return;
+    try {
+      await deleteMutation.mutateAsync(opportunity.id);
+      toast.success("Opportunity/Enquiry permanently deleted.");
+      navigate("/leads");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete opportunity");
+    }
+  };
 
   if (isLoading) {
     return <div className="p-6 text-sm text-slate-500 animate-pulse">Loading opportunity details...</div>;
@@ -41,7 +73,7 @@ export default function OpportunityDetail() {
     .map((a: any) => ({
       date: new Date(a.createdAt),
       title: a.type.replace(/_/g, " "),
-      message: a.message,
+      message: a.message?.replace(/NEGOTIATION/g, "Follow-up")?.replace(/TRIAGED/g, "Assigned"),
       by: a.user?.name,
     }))
     .sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -61,7 +93,7 @@ export default function OpportunityDetail() {
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge className={`${STATUS_STYLES[opportunity.status] || "bg-slate-100 text-slate-700"} font-bold text-xs px-2.5 py-1`}>
-                {opportunity.status.replace(/_/g, " ")}
+                {formatStatus(opportunity.status)}
               </Badge>
               <Badge variant="secondary" className="text-xs font-semibold">
                 {opportunity.category}
@@ -97,16 +129,27 @@ export default function OpportunityDetail() {
             </div>
           </div>
 
-          {customer?.mobile && (
-            <a
-              href={whatsappLink(customer.mobile)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center h-9 px-4 rounded-md text-sm font-medium border border-green-200 text-green-700 hover:bg-green-50 shrink-0"
-            >
-              WhatsApp
-            </a>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {customer?.mobile && (
+              <a
+                href={whatsappLink(customer.mobile)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center h-9 px-4 rounded-md text-sm font-medium border border-green-200 text-green-700 hover:bg-green-50 shrink-0"
+              >
+                <MessageSquare size={15} className="mr-1.5" /> WhatsApp
+              </a>
+            )}
+            {isOwner && (
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmOpen(true)}
+                className="border-red-200 text-red-650 hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash2 size={15} className="mr-1.5" /> Delete
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -182,6 +225,28 @@ export default function OpportunityDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <Trash2 className="text-red-600" size={18} /> Delete Enquiry Opportunity
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete this enquiry opportunity? This action will remove all reminders, tasks, payments, and quotations associated with it, and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteConfirm} disabled={deleteMutation.isPending} className="bg-red-600 hover:bg-red-750 text-white">
+              {deleteMutation.isPending ? "Deleting..." : "Confirm Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

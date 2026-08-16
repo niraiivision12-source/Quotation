@@ -889,14 +889,14 @@ export class LeadService {
         } else if (targetStatus === "NEGOTIATION") {
           if (!data.notes || data.notes.trim() === "") {
             throw new AppError(
-              "Notes are required when status is NEGOTIATION",
+              "Notes are required when status is Follow-up",
               400,
             );
           }
           const rawDueAt = data.followUpDate || data.followUp?.dueAt;
           if (!rawDueAt) {
             throw new AppError(
-              "Follow-up date & time are required when status is NEGOTIATION",
+              "Follow-up date & time are required when status is Follow-up",
               400,
             );
           }
@@ -904,7 +904,7 @@ export class LeadService {
 
           if (!data.reason || data.reason.trim() === "") {
             throw new AppError(
-              "Negotiation reason is required when status is NEGOTIATION",
+              "Follow-up reason is required when status is Follow-up",
               400,
             );
           }
@@ -922,7 +922,7 @@ export class LeadService {
               leadId: lead.id,
               userId,
               type: "STATUS_CHANGED",
-              message: `Status changed from ${lead.status} to NEGOTIATION. Reason: ${data.reason}`,
+              message: `Status changed from ${lead.status} to Follow-up. Reason: ${data.reason}`,
               metadata: {
                 oldStatus: lead.status,
                 newStatus: "NEGOTIATION",
@@ -943,7 +943,7 @@ export class LeadService {
           const reminder = await createNewReminder(tx, lead.id, userId, {
             title:
               data.followUp?.title ??
-              `Follow up with ${lead.name} (Negotiation)`,
+              `Follow up with ${lead.name} (Follow-up)`,
             description: data.followUp?.description,
             priority: data.followUp?.priority ?? "MEDIUM",
             dueAt,
@@ -1180,5 +1180,43 @@ export class LeadService {
         : null,
       projects: lead.customer?.projects ?? [],
     };
+  }
+
+  static async delete(id: string) {
+    const lead = await prisma.lead.findUnique({
+      where: { id },
+    });
+
+    if (!lead) {
+      throw new AppError("Lead not found", 404);
+    }
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Disconnect any Customer referencing this lead
+      await tx.customer.updateMany({
+        where: { leadId: id },
+        data: { leadId: null },
+      });
+
+      // 2. Delete associated quotations
+      await tx.quotation.deleteMany({
+        where: { leadId: id },
+      });
+
+      // 3. Delete associated reminders
+      await tx.reminder.deleteMany({
+        where: { leadId: id },
+      });
+
+      // 4. Delete associated tasks
+      await tx.task.deleteMany({
+        where: { leadId: id },
+      });
+
+      // 5. Delete the lead itself
+      return tx.lead.delete({
+        where: { id },
+      });
+    });
   }
 }

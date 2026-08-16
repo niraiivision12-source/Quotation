@@ -13,6 +13,7 @@ import { Input } from "../../../components/ui/input";
 import { Textarea } from "../../../components/ui/textarea";
 import { useUpdateLead } from "../lead.query";
 import type { Lead, LeadStatus } from "../lead.types";
+import { formatStatus } from "../../../utils/status.utils";
 
 const ALLOWED_TRANSITIONS: Record<LeadStatus, LeadStatus[]> = {
   NEW: ["CONTACTED", "NOT_RESPONDING"],
@@ -88,7 +89,7 @@ export default function LeadStatusDialog({ lead, open, onClose }: Props) {
           reason: reason.trim() || undefined,
         },
       });
-      toast.success(`Lead status changed to ${targetStatus.replace(/_/g, " ")}`);
+      toast.success(`Lead status changed to ${formatStatus(targetStatus)}`);
       handleClose();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to update lead status");
@@ -115,7 +116,7 @@ export default function LeadStatusDialog({ lead, open, onClose }: Props) {
               </option>
               {options.map((s) => (
                 <option key={s} value={s}>
-                  {s.replace(/_/g, " ")}
+                  {formatStatus(s)}
                 </option>
               ))}
             </select>
@@ -146,7 +147,7 @@ export default function LeadStatusDialog({ lead, open, onClose }: Props) {
                 </select>
               ) : (
                 <Input
-                  placeholder="e.g. Negotiating on price"
+                  placeholder="e.g. Following up on details"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />

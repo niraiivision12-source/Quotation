@@ -538,6 +538,40 @@ export class OpportunityService {
 
     return counts;
   }
+
+  static async delete(id: string) {
+    const opportunity = await prisma.opportunity.findUnique({
+      where: { id },
+      include: { customer: true },
+    });
+
+    if (!opportunity) {
+      throw new AppError("Opportunity not found", 404);
+    }
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Delete associated quotations
+      await tx.quotation.deleteMany({
+        where: { opportunityId: id },
+      });
+
+      // 2. Find and delete corresponding Enquiry if it matches customer mobile
+      if (opportunity.customer?.mobile) {
+        await tx.enquiry.deleteMany({
+          where: {
+            mobile: opportunity.customer.mobile,
+            category: opportunity.category,
+          },
+        });
+      }
+
+      // 3. Delete opportunity itself
+      return tx.opportunity.delete({
+        where: { id },
+      });
+    });
+  }
+
   static mapPhaseToCategory(phase: ProjectPhase): ProductCategory {
     switch (phase) {
       case ProjectPhase.PIPES: return ProductCategory.PIPES;

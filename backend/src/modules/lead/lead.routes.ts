@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import { authenticate } from "../../middlewares/auth.middleware";
 import { checkPermission } from "../../middlewares/permission.middleware";
+import { authorize } from "../../middlewares/role.middleware";
+import { UserRole } from "@prisma/client";
 import { asyncHandler } from "../../utils/async-handler";
 
 import { LeadNoteController } from "../lead-notes/lead-note.controller";
@@ -26,6 +28,8 @@ router.post("/:id/convert", asyncHandler(LeadController.convert));
 router.patch("/:id", asyncHandler(LeadController.update));
 
 router.patch("/:id/deactivate", asyncHandler(LeadController.deactivate));
+
+router.delete("/:id", authorize(UserRole.OWNER), asyncHandler(LeadController.delete));
 
 router.get("/:id/projects", asyncHandler(LeadController.getProjects));
 

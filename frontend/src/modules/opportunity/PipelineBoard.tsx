@@ -13,7 +13,6 @@ import {
 } from "../../components/ui/dialog";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
   Calendar,
   LayoutGrid,
   Filter,
@@ -28,7 +27,7 @@ import PipelineColumn from "./PipelineColumn";
 const COLUMNS: { status: OpportunityStatus; title: string; colorClass: string }[] = [
   { status: "NEW", title: "New", colorClass: "border-t-4 border-t-blue-500 bg-blue-50/10" },
   { status: "QUOTATION_SENT", title: "Quote Sent", colorClass: "border-t-4 border-t-purple-500 bg-purple-50/10" },
-  { status: "NEGOTIATION", title: "Negotiation", colorClass: "border-t-4 border-t-pink-500 bg-pink-50/10" },
+  { status: "NEGOTIATION", title: "Follow-up", colorClass: "border-t-4 border-t-pink-500 bg-pink-50/10" },
   { status: "WON", title: "Won 🎉", colorClass: "border-t-4 border-t-green-500 bg-green-50/10" },
   { status: "LOST", title: "Lost ❌", colorClass: "border-t-4 border-t-red-500 bg-red-50/10" },
 ];
@@ -45,9 +44,7 @@ export default function PipelineBoard() {
 
   const [search, setSearch] = useState("");
   const [draggedOpp, setDraggedOpp] = useState<any>(null);
-  const [isLostReasonOpen, setIsLostReasonOpen] = useState(false);
-  const [lostReasonInput, setLostReasonInput] = useState("");
-  const [targetLostOppId, setTargetLostOppId] = useState<string | null>(null);
+  // Unused lost reason states removed
   const [isFollowUpOpen, setIsFollowUpOpen] = useState(false);
   const [followUpDateInput, setFollowUpDateInput] = useState("");
   const [targetNegotiationOppId, setTargetNegotiationOppId] = useState<string | null>(null);
@@ -119,24 +116,7 @@ export default function PipelineBoard() {
     e.preventDefault();
   };
 
-const mapCategoryToPhase = (category: string): string => {
-  switch (category) {
-    case "PIPES":
-      return "PIPES";
-    case "WIRES":
-      return "WIRING";
-    case "SWITCHES":
-      return "SWITCHES";
-    case "LIGHTS":
-      return "LIGHTS";
-    case "FANS":
-      return "FANS";
-    case "OTHERS":
-      return "OTHERS";
-    default:
-      return "OTHERS";
-  }
-};
+  // Unused mapCategoryToPhase helper removed
 
   const handleDrop = async (e: React.DragEvent, targetStatus: OpportunityStatus) => {
     e.preventDefault();
@@ -216,7 +196,7 @@ const mapCategoryToPhase = (category: string): string => {
           nextFollowUpAt: new Date(followUpDateInput).toISOString(),
         },
       });
-      toast.success("Opportunity moved to Negotiation");
+      toast.success("Opportunity moved to Follow-up");
       setIsFollowUpOpen(false);
       setFollowUpDateInput("");
       setTargetNegotiationOppId(null);
@@ -483,7 +463,7 @@ const mapCategoryToPhase = (category: string): string => {
 
           <div className="py-2.5">
             <p className="text-sm text-slate-500 mb-3">
-              Set the next follow-up date for this opportunity as it moves into negotiation.
+              Set the next follow-up date for this opportunity as it moves into follow-up.
             </p>
             <Input
               type="date"

@@ -39,7 +39,7 @@ export default function QuotationPageMain() {
   const [leadId, setLeadId] = useState(() => searchParams.get("leadId") ?? "");
   const [customerId, setCustomerId] = useState(() => searchParams.get("customerId") ?? "");
   const [projectId, setProjectId] = useState(() => searchParams.get("projectId") ?? "");
-  const [opportunityId, setOpportunityId] = useState(() => searchParams.get("opportunityId") ?? "");
+  const [opportunityId] = useState(() => searchParams.get("opportunityId") ?? "");
   const [phase, setPhase] = useState<ProjectPhase | undefined>(() => {
     const p = searchParams.get("phase");
     return p ? (p as ProjectPhase) : undefined;

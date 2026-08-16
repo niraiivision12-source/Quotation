@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
@@ -13,13 +15,22 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import { Button } from "../../components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 
 import { useFuzzySearch } from "../../hooks/useFuzzySearch";
 import { highlightText } from "../../utils/highlight.utils";
+import { useAuthStore } from "../../store/auth.store";
 
-import { useAllLeads } from "./lead.query";
+import { useAllLeads, useDeleteLead } from "./lead.query";
 import type { Lead, LeadStatus } from "./lead.types";
-import { useOpportunities } from "../opportunity/opportunity.query";
+import { useOpportunities, useDeleteOpportunity } from "../opportunity/opportunity.query";
 import type { Opportunity } from "../opportunity/opportunity.types";
 
 interface LeadRow {
@@ -71,6 +82,36 @@ function opportunityToRow(opportunity: Opportunity): LeadRow {
 export default function LeadList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<LeadRow | null>(null);
+
+  const currentUser = useAuthStore((state) => state.user);
+  const isOwner = currentUser?.role === "OWNER";
+
+  const deleteLeadMutation = useDeleteLead();
+  const deleteOppMutation = useDeleteOpportunity();
+
+  const handleDeleteClick = (row: LeadRow) => {
+    setLeadToDelete(row);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!leadToDelete) return;
+    try {
+      if (leadToDelete.origin === "LEAD") {
+        await deleteLeadMutation.mutateAsync(leadToDelete.id);
+        toast.success("Lead permanently deleted.");
+      } else {
+        await deleteOppMutation.mutateAsync(leadToDelete.id);
+        toast.success("Enquiry/Opportunity permanently deleted.");
+      }
+      setDeleteConfirmOpen(false);
+      setLeadToDelete(null);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete.");
+    }
+  };
 
   const { data, isLoading: isLoadingLeads } = useAllLeads();
   const { data: opportunitiesData, isLoading: isLoadingOpportunities } = useOpportunities(
@@ -135,19 +176,20 @@ export default function LeadList() {
             <TableHead>Source</TableHead>
             <TableHead>Assigned To</TableHead>
             <TableHead>Created</TableHead>
+            {isOwner && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
 
         <TableBody>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={9}>Loading...</TableCell>
+              <TableCell colSpan={isOwner ? 10 : 9}>Loading...</TableCell>
             </TableRow>
           )}
 
           {!isLoading && visibleLeads.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9}>No leads found.</TableCell>
+              <TableCell colSpan={isOwner ? 10 : 9}>No leads found.</TableCell>
             </TableRow>
           )}
 
@@ -187,6 +229,18 @@ export default function LeadList() {
               <TableCell>{lead.assignedTo?.name || "-"}</TableCell>
 
               <TableCell>{new Date(lead.createdAt).toLocaleDateString()}</TableCell>
+              {isOwner && (
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleDeleteClick(lead)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
@@ -200,6 +254,32 @@ export default function LeadList() {
           Next
         </Button>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <Trash2 className="text-red-600" size={18} /> Delete {leadToDelete?.origin === "LEAD" ? "Lead" : "Enquiry"}
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete this {leadToDelete?.origin === "LEAD" ? "lead" : "enquiry"}? This will permanently remove all associated data and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              disabled={deleteLeadMutation.isPending || deleteOppMutation.isPending}
+              className="bg-red-600 hover:bg-red-750 text-white"
+            >
+              {deleteLeadMutation.isPending || deleteOppMutation.isPending ? "Deleting..." : "Confirm Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

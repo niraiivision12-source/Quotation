@@ -260,7 +260,7 @@ export default function QuotationRow({
       sellingPrice = mrp;
     } else {
       costPrice = Number(product.costPrice || 0);
-      marginPercent = item.marginPercent || 10;
+      marginPercent = item.marginPercent ?? 0;
       sellingPrice = calculateSellingPrice(costPrice, marginPercent);
     }
 

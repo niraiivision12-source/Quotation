@@ -61,3 +61,8 @@ export const getLeadProjects = async (leadId: string): Promise<{
   const response = await api.get(`/leads/${leadId}/projects`);
   return response.data.data;
 };
+
+export const deleteLead = async (id: string): Promise<any> => {
+  const response = await api.delete(`/leads/${id}`);
+  return response.data;
+};

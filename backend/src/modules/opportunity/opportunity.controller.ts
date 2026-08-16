@@ -88,4 +88,13 @@ export class OpportunityController {
       data: stats,
     });
   }
+
+  static async delete(req: Request, res: Response) {
+    await OpportunityService.delete(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "Opportunity permanently deleted",
+    });
+  }
 }

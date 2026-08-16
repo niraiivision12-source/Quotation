@@ -166,7 +166,7 @@ export default function ReportsPage() {
                 <span className="text-2xl font-bold text-slate-800 tracking-tight">
                   {reportData.averageCycleTimeDays} Days
                 </span>
-                <span className="text-[10px] text-slate-400 block mt-1">Lead triage to conversion time</span>
+                <span className="text-[10px] text-slate-400 block mt-1">Lead assignment to conversion time</span>
               </div>
               <div className="p-2.5 rounded-xl bg-violet-50 text-violet-600 shrink-0">
                 <Clock size={20} />

@@ -17,6 +17,9 @@ import {
   LeadActivityType,
   ProjectStatus,
   PaymentStatus,
+  EnquiryStatus,
+  PurchaseOrderStatus,
+  ProductCategory,
 } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { dummyProducts } from "./dummy-products";
@@ -130,6 +133,10 @@ async function main() {
     "Task",
     "QuotationItem",
     "Quotation",
+    "PurchaseOrderItem",
+    "PurchaseOrder",
+    "Dealer",
+    "Enquiry",
     "ProjectPhaseTracking",
     "ProjectActivity",
     "Project",
@@ -138,6 +145,8 @@ async function main() {
     "LeadNote",
     "LeadActivity",
     "Lead",
+    "OpportunityActivity",
+    "Opportunity",
     "ProductMargin",
     "Product",
     "SystemSettings",
@@ -1152,6 +1161,157 @@ async function main() {
       }
     });
   }
+
+  // 15. Seed Dealers
+  console.log("Seeding dealers...");
+  const dealerNames = [
+    "Schneider Electric Distributors",
+    "Polycab Wires Depot",
+    "Havells Electrical Junction",
+    "Usha Fan Agencies",
+    "Anchor Panasonic Solutions",
+    "Legrand Modular Hub",
+  ];
+  const dealerStates = ["Maharashtra", "Delhi", "Karnataka", "Gujarat", "Tamil Nadu", "West Bengal"];
+  const dbDealers = [];
+  for (let i = 0; i < dealerNames.length; i++) {
+    const firstName = indianFirstNames[(i + 5) % indianFirstNames.length];
+    const lastName = indianLastNames[(i + 12) % indianLastNames.length];
+    const name = dealerNames[i];
+    const city = cities[i % cities.length];
+    const state = dealerStates[i];
+    const email = `contact@${name.toLowerCase().replace(/\s+/g, "")}.com`;
+    const mobile = generateIndianMobile();
+    const gst = `27${name.substring(0, 3).toUpperCase()}${getRandomInt(1000, 9999)}A1Z${getRandomInt(1, 9)}`;
+
+    const dealer = await prisma.dealer.create({
+      data: {
+        name,
+        contactPerson: `${firstName} ${lastName}`,
+        mobile,
+        email,
+        gst,
+        address: `${getRandomInt(100, 900)}, Industrial Area, Phase ${getRandomInt(1, 3)}, ${city}`,
+        city,
+        state,
+        isActive: true,
+      },
+    });
+    dbDealers.push(dealer);
+  }
+  console.log(`Seeded ${dbDealers.length} dealers.`);
+
+  // 16. Seed Purchase Orders & Items
+  console.log("Seeding purchase orders...");
+  const purchaseOrderStatuses = [
+    PurchaseOrderStatus.DRAFT,
+    PurchaseOrderStatus.PENDING,
+    PurchaseOrderStatus.SENT,
+    PurchaseOrderStatus.ACKNOWLEDGED,
+    PurchaseOrderStatus.PARTIALLY_FULFILLED,
+    PurchaseOrderStatus.COMPLETED,
+    PurchaseOrderStatus.CANCELLED,
+    PurchaseOrderStatus.APPROVED,
+    PurchaseOrderStatus.REJECTED,
+  ];
+
+  for (let i = 0; i < 10; i++) {
+    const dealer = dbDealers[i % dbDealers.length];
+    const status = purchaseOrderStatuses[i % purchaseOrderStatuses.length];
+    const createdBy = getRandomElement(dbUsers);
+    const poDate = getRandomDate(startTimelineDate, now);
+    const expectedDeliveryDate = new Date(poDate.getTime() + 7 * 24 * 3600000);
+    const poNumber = `PO-2026-${String(i + 1).padStart(4, "0")}`;
+
+    const po = await prisma.purchaseOrder.create({
+      data: {
+        poNumber,
+        dealerId: dealer.id,
+        poDate,
+        expectedDeliveryDate,
+        deliveryAddress: "405, Pride Icon, Kharadi, Pune, Maharashtra - 411014",
+        notes: `PO generated for restocking electrical components. Status: ${status}`,
+        status,
+        version: 1,
+        createdById: createdBy.id,
+        dealerNameSnapshot: dealer.name,
+        dealerContactPersonSnapshot: dealer.contactPerson,
+        dealerMobileSnapshot: dealer.mobile,
+        dealerEmailSnapshot: dealer.email,
+        dealerAddressSnapshot: dealer.address,
+        dealerGstSnapshot: dealer.gst,
+        companyNameSnapshot: "Antigravity Electrical Systems Pvt Ltd",
+        companyGstSnapshot: "27AAAAA1111A1Z1",
+        companyAddressSnapshot: "405, Pride Icon, Kharadi, Pune, Maharashtra - 411014",
+        companyPhoneSnapshot: "+91 20 6789 0123",
+        companyEmailSnapshot: "info@antigravityelectric.com",
+        companyWebsiteSnapshot: "www.antigravityelectric.com",
+      },
+    });
+
+    // Seed Purchase Order Items (2-4 items per PO)
+    const itemsCount = getRandomInt(2, 4);
+    const selectedProds = getRandomElements(dbProducts, itemsCount);
+    for (const prod of selectedProds) {
+      await prisma.purchaseOrderItem.create({
+        data: {
+          purchaseOrderId: po.id,
+          productId: prod.id,
+          quantity: getRandomInt(50, 200),
+        },
+      });
+    }
+  }
+  console.log("Purchase orders and items seeded.");
+
+  // 17. Seed Enquiries
+  console.log("Seeding enquiries...");
+  const enquirySources = ["WHATSAPP", "WEBSITE", "PHONE", "WALK_IN", "MANUAL"];
+  const enquiryStatuses = [EnquiryStatus.PENDING, EnquiryStatus.TRIAGED, EnquiryStatus.IGNORED];
+  const enquiryCategories = [
+    ProductCategory.PIPES,
+    ProductCategory.WIRES,
+    ProductCategory.SWITCHES,
+    ProductCategory.LIGHTS,
+    ProductCategory.FANS,
+    ProductCategory.OTHERS,
+  ];
+  const enquiryMessages = [
+    "Require modular switches for a 3BHK flat in Pune. Please share pricing.",
+    "Interested in bulk purchase of 2.5 sq mm copper wires (approx 50 rolls).",
+    "Need quotation for decorative ceiling lights and LED panel lights.",
+    "Please send a technician to check electrical layout for site.",
+    "Inquiry for Usha Max Air BLDC fans and modular wall fans.",
+    "Need 2-inch PVC conduit pipes (Supreme or Finolex). Around 150 pieces.",
+    "Want to check dealership margins and onboarding process.",
+  ];
+
+  for (let i = 0; i < 15; i++) {
+    const firstName = indianFirstNames[(i + 17) % indianFirstNames.length];
+    const lastName = indianLastNames[(i + 22) % indianLastNames.length];
+    const city = cities[i % cities.length];
+    const source = enquirySources[i % enquirySources.length];
+    const status = enquiryStatuses[i % enquiryStatuses.length];
+    const category = enquiryCategories[i % enquiryCategories.length];
+    const message = enquiryMessages[i % enquiryMessages.length];
+    const createdAt = getRandomDate(startTimelineDate, now);
+
+    await prisma.enquiry.create({
+      data: {
+        name: `${firstName} ${lastName}`,
+        mobile: generateIndianMobile(),
+        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@outlook.com`,
+        source,
+        message,
+        status,
+        category,
+        city,
+        createdAt,
+        updatedAt: getRandomDate(createdAt, now),
+      },
+    });
+  }
+  console.log("Enquiries seeded.");
 
   console.log("DB Seeding complete! Database is seeded. Running data migration...");
   await runMigration();

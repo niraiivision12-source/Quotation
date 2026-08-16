@@ -1,8 +1,6 @@
--- AlterEnum
-ALTER TYPE "public"."OpportunityStatus" ADD VALUE 'QUOTATION';
-
 -- AlterTable
-ALTER TABLE "public"."Opportunity" ADD COLUMN     "projectId" TEXT;
+ALTER TABLE "public"."Opportunity" ADD COLUMN     "projectId" TEXT,
+ADD COLUMN     "nextPhase" "public"."ProjectPhase";
 
 -- AlterTable
 ALTER TABLE "public"."SystemSettings" ALTER COLUMN "quoteNumberFormat" SET DEFAULT 'QTN-{YYYY}-{MM}-{DD}-{NNN}';

@@ -20,13 +20,25 @@ import {
   MessageSquare,
   StickyNote,
   FolderOpen,
+  Trash2,
 } from "lucide-react";
 
-import { useLead, useUpdateLead } from "./lead.query";
+import { useLead, useUpdateLead, useDeleteLead } from "./lead.query";
 import LeadStatusDialog from "./components/LeadStatusDialog";
 import LeadReminders from "./components/LeadReminders";
 import LeadProjectsTab from "./components/LeadProjectsTab";
 import type { LeadStatus } from "./lead.types";
+import { formatStatus } from "../../utils/status.utils";
+import { useAuthStore } from "../../store/auth.store";
+import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 
 type Tab = "overview" | "quotations" | "reminders" | "timeline" | "projects";
 
@@ -47,12 +59,29 @@ function whatsappLink(mobile: string) {
 
 export default function LeadDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: lead, isLoading } = useLead(id || "");
   const [activeTab, setActiveTab] = useState<Tab>("timeline");
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  const currentUser = useAuthStore((state) => state.user);
+  const isOwner = currentUser?.role === "OWNER";
 
   const updateMutation = useUpdateLead();
+  const deleteMutation = useDeleteLead();
+
+  const handleDeleteConfirm = async () => {
+    if (!lead) return;
+    try {
+      await deleteMutation.mutateAsync(lead.id);
+      toast.success("Lead permanently deleted.");
+      navigate("/leads");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete lead");
+    }
+  };
 
   if (isLoading) {
     return <div className="p-6 text-sm text-slate-500 animate-pulse">Loading lead details...</div>;
@@ -80,7 +109,7 @@ export default function LeadDetail() {
     ...(leadAny.activities || []).map((a: any) => ({
       date: new Date(a.createdAt),
       title: a.type.replace(/_/g, " "),
-      message: a.message,
+      message: a.message?.replace(/NEGOTIATION/g, "Follow-up")?.replace(/TRIAGED/g, "Assigned"),
       iconColor: "bg-blue-500 text-white",
     })),
     ...(leadAny.notesHistory || []).map((n: any) => ({
@@ -106,7 +135,7 @@ export default function LeadDetail() {
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge className={`${STATUS_STYLES[lead.status]} font-bold text-xs px-2.5 py-1`}>
-                {lead.status.replace(/_/g, " ")}
+                {formatStatus(lead.status)}
               </Badge>
               {lead.source && (
                 <Badge variant="secondary" className="text-xs font-semibold">
@@ -149,6 +178,15 @@ export default function LeadDetail() {
             <Button onClick={() => setIsStatusOpen(true)} className="bg-blue-600 hover:bg-blue-700">
               <RefreshCw size={15} className="mr-1.5" /> Change Status
             </Button>
+            {isOwner && (
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmOpen(true)}
+                className="border-red-200 text-red-650 hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash2 size={15} className="mr-1.5" /> Delete
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -295,6 +333,28 @@ export default function LeadDetail() {
       </div>
 
       <LeadStatusDialog lead={lead} open={isStatusOpen} onClose={() => setIsStatusOpen(false)} />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <Trash2 className="text-red-600" size={18} /> Delete Lead
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete this lead? This action will remove all reminders, tasks, and quotations associated with it, and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteConfirm} disabled={deleteMutation.isPending} className="bg-red-600 hover:bg-red-750 text-white">
+              {deleteMutation.isPending ? "Deleting..." : "Confirm Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
