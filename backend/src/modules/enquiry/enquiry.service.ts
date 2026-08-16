@@ -109,7 +109,7 @@ export class EnquiryService {
     }
 
     if (enquiry.status !== EnquiryStatus.PENDING) {
-      throw new AppError("Enquiry has already been triaged or ignored", 400);
+      throw new AppError("Enquiry has already been assigned or ignored", 400);
     }
 
     const mapCategoryToPhase = (cat: ProductCategory): ProjectPhase => {
@@ -160,7 +160,7 @@ export class EnquiryService {
           data: {
             customerId: customer.id,
             type: "CREATED",
-            message: "Customer created automatically from enquiry triage",
+            message: "Customer created automatically from enquiry assignment",
           },
         });
       }
@@ -270,7 +270,7 @@ export class EnquiryService {
           data: {
             projectId: project.id,
             type: "CREATED",
-            message: "Project created automatically from enquiry triage",
+            message: "Project created automatically from enquiry assignment",
           },
         });
       } else {
@@ -313,8 +313,8 @@ export class EnquiryService {
           customerId: customer.id,
           type: "OPPORTUNITY_CREATED",
           message: trimmedNotes
-            ? `Created opportunity for ${category} linked to enquiry triage. Notes: ${trimmedNotes}`
-            : `Created opportunity for ${category} linked to enquiry triage`,
+            ? `Created opportunity for ${category} linked to enquiry assignment. Notes: ${trimmedNotes}`
+            : `Created opportunity for ${category} linked to enquiry assignment`,
           metadata: { opportunityId: opportunity.id },
         },
       });
@@ -384,7 +384,7 @@ export class EnquiryService {
 
     if (enquiry.status !== EnquiryStatus.PENDING) {
       throw new AppError(
-        "Only PENDING enquiries can be edited. Triaged and ignored enquiries are immutable.",
+        "Only PENDING enquiries can be edited. Assigned and ignored enquiries are immutable.",
         400
       );
     }

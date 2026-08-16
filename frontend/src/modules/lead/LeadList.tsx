@@ -13,13 +13,16 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import { Button } from "../../components/ui/button";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { useFuzzySearch } from "../../hooks/useFuzzySearch";
 import { highlightText } from "../../utils/highlight.utils";
+import { useAuthStore } from "../../store/auth.store";
 
-import { useAllLeads } from "./lead.query";
+import { useAllLeads, useDeleteLead } from "./lead.query";
 import type { Lead, LeadStatus } from "./lead.types";
-import { useOpportunities } from "../opportunity/opportunity.query";
+import { useOpportunities, useDeleteOpportunity } from "../opportunity/opportunity.query";
 import type { Opportunity } from "../opportunity/opportunity.types";
 
 interface LeadRow {
@@ -71,6 +74,30 @@ function opportunityToRow(opportunity: Opportunity): LeadRow {
 export default function LeadList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+
+  const user = useAuthStore((state) => state.user);
+  const isOwner = user?.role === "OWNER";
+
+  const deleteLeadMutation = useDeleteLead();
+  const deleteOpportunityMutation = useDeleteOpportunity();
+
+  const handleDeleteClick = async (lead: LeadRow) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to permanently delete this ${lead.origin === "LEAD" ? "lead" : "enquiry"}?`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      if (lead.origin === "LEAD") {
+        await deleteLeadMutation.mutateAsync(lead.id);
+      } else {
+        await deleteOpportunityMutation.mutateAsync(lead.id);
+      }
+      toast.success(`${lead.origin === "LEAD" ? "Lead" : "Enquiry"} deleted successfully`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete");
+    }
+  };
 
   const { data, isLoading: isLoadingLeads } = useAllLeads();
   const { data: opportunitiesData, isLoading: isLoadingOpportunities } = useOpportunities(
@@ -135,19 +162,20 @@ export default function LeadList() {
             <TableHead>Source</TableHead>
             <TableHead>Assigned To</TableHead>
             <TableHead>Created</TableHead>
+            {isOwner && <TableHead className="text-right pr-6">Action</TableHead>}
           </TableRow>
         </TableHeader>
 
         <TableBody>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={9}>Loading...</TableCell>
+              <TableCell colSpan={isOwner ? 10 : 9}>Loading...</TableCell>
             </TableRow>
           )}
 
           {!isLoading && visibleLeads.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9}>No leads found.</TableCell>
+              <TableCell colSpan={isOwner ? 10 : 9}>No leads found.</TableCell>
             </TableRow>
           )}
 
@@ -187,6 +215,19 @@ export default function LeadList() {
               <TableCell>{lead.assignedTo?.name || "-"}</TableCell>
 
               <TableCell>{new Date(lead.createdAt).toLocaleDateString()}</TableCell>
+              {isOwner && (
+                <TableCell className="text-right pr-6">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleDeleteClick(lead)}
+                    disabled={deleteLeadMutation.isPending || deleteOpportunityMutation.isPending}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

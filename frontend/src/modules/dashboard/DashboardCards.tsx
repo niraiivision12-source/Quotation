@@ -51,7 +51,7 @@ export function DashboardCards({ data }: DashboardCardsProps) {
       {
         title: "Pending Enquiries",
         value: (kpis.pendingEnquiries ?? 0).toString(),
-        description: "Awaiting triage assignment",
+        description: "Awaiting assignment",
         icon: Clock,
         color: "text-amber-600 bg-amber-50/60 dark:bg-amber-950/20",
       },
@@ -193,7 +193,7 @@ export function DashboardCards({ data }: DashboardCardsProps) {
       color: "text-amber-600 bg-amber-50/60 dark:bg-amber-950/20",
     },
     {
-      title: "Negotiations",
+      title: "Follow-up",
       value: (kpis.negotiations ?? 0).toString(),
       description: "Under active discussion",
       icon: TrendingUp,

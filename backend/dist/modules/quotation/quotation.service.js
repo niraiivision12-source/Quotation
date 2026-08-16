@@ -209,9 +209,6 @@ class QuotationService {
             else {
                 const costPrice = productCostPrice;
                 let marginPercent = item.marginPercent ?? 0;
-                if (marginPercent === 0) {
-                    marginPercent = Number(settings.pricingDefaultMargin);
-                }
                 if (user.role === "SALESMAN") {
                     if (!settings.pricingAllowMarginOverride) {
                         if (marginPercent !== Number(settings.pricingDefaultMargin)) {

@@ -88,7 +88,7 @@ export default function LeadStatusDialog({ lead, open, onClose }: Props) {
           reason: reason.trim() || undefined,
         },
       });
-      toast.success(`Lead status changed to ${targetStatus.replace(/_/g, " ")}`);
+      toast.success(`Lead status changed to ${targetStatus === "NEGOTIATION" ? "Follow-up" : targetStatus.replace(/_/g, " ")}`);
       handleClose();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to update lead status");
@@ -115,7 +115,7 @@ export default function LeadStatusDialog({ lead, open, onClose }: Props) {
               </option>
               {options.map((s) => (
                 <option key={s} value={s}>
-                  {s.replace(/_/g, " ")}
+                  {s === "NEGOTIATION" ? "Follow-up" : s.replace(/_/g, " ")}
                 </option>
               ))}
             </select>

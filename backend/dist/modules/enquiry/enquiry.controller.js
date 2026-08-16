@@ -40,7 +40,7 @@ class EnquiryController {
         const result = await enquiry_service_1.EnquiryService.triage(id, category, notes, projectName);
         return res.status(200).json({
             success: true,
-            message: "Enquiry triaged successfully",
+            message: "Enquiry assigned successfully",
             data: result,
         });
     }

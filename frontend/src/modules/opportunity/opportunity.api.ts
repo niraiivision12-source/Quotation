@@ -55,3 +55,7 @@ export const getOpportunityCounts = async (
   });
   return response.data.data;
 };
+
+export const deleteOpportunity = async (id: string): Promise<void> => {
+  await api.delete(`/opportunities/${id}`);
+};

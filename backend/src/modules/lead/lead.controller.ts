@@ -117,4 +117,13 @@ export class LeadController {
       data: result,
     });
   }
+
+  static async remove(req: Request, res: Response) {
+    const { id } = req.params;
+    await LeadService.delete(id as string);
+    return res.status(200).json({
+      success: true,
+      message: "Lead deleted successfully",
+    });
+  }
 }

@@ -88,4 +88,13 @@ export class OpportunityController {
       data: stats,
     });
   }
+
+  static async remove(req: Request, res: Response) {
+    const { id } = req.params;
+    await OpportunityService.delete(id as string);
+    return res.status(200).json({
+      success: true,
+      message: "Opportunity deleted successfully",
+    });
+  }
 }

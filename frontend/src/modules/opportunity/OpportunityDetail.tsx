@@ -61,7 +61,7 @@ export default function OpportunityDetail() {
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge className={`${STATUS_STYLES[opportunity.status] || "bg-slate-100 text-slate-700"} font-bold text-xs px-2.5 py-1`}>
-                {opportunity.status.replace(/_/g, " ")}
+                {opportunity.status === "NEGOTIATION" ? "Follow-up" : opportunity.status.replace(/_/g, " ")}
               </Badge>
               <Badge variant="secondary" className="text-xs font-semibold">
                 {opportunity.category}

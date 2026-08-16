@@ -14,6 +14,7 @@ router.get("/stats", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadCon
 router.get("/check-mobile", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.checkMobile));
 router.get("/:id", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.getById));
 router.post("/:id/convert", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.convert));
+router.delete("/:id", (0, permission_middleware_1.checkPermission)("accessSettings"), (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.remove));
 router.patch("/:id", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.update));
 router.patch("/:id/deactivate", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.deactivate));
 router.get("/:id/projects", (0, async_handler_1.asyncHandler)(lead_controller_1.LeadController.getProjects));

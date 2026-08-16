@@ -6,6 +6,7 @@ import {
   getOpportunityCounts,
   getOpportunityStats,
   updateOpportunity,
+  deleteOpportunity,
 } from "./opportunity.api";
 
 export const useOpportunities = (
@@ -82,5 +83,18 @@ export const useOpportunityStats = () => {
   return useQuery({
     queryKey: ["opportunity-stats"],
     queryFn: getOpportunityStats,
+  });
+};
+
+export const useDeleteOpportunity = () => {
+  return useMutation({
+    mutationFn: deleteOpportunity,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+      queryClient.invalidateQueries({ queryKey: ["opportunities-by-status"] });
+      queryClient.invalidateQueries({ queryKey: ["opportunity-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["opportunity-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
   });
 };

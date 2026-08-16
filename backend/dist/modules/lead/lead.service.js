@@ -965,6 +965,20 @@ class LeadService {
             projects: lead.customer?.projects ?? [],
         };
     }
+    static async delete(id) {
+        const lead = await prisma_1.prisma.lead.findUnique({
+            where: { id },
+        });
+        if (!lead) {
+            throw new app_error_1.AppError("Lead not found", 404);
+        }
+        return prisma_1.prisma.$transaction(async (tx) => {
+            await tx.reminder.deleteMany({ where: { leadId: id } });
+            await tx.task.deleteMany({ where: { leadId: id } });
+            await tx.quotation.deleteMany({ where: { leadId: id } });
+            await tx.lead.delete({ where: { id } });
+        });
+    }
 }
 exports.LeadService = LeadService;
 //# sourceMappingURL=lead.service.js.map

@@ -106,7 +106,7 @@ export default function LeadDetail() {
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge className={`${STATUS_STYLES[lead.status]} font-bold text-xs px-2.5 py-1`}>
-                {lead.status.replace(/_/g, " ")}
+                {lead.status === "NEGOTIATION" ? "Follow-up" : lead.status.replace(/_/g, " ")}
               </Badge>
               {lead.source && (
                 <Badge variant="secondary" className="text-xs font-semibold">

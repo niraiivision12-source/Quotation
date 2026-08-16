@@ -85,7 +85,7 @@ class EnquiryService {
             throw new app_error_1.AppError("Enquiry not found", 404);
         }
         if (enquiry.status !== client_1.EnquiryStatus.PENDING) {
-            throw new app_error_1.AppError("Enquiry has already been triaged or ignored", 400);
+            throw new app_error_1.AppError("Enquiry has already been assigned or ignored", 400);
         }
         const mapCategoryToPhase = (cat) => {
             switch (cat) {
@@ -131,7 +131,7 @@ class EnquiryService {
                     data: {
                         customerId: customer.id,
                         type: "CREATED",
-                        message: "Customer created automatically from enquiry triage",
+                        message: "Customer created automatically from enquiry assignment",
                     },
                 });
             }
@@ -228,7 +228,7 @@ class EnquiryService {
                     data: {
                         projectId: project.id,
                         type: "CREATED",
-                        message: "Project created automatically from enquiry triage",
+                        message: "Project created automatically from enquiry assignment",
                     },
                 });
             }
@@ -268,8 +268,8 @@ class EnquiryService {
                     customerId: customer.id,
                     type: "OPPORTUNITY_CREATED",
                     message: trimmedNotes
-                        ? `Created opportunity for ${category} linked to enquiry triage. Notes: ${trimmedNotes}`
-                        : `Created opportunity for ${category} linked to enquiry triage`,
+                        ? `Created opportunity for ${category} linked to enquiry assignment. Notes: ${trimmedNotes}`
+                        : `Created opportunity for ${category} linked to enquiry assignment`,
                     metadata: { opportunityId: opportunity.id },
                 },
             });
@@ -318,7 +318,7 @@ class EnquiryService {
             throw new app_error_1.AppError("Enquiry not found", 404);
         }
         if (enquiry.status !== client_1.EnquiryStatus.PENDING) {
-            throw new app_error_1.AppError("Only PENDING enquiries can be edited. Triaged and ignored enquiries are immutable.", 400);
+            throw new app_error_1.AppError("Only PENDING enquiries can be edited. Assigned and ignored enquiries are immutable.", 400);
         }
         return prisma_1.prisma.enquiry.update({
             where: { id },

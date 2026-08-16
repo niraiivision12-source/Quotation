@@ -56,6 +56,14 @@ class OpportunityController {
             data: stats,
         });
     }
+    static async remove(req, res) {
+        const { id } = req.params;
+        await opportunity_service_1.OpportunityService.delete(id);
+        return res.status(200).json({
+            success: true,
+            message: "Opportunity deleted successfully",
+        });
+    }
 }
 exports.OpportunityController = OpportunityController;
 //# sourceMappingURL=opportunity.controller.js.map

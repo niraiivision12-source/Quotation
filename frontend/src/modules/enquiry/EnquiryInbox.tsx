@@ -328,13 +328,13 @@ export default function EnquiryInbox() {
         notes: triageNotes.trim() || undefined,
         projectName: projectName.trim() || undefined,
       });
-      toast.success("Enquiry triaged and moved to pipeline successfully!");
+      toast.success("Enquiry assigned and moved to pipeline successfully!");
       setIsTriageOpen(false);
       setSelectedEnquiryId(null);
       setTriageNotes("");
       setProjectName("");
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to triage enquiry");
+      toast.error(err.response?.data?.message || "Failed to assign enquiry");
     }
   };
 
@@ -602,7 +602,7 @@ export default function EnquiryInbox() {
                     activeTab === tab ? activeClasses : "hover:text-slate-900 hover:bg-white/60"
                   }`}
                 >
-                  {tab}
+                  {tab === "TRIAGED" ? "ASSIGNED" : tab}
                   {typeof tabCounts[tab] === "number" && (
                     <span
                       className={`ml-1 ${activeTab === tab ? "text-white/80" : "text-slate-400"}`}
@@ -815,7 +815,7 @@ export default function EnquiryInbox() {
                             }}
                             className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700"
                           >
-                            <Sparkles size={12} className="mr-1" /> Triage
+                            <Sparkles size={12} className="mr-1" /> Assign
                           </Button>
                         </div>
                       )}
@@ -972,14 +972,14 @@ export default function EnquiryInbox() {
                       <Trash2 size={14} className="mr-1.5" /> Delete
                     </Button>
                     <Button onClick={() => handleOpenTriage(selectedEnquiry.id)} className="bg-blue-600 hover:bg-blue-700">
-                      <Sparkles size={15} className="mr-1.5" /> Triage & Assign
+                      <Sparkles size={15} className="mr-1.5" /> Assign
                     </Button>
                   </>
                 )}
                 {selectedEnquiry.status === "TRIAGED" && (
                   <>
                     <Badge className="bg-green-50 text-green-700 border border-green-200 font-semibold px-2.5 py-1">
-                      <CheckCircle size={13} className="mr-1 inline-block" /> Triaged to {selectedEnquiry.category}
+                      <CheckCircle size={13} className="mr-1 inline-block" /> Assigned to {selectedEnquiry.category}
                     </Badge>
                     {/* Delete button for triaged */}
                     <Button
@@ -1035,7 +1035,7 @@ export default function EnquiryInbox() {
                   {triageNoteFromActivity && (
                     <>
                       <span className="font-bold text-green-800 uppercase tracking-wider text-[10px] mt-2">
-                        Triage Notes
+                        Assignment Notes
                       </span>
                       <p className="text-green-900">{triageNoteFromActivity}</p>
                     </>
@@ -1056,7 +1056,7 @@ export default function EnquiryInbox() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400">
             <Inbox size={48} className="text-slate-300 animate-pulse" />
-            <p className="text-sm font-medium">Select an enquiry from the inbox list to triage</p>
+            <p className="text-sm font-medium">Select an enquiry from the inbox list to assign</p>
           </div>
         )}
       </div>
@@ -1126,7 +1126,7 @@ export default function EnquiryInbox() {
               Cancel
             </Button>
             <Button onClick={handleTriageConfirm} disabled={triageMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
-              {triageMutation.isPending ? "Triaging..." : "Confirm Triage"}
+              {triageMutation.isPending ? "Assigning..." : "Confirm Assignment"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1307,7 +1307,7 @@ export default function EnquiryInbox() {
             </p>
             {deleteTargetId && (
               <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-800">
-                <strong>Note:</strong> If this enquiry was already triaged and converted to an opportunity, the customer
+                <strong>Note:</strong> If this enquiry was already assigned and converted to an opportunity, the customer
                 record and opportunity will not be affected — only this enquiry record will be removed.
               </div>
             )}
@@ -1429,7 +1429,7 @@ export default function EnquiryInbox() {
               You are about to <strong>permanently delete {selectedIds.size} enquiry/enquiries</strong>. This action cannot be undone.
             </p>
             <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-800">
-              <strong>Note:</strong> Any customers or opportunities that were created from triaged enquiries will not be affected.
+              <strong>Note:</strong> Any customers or opportunities that were created from assigned enquiries will not be affected.
             </div>
           </div>
 

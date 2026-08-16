@@ -46,7 +46,7 @@ const mapCategoryToPhase = (category: string): string => {
 const COLUMNS: { status: OpportunityStatus; title: string; colorClass: string }[] = [
   { status: "NEW", title: "New", colorClass: "border-t-4 border-t-blue-500 bg-blue-50/10" },
   { status: "QUOTATION_SENT", title: "Quote Sent", colorClass: "border-t-4 border-t-purple-500 bg-purple-50/10" },
-  { status: "NEGOTIATION", title: "Negotiation", colorClass: "border-t-4 border-t-pink-500 bg-pink-50/10" },
+  { status: "NEGOTIATION", title: "Follow-up", colorClass: "border-t-4 border-t-pink-500 bg-pink-50/10" },
   { status: "WON", title: "Won 🎉", colorClass: "border-t-4 border-t-green-500 bg-green-50/10" },
   { status: "LOST", title: "Lost ❌", colorClass: "border-t-4 border-t-red-500 bg-red-50/10" },
 ];
@@ -213,7 +213,7 @@ export default function PipelineBoard() {
           nextFollowUpAt: new Date(followUpDateInput).toISOString(),
         },
       });
-      toast.success("Opportunity moved to Negotiation");
+      toast.success("Opportunity moved to Follow-up");
       setIsFollowUpOpen(false);
       setFollowUpDateInput("");
       setTargetNegotiationOppId(null);
@@ -480,7 +480,7 @@ export default function PipelineBoard() {
 
           <div className="py-2.5">
             <p className="text-sm text-slate-500 mb-3">
-              Set the next follow-up date for this opportunity as it moves into negotiation.
+              Set the next follow-up date for this opportunity as it moves into follow-up.
             </p>
             <Input
               type="date"

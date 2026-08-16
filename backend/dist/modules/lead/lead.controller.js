@@ -88,6 +88,14 @@ class LeadController {
             data: result,
         });
     }
+    static async remove(req, res) {
+        const { id } = req.params;
+        await lead_service_1.LeadService.delete(id);
+        return res.status(200).json({
+            success: true,
+            message: "Lead deleted successfully",
+        });
+    }
 }
 exports.LeadController = LeadController;
 //# sourceMappingURL=lead.controller.js.map

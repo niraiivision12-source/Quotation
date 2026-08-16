@@ -55,7 +55,7 @@ export class EnquiryController {
 
     return res.status(200).json({
       success: true,
-      message: "Enquiry triaged successfully",
+      message: "Enquiry assigned successfully",
       data: result,
     });
   }

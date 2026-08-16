@@ -23,6 +23,8 @@ router.get("/:id", asyncHandler(LeadController.getById));
 
 router.post("/:id/convert", asyncHandler(LeadController.convert));
 
+router.delete("/:id", checkPermission("accessSettings"), asyncHandler(LeadController.remove));
+
 router.patch("/:id", asyncHandler(LeadController.update));
 
 router.patch("/:id/deactivate", asyncHandler(LeadController.deactivate));
